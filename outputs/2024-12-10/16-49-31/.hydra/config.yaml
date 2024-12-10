@@ -1,0 +1,11 @@
+augmentation:
+  biasparam: 10
+  gamma_param: 10
+deformation:
+  deform_parm: 1
+intensity:
+  seeds_param: 1
+reconstruction:
+  supresolution: 1
+dataset:
+  bids_path: /data/ds000114

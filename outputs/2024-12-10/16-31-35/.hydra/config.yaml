@@ -1,0 +1,3 @@
+augmentation:
+  biasparam: 10
+  gamma_param: 10
