@@ -3,8 +3,9 @@ defaults:
   - augmentation:
     - biasfield
     - gamma
+  - dataset/fetal
   # folder/yaml when only one config is selected from the workspace
   - deformation/deform
   - intensity/seeds
   - reconstruction/supresolution
-  - dataset/bidspaths
+  - hydra/default

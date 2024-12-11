@@ -1,17 +1,29 @@
-class FetalSynthGen:
-    def __init__(self):
-        # intensity_generator: SeedGenerator | RealImageGenerator
-        # deformation: DeformationClass
-        pass
+import torch
 
 
-def sample(self, gen_input, gt_segmentation=None, gt_image=None)
-	# gen_input is either seeds or image
-	gen_output = intensity_generator.sample(gen_input)
-	
-    # deform
-	gen_output, gt_segmentation, gt_image = deformation(gen_output, gt_segmentation, gt_image)
-	
-	# augment
-	gen_output = augment(gen_output, generation_args)
-	return gen_output, gt_segmentation, gt_image
+class SynthGen:
+    def __init__(self, param1):
+
+        self.intensity_generator = param1
+
+    def sample(self, image, segmentation, seeds: torch.Tensor | None):
+        return 1, 2, 3, 4
+        # TODO: Clarify with Thomas should the image be augmented or not when output
+        # is image
+
+        # 1. Generate intensity output
+        # if seeds are passed, used them to generate the intensity
+        # image randomly, otherwise skip this step and use the
+        # original image
+        # if seeds is not None:
+        #     output = self.intensity_generator(seeds)
+        # else:
+        #     output = image
+
+        # # 2. Spatially deform the inputs
+        # image, segmentation, output = self.spatial_deform(image, segmentation, output)
+
+        # # 3. Augment the inputs
+        # image, segmentation, output = self.augment(image, segmentation, output)
+
+        # return output, segmentation, image

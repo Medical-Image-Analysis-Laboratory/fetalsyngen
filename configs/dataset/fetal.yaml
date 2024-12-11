@@ -1,0 +1,16 @@
+# # loads by default the transforms from the preprocess.yaml file
+# defaults:
+#   - preprocess
+
+_target_: fetalsyngen.dataset.fetal.FetalSynthDataset
+bids_path: ./data
+seed_path: null
+sub_list: null
+generator:
+  _target_: fetalsyngen.generator.SynthGen
+  param1: 10
+
+
+# transforms from the preprocess.yaml file
+# can be overridden here
+# transforms: null

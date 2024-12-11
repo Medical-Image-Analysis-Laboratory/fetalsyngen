@@ -1,0 +1,32 @@
+transforms:
+  _target_: monai.transforms.Compose
+  transforms:
+
+    - _target_: monai.transforms.SignalFillEmptyd
+      keys: ["image", "label"]
+      replacement: 0
+      allow_missing_keys: true
+
+    - _target_: monai.transforms.CropForegroundd
+      keys: ["image", "label"]
+      source_key: "image"
+      allow_smaller: true
+      margin: 0
+      allow_missing_keys: true
+
+    - _target_: monai.transforms.Spacingd
+      keys: ["image", "label"]
+      pixdim: [0.5, 0.5, 0.5]
+      mode: ["bilinear", "nearest"]
+      allow_missing_keys: true
+
+    - _target_: monai.transforms.SpatialPadd
+      keys: ["image", "label"]
+      spatial_size: [256, 256, 256]
+      mode: "constant"
+      allow_missing_keys: true
+
+    - _target_: monai.transforms.CenterSpatialCropd
+      keys: ["image", "label"]
+      roi_size: [256, 256, 256]
+      allow_missing_keys: true

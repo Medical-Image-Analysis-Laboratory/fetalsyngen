@@ -1,0 +1,4 @@
+# prevents hydra run logs from being saved to a subdirectory
+run:
+  dir: .
+output_subdir: null
