@@ -8,6 +8,7 @@ from monai.transforms import (
 from monai.transforms import Compose
 from fetalsyngen.generator import SynthGen
 from hydra.utils import instantiate
+from fetalsyngen.dataset.readers import SimpleITKReader
 
 
 # TODO: keep in mind base_transforms (croppings) to be applied and think of the way to aooly them
@@ -39,9 +40,7 @@ class FetalDataset:
         self.sub_ses = [
             (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
-        self.loader = LoadImage(
-            reader="NibabelReader",
-        )
+        self.loader = SimpleITKReader()
         self.scaler = ScaleIntensityd(
             keys=["image"],
             minv=0,
@@ -199,6 +198,7 @@ class FetalSynthDataset(FetalDataset):
         generator: SynthGen,
         seed_path: str | None,
         sub_list: list[str] | None,
+        load_image: bool = False,
     ):
         """
 
@@ -212,10 +212,14 @@ class FetalSynthDataset(FetalDataset):
                 intensities will be based on the input image.
             generator: SynthGen object with the generator to use.
             sub_list: List of the subjects to use.
+            load_image: If True, the image is loaded and passed to the generator,
+                where it can be used as the intensity prior instead of a random
+                intensity sampling or spatially deformed with the same transformation
+                field as segmentation and the syntehtic image. Default is False.
         """
         super().__init__(bids_path, sub_list)
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
-
+        self.load_image = load_image
         self.generator = generator
 
         # parse seeds paths
@@ -233,11 +237,17 @@ class FetalSynthDataset(FetalDataset):
             self._sub_ses_string(sub, ses): defaultdict(dict)
             for (sub, ses) in self.sub_ses
         }
+        avail_seeds = [
+            int(x.name.replace("subclasses_", ""))
+            for x in self.seed_path.glob("subclasses_*")
+        ]
+        min_seeds_available = min(avail_seeds)
+        max_seeds_available = max(avail_seeds)
         for n_sub in range(
-            self.generator_params.base_generator.min_subclasses,
-            self.generator_params.base_generator.max_subclasses + 1,
+            min_seeds_available,
+            max_seeds_available + 1,
         ):
-            seed_path = self.seed_root / f"subclasses_{n_sub}"
+            seed_path = self.seed_path / f"subclasses_{n_sub}"
             if not seed_path.exists():
                 raise FileNotFoundError(
                     f"Provided seed path {seed_path} does not exist."
@@ -259,7 +269,7 @@ class FetalSynthDataset(FetalDataset):
                 of a format `sub_ses` where `sub` is the subject name
                 and `ses` is the session name.
         """
-        image = self.loader(self.img_paths[idx])
+        image = self.loader(self.img_paths[idx]) if self.load_image else None
         segm = self.loader(self.segm_paths[idx])
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
