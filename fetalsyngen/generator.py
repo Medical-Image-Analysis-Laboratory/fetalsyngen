@@ -31,101 +31,71 @@ class SynthGen:
         rand_noise: RandNoise,
         rand_gamma: RandGamma,
         spatial_deform: SpatialDeformation,
-        # image_transforms,
         device: str,
     ):
         self.shape = shape
         self.resolution = resolution
         self.intensity_generator = image_seed_generator
         self.spatial_deform = spatial_deform
-        # self.image_transforms = image_transforms
         self.resampled = rand_resample
         self.biasfield = rand_biasfield
         self.gamma = rand_gamma
         self.noise = rand_noise
         self.device = device
-        # seed loading parameters
 
     def sample(self, image, segmentation, seeds: torch.Tensor | None):
-        generation_params = {}
+        synth_params = {}
 
-        # 1. Generate intensity output
-        # if seeds are passed, used them to generate the intensity
-        # image randomly, otherwise skip this step and use the
-        # original image
-        start_time = time.time()
-
+        # 1. Generate intensity output.
         if seeds is not None:
-            seeds = self.intensity_generator.load_seeds(seeds)
-
-            output = self.intensity_generator.sample_intensities(seeds)
-            intensity_time = time.time() - start_time
-            print("Intensity time: ", intensity_time)
-            # 0.21s per generation already and ~400mb of GPU
+            seeds, selected_seeds = self.intensity_generator.load_seeds(seeds)
+            output, seed_intensities = self.intensity_generator.sample_intensities(
+                seeds, self.device
+            )
         else:
             if image is None:
                 raise ValueError(
                     "If no seeds are passed, an image must be loaded to be used as intensity prior!"
                 )
             output = image
+            selected_seeds = {}
+            seed_intensities = {}
 
-        # 2. Spatially deform the inputs
-        image, segmentation, output = self.spatial_deform.deform(
+        # 2. Spatially deform the data
+        image, segmentation, output, deform_params = self.spatial_deform.deform(
             image, segmentation, output
         )
-        spatial_defom_time = time.time() - start_time
-        print("Spatial deformation time: ", spatial_defom_time)
 
-        # 3. Gamma
-        output = self.gamma(output)
+        # 3. Gamma contrast transformation
+        output, gamma_params = self.gamma(output, self.device)
 
-        # 4. Bias field
-        output = self.biasfield(output)
+        # 4. Bias field corruption
+        output, bf_params = self.biasfield(output, self.device)
 
-        # 5. Downsample
-        print(self.resolution)
-        output, factors = self.resampled(output, self.device, np.array(self.resolution))
-        resampling_time = time.time() - start_time
-        print("Resampling time: ", resampling_time)
-        print(f"Shape: {image.shape}, {segmentation.shape}, {output.shape}")
-
-        # 6. Noise
-        output = self.noise(output)
-
-        # 7. Up-sample back
-        output = self.resampled.resize_back(output, factors)
-        resampling_time = time.time() - start_time
-        print("Resampling time: ", resampling_time)
-        print(f"Up-scaled shapes: {image.shape}, {segmentation.shape}, {output.shape}")
-
-        # 8. SR-artifacts
-
-        # Apply augmentations
-
-        # 4. Augment the output
-        # don't change the image
-        # print("Augmentation time: ", time.time() - start_time)
-        # print(self.image_transforms)
-        # output = self.image_transforms(output)
-        # Resampling
-        # Bias
-        # Noise
-        # Blur
-        # Contrast - gama
-        sitk.WriteImage(sitk.GetImageFromArray(image.cpu().numpy()), "image.nii")
-        sitk.WriteImage(sitk.GetImageFromArray(output.cpu().numpy()), "output.nii")
-        sitk.WriteImage(
-            sitk.GetImageFromArray(segmentation.cpu().numpy()), "segmentation.nii"
+        # 5. Downsample to simulate lower reconstruction resolution
+        output, factors, resample_params = self.resampled(
+            output, np.array(self.resolution), self.device
         )
-        print(f"Total time: {time.time() - start_time}")
-        return output, segmentation, image, generation_params
 
-        # # change to n_channels, x, y, z
-        # print(f"Shape: {image.shape}, {segmentation.shape}, {output.shape}")
-        # print(f"Dtype: {image.dtype}, {segmentation.dtype}, {output.dtype}")
-        # print(f"Device: {image.device}, {segmentation.device}, {output.device}")
-        # # save image and the segmentation
-        # sitk.WriteImage(sitk.GetImageFromArray(output[0].cpu().numpy()), "output.nii")
-        # print("Intensity+Deformation time: ", time.time() - start_time)
+        # 6. Noise corruption
+        output, noise_params = self.noise(output, self.device)
 
-        # return output, segmentation, image, generation_params
+        # 7. Up-sample back to the original resolution/shape
+        output = self.resampled.resize_back(output, factors)
+
+        # 8. Induce SR-artifacts
+        # TODO: Thomas add the SR artifacts here
+
+        # 9. Aggregete the synth params
+        synth_params.update(
+            {
+                "selected_seeds": selected_seeds,
+                "seed_intensities": seed_intensities,
+                "deform_params": deform_params,
+                "gamma_params": gamma_params,
+                "bf_params": bf_params,
+                "resample_params": resample_params,
+                "noise_params": noise_params,
+            }
+        )
+        return output, segmentation, image, synth_params

@@ -15,7 +15,6 @@ class ImageFromSeeds:
         seed_labels: Iterable[int],
         generation_classes: Iterable[int],
         meta_labels: int = 4,
-        device: str = "cuda",
     ):
         """
 
@@ -48,7 +47,6 @@ class ImageFromSeeds:
         self.generation_classes = generation_classes
         self.meta_labels = meta_labels
         self.loader = SimpleITKReader()
-        self.device = device
 
     def load_seeds(
         self,
@@ -90,13 +88,14 @@ class ImageFromSeeds:
         for mlabel in range(2, self.meta_labels + 1):
             seed += self.loader(seeds[mlabel2subclusters[mlabel]][mlabel])
 
-        return seed.long()
+        return seed.long(), {"mlabel2subclusters": mlabel2subclusters}
 
-    def sample_intensities(self, seeds: torch.Tensor) -> torch.Tensor:
+    def sample_intensities(self, seeds: torch.Tensor, device) -> torch.Tensor:
         """Sample the intensities from the seeds.
 
         Args:
             seeds (torch.Tensor): Tensor with the seeds.
+            device (str): Device to use. Should be "cuda" or "cpu".
 
         Returns:
             torch.Tensor: Tensor with the intensities.
@@ -105,11 +104,11 @@ class ImageFromSeeds:
         nsamp = len(self.seed_labels)
 
         # # Sample GMMs means and stds
-        mus = 25 + 200 * torch.rand(nlabels, dtype=torch.float, device=self.device)
+        mus = 25 + 200 * torch.rand(nlabels, dtype=torch.float, device=device)
         sigmas = 5 + 20 * torch.rand(
             nlabels,
             dtype=torch.float,
-            device=self.device,
+            device=device,
         )
 
         # if there are seed labels from the same generation class
@@ -117,13 +116,13 @@ class ImageFromSeeds:
         if self.generation_classes != self.seed_labels:
             mus[self.seed_labels] = torch.clamp(
                 mus[self.generation_classes]
-                + 25 * torch.randn(nsamp, dtype=torch.float, device=self.device),
+                + 25 * torch.randn(nsamp, dtype=torch.float, device=device),
                 0,
                 225,
             )
         intensity_image = mus[seeds] + sigmas[seeds] * torch.randn(
-            seeds.shape, dtype=torch.float, device=self.device
+            seeds.shape, dtype=torch.float, device=device
         )
         intensity_image[intensity_image < 0] = 0
 
-        return intensity_image
+        return intensity_image, {"mus": mus, "sigmas": sigmas}

@@ -30,6 +30,7 @@ generator:
 
   spatial_deform:
     _target_: fetalsyngen.deformation.affine_nonrigid.SpatialDeformation
+    device: "${..device}" # uses teh device from the generator
     size: [256, 256, 256]
     max_rotation: 20
     max_shear: 0.02
@@ -44,11 +45,11 @@ generator:
     _target_: fetalsyngen.augmentation.synthseg_augm.RandResample
     min_resolution: 1.9
     max_resolution: 2
-    prob: 0
+    prob: 1
 
   rand_biasfield:
     _target_: fetalsyngen.augmentation.synthseg_augm.RandBiasField
-    prob: 0
+    prob: 1
     scale_min: 0.004 
     scale_max: 0.02
     std_min:  0.01
@@ -56,11 +57,11 @@ generator:
 
   rand_gamma:
     _target_: fetalsyngen.augmentation.synthseg_augm.RandGamma
-    prob: 0
+    prob: 1
     gamma_std: 0.1
 
   rand_noise:
     _target_: fetalsyngen.augmentation.synthseg_augm.RandNoise
-    prob: 0
+    prob: 1
     std_min: 5
     std_max: 15

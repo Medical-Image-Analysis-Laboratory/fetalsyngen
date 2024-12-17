@@ -9,6 +9,7 @@ from monai.transforms import Compose
 from fetalsyngen.generator import SynthGen
 from hydra.utils import instantiate
 from fetalsyngen.dataset.readers import SimpleITKReader
+import time
 
 
 # TODO: keep in mind base_transforms (croppings) to be applied and think of the way to aooly them
@@ -259,7 +260,7 @@ class FetalSynthDataset(FetalDataset):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_paths[sub_ses_str][n_sub][i] = file
 
-    def __getitem__(self, idx):
+    def sample(self, idx):
         """Get the data for the given index.
 
         Returns:
@@ -269,13 +270,16 @@ class FetalSynthDataset(FetalDataset):
                 of a format `sub_ses` where `sub` is the subject name
                 and `ses` is the session name.
         """
+        # use generation_params to track the parameters used for the generation
+        generation_params = {}
+
         image = self.loader(self.img_paths[idx]) if self.load_image else None
         segm = self.loader(self.segm_paths[idx])
+
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
         name = self._sub_ses_string(name[0], ses=name[1])
-        print(f"Loader image shape: {image.shape}")
-        print(f"Loader segm shape: {segm.shape}")
+
         # initialize seeds as dictionary
         # with paths to the seeds volumes
         # or None if image is to be used as intensity prior
@@ -284,7 +288,30 @@ class FetalSynthDataset(FetalDataset):
         else:
             seeds = None
 
-        gen_output, segmentation, image, generation_params = self.generator.sample(
+        # log input data
+        generation_params["idx"] = idx
+        generation_params["img_paths"] = self.img_paths[idx]
+        generation_params["segm_paths"] = self.img_paths[idx]
+        generation_params["seeds"] = seeds
+        generation_time_start = time.time()
+
+        # generate the synthetic data
+        gen_output, segmentation, image, synth_params = self.generator.sample(
             image=image, segmentation=segm, seeds=seeds
         )
-        return {"image": gen_output, "label": segmentation, "name": name}
+
+        generation_params = {**generation_params, **synth_params}
+        generation_params["generation_time"] = time.time() - generation_time_start
+        return {
+            "image": gen_output,
+            "label": segmentation,
+            "name": name,
+        }, generation_params
+
+    def __getitem__(self, idx):
+        return self.sample(idx)[0]
+
+    def sample_with_meta(self, idx):
+        data, generation_params = self.sample(idx)
+        data["generation_params"] = generation_params
+        return data

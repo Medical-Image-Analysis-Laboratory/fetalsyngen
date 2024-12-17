@@ -8,8 +8,9 @@ from fetalsyngen.brainid_utils import (
     myzoom_torch,
 )
 
-# TODO: Add deice tracking, invertability and parameter logging through decorators
+# TODO: Add device tracking, invertability and parameter logging through decorators
 # as well as random parameter selection
+# TODO: descibe inputs outputs and docs for classes
 
 
 class RandTransform(monai.transforms.Transform):
@@ -34,7 +35,7 @@ class RandResample(RandTransform):
         self.min_resolution = min_resolution
         self.max_resolution = max_resolution
 
-    def __call__(self, output, device, input_resolution):
+    def __call__(self, output, input_resolution, device):
         if np.random.rand() < self.prob:
             input_size = np.array(output.shape)
             spacing = np.array([1.0, 1.0, 1.0]) * self.random_uniform(
@@ -77,9 +78,9 @@ class RandResample(RandTransform):
             KK = torch.tensor(KK, dtype=torch.float, device=device)
 
             output_reized = fast_3D_interp_torch(output_blurred, II, JJ, KK, "linear")
-            return output_reized, factors
+            return output_reized, factors, {"spacing": spacing}
         else:
-            return output, None
+            return output, None, {"spacing": None}
 
     def resize_back(self, output_reized, factors):
         if factors is not None:
@@ -97,9 +98,8 @@ class RandBiasField(RandTransform):
         self.scale_max = scale_max
         self.std_min = std_min
         self.std_max = std_max
-        self.device = "cuda"
 
-    def __call__(self, output):
+    def __call__(self, output, device):
         image_size = output.shape
         bf_scale = self.scale_min + np.random.rand(1) * (
             self.scale_max - self.scale_min
@@ -110,12 +110,12 @@ class RandBiasField(RandTransform):
         bf_low_scale = torch.tensor(
             bf_std,
             dtype=torch.float,
-            device=self.device,
-        ) * torch.randn(bf_size, dtype=torch.float, device=self.device)
+            device=device,
+        ) * torch.randn(bf_size, dtype=torch.float, device=device)
         bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
         bf = torch.exp(bf_interp)
 
-        return output * bf
+        return output * bf, {"bf_scale": bf_scale, "bf_std": bf_std, "bf_size": bf_size}
 
 
 class RandNoise(RandTransform):
@@ -123,37 +123,35 @@ class RandNoise(RandTransform):
         self.prob = prob
         self.std_min = std_min
         self.std_max = std_max
-        self.device = "cuda"
 
-    def __call__(self, output):
+    def __call__(self, output, device):
         noise_std = self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
 
         noise_std = torch.tensor(
             noise_std,
             dtype=torch.float,
-            device=self.device,
+            device=device,
         )
         SYN_noisy = output + noise_std * torch.randn(
-            output.shape, dtype=torch.float, device=self.device
+            output.shape, dtype=torch.float, device=device
         )
         SYN_noisy[SYN_noisy < 0] = 0
-        return output
+        return output, {"noise_std": noise_std}
 
 
 class RandGamma(RandTransform):
-
     def __init__(self, prob, gamma_std):
         self.prob = prob
         self.gamma_std = gamma_std
-        self.device = "cuda"
 
-    def __call__(self, output):
+    def __call__(self, output, device):
+        gamma = None
         if np.random.rand() < self.prob:
             gamma = np.exp(self.gamma_std * np.random.randn(1)[0])
-            gamma = torch.tensor(
+            gamma_tensor = torch.tensor(
                 gamma,
                 dtype=float,
-                device=self.device,
+                device=device,
             )
-            output = 300.0 * (output / 300.0) ** gamma
-        return output
+            output = 300.0 * (output / 300.0) ** gamma_tensor
+        return output, {"gamma": gamma}

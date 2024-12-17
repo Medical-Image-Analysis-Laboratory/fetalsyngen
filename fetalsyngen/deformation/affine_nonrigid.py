@@ -19,7 +19,7 @@ class SpatialDeformation:
         nonlin_scale_min,
         nonlin_scale_max,
         nonlin_std_max,
-        device="cuda",
+        device,
     ):
         self.size = size  # 256, 256, 256
 
@@ -62,9 +62,8 @@ class SpatialDeformation:
     def deform(self, image, segmentation, output):
         image_shape = output.shape
         flip = np.random.rand() < 0.5  # TODO: Change this to a parameter
-
-        xx2, yy2, zz2, x1, y1, z1, x2, y2, z2 = self.generate_deformation(
-            image_shape, random_shift=True
+        xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = (
+            self.generate_deformation(image_shape, random_shift=True)
         )
         # flip the image if nessesary
         if flip:
@@ -78,12 +77,15 @@ class SpatialDeformation:
         )
         if image is not None:
             image = fast_3D_interp_torch(image.to(self.device), xx2, yy2, zz2, "linear")
-        return image, segmentation, output
+
+        deform_params["flip"] = flip
+
+        return image, segmentation, output, deform_params
 
     def generate_deformation(self, image_shape, random_shift=True):
 
         # sample affine deformation
-        A, c2 = self.random_affine_transform(
+        A, c2, aff_params = self.random_affine_transform(
             image_shape,
             self.max_rotation,
             self.max_shear,
@@ -93,18 +95,30 @@ class SpatialDeformation:
 
         # sample nonlinear deformation
         if self.nonlinear_transform:
-            F = self.random_nonlinear_transform(
+            F, non_rigid_params = self.random_nonlinear_transform(
                 self.nonlin_scale_min,
                 self.nonlin_scale_max,
                 self.nonlin_std_max,
             )
         else:
             F = None
+            non_rigid_params = {}
 
         # deform the images
         xx2, yy2, zz2, x1, y1, z1, x2, y2, z2 = self.deform_image(image_shape, A, c2, F)
 
-        return xx2, yy2, zz2, x1, y1, z1, x2, y2, z2
+        return (
+            xx2,
+            yy2,
+            zz2,
+            x1,
+            y1,
+            z1,
+            x2,
+            y2,
+            z2,
+            {"affine": aff_params, "non_rigid": non_rigid_params},
+        )
 
     def random_affine_transform(
         self, shp, max_rotation, max_shear, max_scaling, random_shift=True
@@ -145,7 +159,9 @@ class SpatialDeformation:
                 dtype=torch.float,
                 device=self.device,
             )
-        return A, c2
+        affine_params = {"rotations": rotations, "shears": shears, "scalings": scalings}
+
+        return A, c2, affine_params
 
     def random_nonlinear_transform(
         self,
@@ -164,7 +180,11 @@ class SpatialDeformation:
         )
         F = myzoom_torch(Fsmall, np.array(self.size) / size_F_small)
 
-        return F
+        return F, {
+            "nonlin_scale": nonlin_scale,
+            "nonlin_std": nonlin_std,
+            "size_F_small": size_F_small,
+        }
 
     def deform_image(self, shp, A, c2, F):
         if F is not None:
