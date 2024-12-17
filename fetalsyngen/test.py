@@ -20,7 +20,7 @@ def my_app(cfg: DictConfig) -> None:
     print(len(cfg.dataset))
 
     data = cfg.dataset[0]
-    print(data)
+    # print(data)
     # print(
     #     f"Image - shape: {data['image'].shape}, dtype: {data['image'].dtype}, max: {data['image'].max()}, min: {data['image'].min()}, device: {data['image'].device}, type: {type(data['image'])}"
     # )

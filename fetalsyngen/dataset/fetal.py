@@ -274,7 +274,8 @@ class FetalSynthDataset(FetalDataset):
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
         name = self._sub_ses_string(name[0], ses=name[1])
-
+        print(f"Loader image shape: {image.shape}")
+        print(f"Loader segm shape: {segm.shape}")
         # initialize seeds as dictionary
         # with paths to the seeds volumes
         # or None if image is to be used as intensity prior
