@@ -12,8 +12,6 @@ from omegaconf import DictConfig, OmegaConf
 
 # TODO: Explain the sample and get_item difference
 
-# TODO: Ensure
-
 
 @hydra.main(version_base=None, config_path="./../configs", config_name="test")
 def my_app(cfg: DictConfig) -> None:
@@ -26,6 +24,13 @@ def my_app(cfg: DictConfig) -> None:
     data = cfg.dataset[0]
     # print(cfg.dataset.sample(1)[1])
     print(data["image"].shape)
+    print(data["label"].shape)
+    print(data["name"])
+    # types
+    print(type(data["image"]))
+    print(data["image"].dtype)
+    print(type(data["label"]))
+    print(data["label"].dtype)
 
 
 if __name__ == "__main__":

@@ -6,14 +6,16 @@ from monai.transforms import (
     Orientationd,
 )
 from monai.transforms import Compose
-from fetalsyngen.generator.generator import SynthGen
+from fetalsyngen.generator.model import SynthGen
 from hydra.utils import instantiate
 from fetalsyngen.utils.image_reading import SimpleITKReader
 import time
-
+import torch
+import numpy as np
+from monai.data import MetaTensor
 
 # TODO: keep in mind base_transforms (croppings) to be applied and think of the way to aooly them
-# TODO: Keep in mind scaling and orientation in getitem of all datasets
+# TODO: Keep in mind scaling and orientation in getitem of all datasets and dimensions and devices and data types
 
 
 class FetalDataset:
@@ -23,16 +25,13 @@ class FetalDataset:
         self,
         bids_path: str,
         sub_list: list[str] | None,
-    ):
+    ) -> dict:
         """
         Args:
-
             bids_path: Path to the bids folder with the data.
-            sub_list: List of the subjects to use.
+            sub_list: List of the subjects to use. If None, all subjects are used.
 
-        Returns:
 
-            None
         """
         super().__init__()
 
@@ -116,13 +115,11 @@ class FetalDataset:
 
 
 class FetalSimpleDataset(FetalDataset):
-    """Dataset class for loading real fetal.
+    """Dataset class for loading fetal images offline.
     Used to load test/validation data.
-    By default it loads the image and the segmentation,
-    scales the intensities to [0, 1] and orients the data to RAS.
 
-    Pass the `transforms` for additional processing
-    (scaling, resampling, cropping, etc.) as an argument.
+    Use the `transforms` argument to pass additional processing steps
+    (scaling, resampling, cropping, etc.).
     """
 
     def __init__(
@@ -132,26 +129,28 @@ class FetalSimpleDataset(FetalDataset):
         transforms: Compose | None = None,
     ):
         """
-
         Args:
-
             bids_path: Path to the bids folder with the data.
-            sub_list: List of the subjects to use.
+            sub_list: List of the subjects to use. If None, all subjects are used.
             transforms: Compose object with the transformations to apply.
                 Default is None, no transformations are applied.
         """
         super().__init__(bids_path, sub_list)
         self.transforms = transforms
 
-    def __getitem__(self, idx):
-        """Get the data for the given index.
-
+    def __getitem__(self, idx) -> dict:
+        """
         Returns:
-            dict: Dictionary with the `image`, `label` and the `name`
-                keys. `image` and `label` are monai meta tensors
-                with dimensions (1, x, y, z) and `name` is a string
+            Dictionary with the `image` , `label` and the `name`
+                keys. `image` and `label` are  `torch.float32`
+                [`monai.data.meta_tensor.MetaTensor`](https://docs.monai.io/en/stable/data.html#metatensor)
+                instances  with dimensions `(1, H, W, D)` and `name` is a string
                 of a format `sub_ses` where `sub` is the subject name
                 and `ses` is the session name.
+
+        Note:
+            Tensors are returned on CPU and `image` is scaled `[0, 1]`
+            and oriented together with `label` to **RAS**.
         """
         image = self.loader(self.img_paths[idx])
         segm = self.loader(self.segm_paths[idx])
@@ -175,14 +174,16 @@ class FetalSimpleDataset(FetalDataset):
 
         return data
 
-    def reverse_transform(self, data):
+    def reverse_transform(self, data: dict) -> dict:
         """Reverse the transformations applied to the data.
 
         Args:
-            data: Dictionary with the `image` and `label` keys.
+            data: Dictionary with the `image` and `label` keys,
+                like the one returned by the `__getitem__` method.
 
         Returns:
-            dict: Dictionary with the `image` and `label` keys.
+            Dictionary with the `image` and `label` keys where
+                the transformations are reversed.
         """
         if self.transforms:
             data = self.transforms.inverse(data)
@@ -191,9 +192,7 @@ class FetalSimpleDataset(FetalDataset):
 
 
 class FetalSynthDataset(FetalDataset):
-    """Dataset class for generating
-    synthetic fetal data"
-    """
+    """Dataset class for generating/augmenting on-the-fly fetal images" """
 
     def __init__(
         self,
@@ -204,24 +203,24 @@ class FetalSynthDataset(FetalDataset):
         load_image: bool = False,
         image_as_intensity: bool = False,
     ):
+        # TODO: Add seed generation script
         """
 
         Args:
-
-            bids_path: Path to the bids folder with the data.
+            bids_path: Path to the bids-formatted folder with the data.
             seed_path: Path to the folder with the seeds to use for
                 intensity sampling. See `scripts/seed_generation.py`
                 for details on the data formatting. If seed_path is None,
                 the intensity  sampling step is skipped and the output image
                 intensities will be based on the input image.
-            generator: SynthGen object with the generator to use.
-            sub_list: List of the subjects to use.
-            load_image: If True, the image is loaded and passed to the generator,
+            generator: a class object defining a generator to use.
+            sub_list: List of the subjects to use. If None, all subjects are used.
+            load_image: If **True**, the image is loaded and passed to the generator,
                 where it can be used as the intensity prior instead of a random
                 intensity sampling or spatially deformed with the same transformation
-                field as segmentation and the syntehtic image. Default is False.
-            image_as_intensity: If True, the image is used as the intensity prior,
-                instead of sampling the intensities from the seeds. Default is False.
+                field as segmentation and the syntehtic image. Default is **False**.
+            image_as_intensity: If **True**, the image is used as the intensity prior,
+                instead of sampling the intensities from the seeds. Default is **False**.
         """
         super().__init__(bids_path, sub_list)
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
@@ -266,15 +265,21 @@ class FetalSynthDataset(FetalDataset):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_paths[sub_ses_str][n_sub][i] = file
 
-    def sample(self, idx):
-        """Get the data for the given index.
+    def sample(self, idx) -> tuple[dict, dict]:
+        """
+        Retrieve a single item from the dataset at the specified index.
+
+        Args:
+            idx (int): The index of the item to retrieve.
 
         Returns:
-            dict: Dictionary with the `image`, `label` and the `name`
-                keys. `image` and `label` are monai meta tensors
-                with dimensions (1, x, y, z) and `name` is a string
-                of a format `sub_ses` where `sub` is the subject name
-                and `ses` is the session name.
+            Dictionaries with the generated data and the generation parameters.
+                First dictionary contains the `image`, `label` and the `name` keys.
+                The second dictionary contains the parameters used for the generation.
+
+        Note:
+            The `image` is scaled to `[0, 1]` and oriented with the `label` to **RAS**
+            and returned on the device  specified in the `generator` initialization.
         """
         # use generation_params to track the parameters used for the generation
         generation_params = {}
@@ -314,10 +319,39 @@ class FetalSynthDataset(FetalDataset):
             "name": name,
         }, generation_params
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> dict:
+        """
+        Retrieve a single item from the dataset at the specified index.
+
+        Args:
+            idx (int): The index of the item to retrieve.
+
+        Returns:
+            Dictionary with the `image`, `label` and the `name` keys.
+                `image` and `label` are `torch.float32`
+                [`monai.data.meta_tensor.MetaTensor`](https://docs.monai.io/en/stable/data.html#metatensor)
+                and `name` is a string of a format `sub_ses` where `sub` is the subject name
+                and `ses` is the session name.
+
+        Note:
+            The `image` is scaled to `[0, 1]` and oriented to **RAS** and returned on the device
+            specified in the `generator` initialization.
+        """
+
         return self.sample(idx)[0]
 
-    def sample_with_meta(self, idx):
+    def sample_with_meta(self, idx: int) -> dict:
+        """
+        Retrieve a sample along with its generation parameters
+        and store them in the same dictionary.
+
+        Args:
+            idx: The index of the sample to retrieve.
+
+        Returns:
+            A dictionary with `image`, `label`, `name` and `generation_params` keys.
+        """
+
         data, generation_params = self.sample(idx)
         data["generation_params"] = generation_params
         return data

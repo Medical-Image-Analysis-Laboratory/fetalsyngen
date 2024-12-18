@@ -1,0 +1,18 @@
+site_name: My Docs
+
+theme:
+  name: readthedocs
+
+plugins:
+- mkdocstrings:
+    enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+    default_handler: python
+    handlers:
+      python:
+        options:
+          show_source: false
+          members_order: source
+          relative_crossrefs: true
+          # change order of displayed methods
+- search
+- autorefs

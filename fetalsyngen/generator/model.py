@@ -19,6 +19,7 @@ import numpy as np
 # time the synthetic generation
 
 
+# TODO: refactor argument names here
 class SynthGen:
 
     def __init__(
@@ -33,6 +34,20 @@ class SynthGen:
         spatial_deform: SpatialDeformation,
         device: str,
     ):
+        """
+        Initialize the model with the given parameters.
+
+        Args:
+            shape (Iterable[int]): The shape of the generated images.
+            resolution (Iterable[float]): The resolution of the generated images.
+            image_seed_generator (ImageFromSeeds): The generator for creating images from seeds.
+            rand_resample (RandResample): The random resampling transformation.
+            rand_biasfield (RandBiasField): The random bias field transformation.
+            rand_noise (RandNoise): The random noise transformation.
+            rand_gamma (RandGamma): The random gamma transformation.
+            spatial_deform (SpatialDeformation): The spatial deformation transformation.
+            device (str): The device to run the model on (e.g., 'cpu' or 'cuda').
+        """
         self.shape = shape
         self.resolution = resolution
         self.intensity_generator = image_seed_generator
