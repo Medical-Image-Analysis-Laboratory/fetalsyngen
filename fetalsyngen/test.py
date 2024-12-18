@@ -12,8 +12,10 @@ from omegaconf import DictConfig, OmegaConf
 
 # TODO: Explain the sample and get_item difference
 
+# TODO: Ensure
 
-@hydra.main(version_base=None, config_path="./../configs", config_name="fetalsynthgen")
+
+@hydra.main(version_base=None, config_path="./../configs", config_name="test")
 def my_app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     # instantiate the generator
@@ -22,19 +24,8 @@ def my_app(cfg: DictConfig) -> None:
     print(len(cfg.dataset))
 
     data = cfg.dataset[0]
-    print(cfg.dataset.sample(1)[1])
-    # print(data)
-    # print(
-    #     f"Image - shape: {data['image'].shape}, dtype: {data['image'].dtype}, max: {data['image'].max()}, min: {data['image'].min()}, device: {data['image'].device}, type: {type(data['image'])}"
-    # )
-    # print(
-    #     f"Label - shape: {data['label'].shape}, dtype: {data['label'].dtype}, max: {data['label'].max()}, min: {data['label'].min()}, device: {data['label'].device}, type: {type(data['label'])}"
-    # )
-
-    # data = cfg.dataset.reverse_transform({"label": data["label"]})
-    # print(
-    #     f"Label - shape: {data['label'].shape}, dtype: {data['label'].dtype}, max: {data['label'].max()}, min: {data['label'].min()}, device: {data['label'].device}, type: {type(data['label'])}"
-    # )
+    # print(cfg.dataset.sample(1)[1])
+    print(data["image"].shape)
 
 
 if __name__ == "__main__":

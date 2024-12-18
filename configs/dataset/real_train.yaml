@@ -1,0 +1,9 @@
+defaults:
+  - generator/default
+
+_target_: fetalsyngen.data.datasets.FetalSynthDataset
+bids_path: ./data
+seed_path: null
+sub_list: null
+load_image: True
+image_as_intensity: True

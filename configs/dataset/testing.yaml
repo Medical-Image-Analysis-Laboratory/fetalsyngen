@@ -1,0 +1,6 @@
+defaults:
+  - transforms/inference
+
+_target_: fetalsyngen.data.datasets.FetalSimpleDataset
+bids_path: ./data
+sub_list: null
