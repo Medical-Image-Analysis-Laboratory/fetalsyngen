@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 from fetalsyngen.utils.image_reading import SimpleITKReader
 from typing import Iterable
+from monai.transforms import Orientation
 
 
-# TODO: Ensure seeds are in int8 format, stored and saved to reduce loading time
 class ImageFromSeeds:
 
     def __init__(
@@ -29,7 +29,6 @@ class ImageFromSeeds:
                 Seeds with the same generation calss will be generated with
                 the same GMM. Should be the same length as seed_labels.
             meta_labels (int, optional): Number of meta-labels used. Defaults to 4.
-            device (str, optional): Device to use. Defaults to "cuda".
         """
         self.min_subclusters = min_subclusters
         self.max_subclusters = max_subclusters
@@ -47,6 +46,7 @@ class ImageFromSeeds:
         self.generation_classes = generation_classes
         self.meta_labels = meta_labels
         self.loader = SimpleITKReader()
+        self.orientation = Orientation(axcodes="RAS")
 
     def load_seeds(
         self,
@@ -84,11 +84,15 @@ class ImageFromSeeds:
 
         # load the first seed as the one corresponding to mlabel 1
         seed = self.loader(seeds[mlabel2subclusters[1]][1])
+        seed = self.orientation(seed.unsqueeze(0))
+        # re-orient seeds to RAS
 
         for mlabel in range(2, self.meta_labels + 1):
-            seed += self.loader(seeds[mlabel2subclusters[mlabel]][mlabel])
+            new_seed = self.loader(seeds[mlabel2subclusters[mlabel]][mlabel])
+            new_seed = self.orientation(new_seed.unsqueeze(0))
+            seed += new_seed
 
-        return seed.long(), {"mlabel2subclusters": mlabel2subclusters}
+        return seed.long().squeeze(0), {"mlabel2subclusters": mlabel2subclusters}
 
     def sample_intensities(self, seeds: torch.Tensor, device) -> torch.Tensor:
         """Sample the intensities from the seeds.

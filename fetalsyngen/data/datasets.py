@@ -1,12 +1,11 @@
 from collections import defaultdict
 from pathlib import Path
 from monai.transforms import (
-    LoadImage,
-    ScaleIntensityd,
-    Orientationd,
+    ScaleIntensity,
+    Orientation,
 )
 from monai.transforms import Compose
-from fetalsyngen.generator.model import SynthGen
+from fetalsyngen.generator.model import FetalSynthGen
 from hydra.utils import instantiate
 from fetalsyngen.utils.image_reading import SimpleITKReader
 import time
@@ -43,15 +42,9 @@ class FetalDataset:
             (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
         self.loader = SimpleITKReader()
-        self.scaler = ScaleIntensityd(
-            keys=["image"],
-            minv=0,
-            maxv=1,
-        )
+        self.scaler = ScaleIntensity(minv=0, maxv=1)
 
-        self.orientation = Orientationd(
-            axcodes="RAS", keys=["image", "label"], allow_missing_keys=True
-        )
+        self.orientation = Orientation(axcodes="RAS")
 
         self.img_paths = self._load_bids_path(self.bids_path, "T2w")
         self.segm_paths = self._load_bids_path(self.bids_path, "dseg")
@@ -152,25 +145,29 @@ class FetalSimpleDataset(FetalDataset):
             Tensors are returned on CPU and `image` is scaled `[0, 1]`
             and oriented together with `label` to **RAS**.
         """
+        # load the image and segmentation
         image = self.loader(self.img_paths[idx])
         segm = self.loader(self.segm_paths[idx])
 
-        image = image.unsqueeze(0)  # can be fixed by ensure_channel_first? TODO
+        # add channel dimension
+        image = image.unsqueeze(0)
         segm = segm.unsqueeze(0)
 
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
         name = self._sub_ses_string(name[0], ses=name[1])
 
-        data = {"image": image, "label": segm, "name": name}
-
         # orient to RAS for consistency
-        data = self.orientation(data)
+        image = self.orientation(image)
+        segm = self.orientation(segm)
 
+        # apply additional transformations
+        data = {"image": image, "label": segm, "name": name}
         if self.transforms:
             data = self.transforms(data)
 
-        data = self.scaler(data)
+        # scale the image to [0, 1]
+        data["image"] = self.scaler(data["image"])
 
         return data
 
@@ -187,7 +184,8 @@ class FetalSimpleDataset(FetalDataset):
         """
         if self.transforms:
             data = self.transforms.inverse(data)
-        data = self.orientation.inverse(data)
+        data["image"] = self.orientation.inverse(data["image"])
+        data["label"] = self.orientation.inverse(data["label"])
         return data
 
 
@@ -197,13 +195,12 @@ class FetalSynthDataset(FetalDataset):
     def __init__(
         self,
         bids_path: str,
-        generator: SynthGen,
+        generator: FetalSynthGen,
         seed_path: str | None,
         sub_list: list[str] | None,
         load_image: bool = False,
         image_as_intensity: bool = False,
     ):
-        # TODO: Add seed generation script
         """
 
         Args:
@@ -287,6 +284,12 @@ class FetalSynthDataset(FetalDataset):
         image = self.loader(self.img_paths[idx]) if self.load_image else None
         segm = self.loader(self.segm_paths[idx])
 
+        # orient to RAS for consistency
+        image = (
+            self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
+        )
+        segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
+
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
         name = self._sub_ses_string(name[0], ses=name[1])
@@ -311,13 +314,15 @@ class FetalSynthDataset(FetalDataset):
             image=image, segmentation=segm, seeds=seeds
         )
 
+        # scale the images to [0, 1]
+        gen_output = self.scaler(gen_output)
+        image = self.scaler(image) if image is not None else None
+
         generation_params = {**generation_params, **synth_params}
         generation_params["generation_time"] = time.time() - generation_time_start
-        return {
-            "image": gen_output,
-            "label": segmentation,
-            "name": name,
-        }, generation_params
+        data_out = {"image": gen_output, "label": segmentation, "name": name}
+
+        return data_out, generation_params
 
     def __getitem__(self, idx) -> dict:
         """

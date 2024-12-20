@@ -13,6 +13,6 @@ plugins:
           show_source: false
           members_order: source
           relative_crossrefs: true
-          # change order of displayed methods
+        
 - search
 - autorefs

@@ -23,12 +23,26 @@ class RandTransform(monai.transforms.Transform):
 
 
 class RandResample(RandTransform):
+    """Resample the input image to a random resolution sampled uniformly between
+    `min_resolution` and `max_resolution` with a probability of `prob`.
+
+    If the resolution is smaller than the input resolution, no resampling is performed.
+    """
+
     def __init__(
         self,
         prob: float,
         min_resolution: float,
         max_resolution: float,
     ):
+        """
+        Initialize the augmentation parameters.
+
+        Args:
+            prob (float): Probability of applying the augmentation.
+            min_resolution (float): Minimum resolution for the augmentation (in mm).
+            max_resolution (float): Maximum resolution for the augmentation.
+        """
         self.prob = prob
         self.min_resolution = min_resolution
         self.max_resolution = max_resolution
@@ -89,8 +103,26 @@ class RandResample(RandTransform):
 
 
 class RandBiasField(RandTransform):
+    """Add a random bias field to the input image with a probability of `prob`."""
 
-    def __init__(self, prob, scale_min, scale_max, std_min, std_max):
+    def __init__(
+        self,
+        prob: float,
+        scale_min: float,
+        scale_max: float,
+        std_min: float,
+        std_max: float,
+    ):
+        """
+
+        Args:
+            prob: Probability of applying the augmentation.
+            scale_min: Minimum scale of the bias field.
+            scale_max: Maximum scale of the bias field.
+            std_min: Minimum standard deviation of the bias field.
+            std_max: Maximum standard deviation of the bias.
+        """
+
         self.prob = prob
         self.scale_min = scale_min
         self.scale_max = scale_max
@@ -117,7 +149,16 @@ class RandBiasField(RandTransform):
 
 
 class RandNoise(RandTransform):
-    def __init__(self, prob, std_min, std_max):
+    """Add random Gaussian noise to the input image with a probability of `prob`."""
+
+    def __init__(self, prob: float, std_min: float, std_max: float):
+        """
+
+        Args:
+            prob: Probability of applying the augmentation.
+            std_min: Minimum standard deviation of the noise.
+            std_max: Maximum standard deviation of the noise
+        """
         self.prob = prob
         self.std_min = std_min
         self.std_max = std_max
@@ -138,7 +179,14 @@ class RandNoise(RandTransform):
 
 
 class RandGamma(RandTransform):
-    def __init__(self, prob, gamma_std):
+    """Apply gamma correction to the input image with a probability of `prob`."""
+
+    def __init__(self, prob: float, gamma_std: float):
+        """
+        Args:
+            prob: Probability of applying the augmentation.
+            gamma_std: Standard deviation of the gamma correction.
+        """
         self.prob = prob
         self.gamma_std = gamma_std
 

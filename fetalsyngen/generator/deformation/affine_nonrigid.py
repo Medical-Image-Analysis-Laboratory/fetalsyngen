@@ -6,22 +6,45 @@ from fetalsyngen.utils.brainid import (
     make_affine_matrix,
     gaussian_blur_3d,
 )
+from typing import Iterable
 
 
 class SpatialDeformation:
+    """
+    Class defining the spatial deformation of the image.
+    Combines both random affine and nonlinear transformations to deform the image.
+    """
+
     def __init__(
         self,
-        max_rotation,
-        max_shear,
-        max_scaling,
-        size,
-        nonlinear_transform,
-        nonlin_scale_min,
-        nonlin_scale_max,
-        nonlin_std_max,
-        device,
+        max_rotation: float,
+        max_shear: float,
+        max_scaling: float,
+        size: Iterable[int],
+        nonlinear_transform: bool,
+        nonlin_scale_min: float,
+        nonlin_scale_max: float,
+        nonlin_std_max: float,
+        flip_prb: float,
+        device: str,
     ):
+        """Initialize the spatial deformation.
+
+        Args:
+            max_rotation (float): Maximum rotation in degrees.
+            max_shear (float): Maximum shear.
+            max_scaling (float): Maximum scaling.
+            size (Iterable[int]): Size of the output image.
+            nonlinear_transform (bool): Whether to apply nonlinear transformation.
+            nonlin_scale_min (float): Minimum scale for the nonlinear transformation.
+            nonlin_scale_max (float): Maximum scale for the nonlinear transformation.
+            nonlin_std_max (float): Maximum standard deviation for the nonlinear transformation.
+            flip_prb (float): Probability of flipping the image.
+            device (str): Device to use for computation. Either "cuda" or "cpu".
+        """
         self.size = size  # 256, 256, 256
+
+        self.flip_prb = flip_prb
 
         # randaffine parameters
         self.max_rotation = max_rotation
@@ -61,7 +84,7 @@ class SpatialDeformation:
 
     def deform(self, image, segmentation, output):
         image_shape = output.shape
-        flip = np.random.rand() < 0.5  # TODO: Change this to a parameter
+        flip = np.random.rand() < self.flip_prb
         xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = (
             self.generate_deformation(image_shape, random_shift=True)
         )

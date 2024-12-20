@@ -7,8 +7,6 @@ from fetalsyngen.generator.augmentation.synthseg import (
     RandGamma,
     RandNoise,
 )
-import time
-import SimpleITK as sitk
 from typing import Iterable
 import numpy as np
 
@@ -19,43 +17,42 @@ import numpy as np
 # time the synthetic generation
 
 
-# TODO: refactor argument names here
-class SynthGen:
-
+# TODO: allow generating output images with other shapes/dimensions!
+class FetalSynthGen:
     def __init__(
         self,
         shape: Iterable[int],
         resolution: Iterable[float],
-        image_seed_generator: ImageFromSeeds,
-        rand_resample: RandResample,
-        rand_biasfield: RandBiasField,
-        rand_noise: RandNoise,
-        rand_gamma: RandGamma,
-        spatial_deform: SpatialDeformation,
         device: str,
+        intensity_generator: ImageFromSeeds,
+        spatial_deform: SpatialDeformation,
+        resampler: RandResample,
+        bias_field: RandBiasField,
+        noise: RandNoise,
+        gamma: RandGamma,
     ):
         """
         Initialize the model with the given parameters.
 
         Args:
-            shape (Iterable[int]): The shape of the generated images.
-            resolution (Iterable[float]): The resolution of the generated images.
-            image_seed_generator (ImageFromSeeds): The generator for creating images from seeds.
-            rand_resample (RandResample): The random resampling transformation.
-            rand_biasfield (RandBiasField): The random bias field transformation.
-            rand_noise (RandNoise): The random noise transformation.
-            rand_gamma (RandGamma): The random gamma transformation.
-            spatial_deform (SpatialDeformation): The spatial deformation transformation.
-            device (str): The device to run the model on (e.g., 'cpu' or 'cuda').
+            shape: Shape of the output image.
+            resolution: Resolution of the output image.
+            device: Device to use for computation.
+            intensity_generator: Intensity generator.
+            spatial_deform: Spatial deformation generator.
+            resampler: Resampler.
+            bias_field: Bias field generator.
+            noise: Noise generator.
+            gamma: Gamma correction generator.
         """
         self.shape = shape
         self.resolution = resolution
-        self.intensity_generator = image_seed_generator
+        self.intensity_generator = intensity_generator
         self.spatial_deform = spatial_deform
-        self.resampled = rand_resample
-        self.biasfield = rand_biasfield
-        self.gamma = rand_gamma
-        self.noise = rand_noise
+        self.resampled = resampler
+        self.biasfield = bias_field
+        self.gamma = gamma
+        self.noise = noise
         self.device = device
 
     def sample(self, image, segmentation, seeds: torch.Tensor | None):
