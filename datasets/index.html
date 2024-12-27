@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Datasets - FetalSynthGen</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Datasets";
+        var mkdocs_page_input_path = "datasets.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../media/fetsynthgen_logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">FetalSynthGen GitHub</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Usage</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../usage/">How to use the generator?</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../seed_generation/">Seed Generation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../configs/">Configs</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Datasets</a>
+    <ul class="current">
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../generation/">Generation</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">FetalSynthGen</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">API</li>
+      <li class="breadcrumb-item active">Datasets</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <p>Classes for loading and processing datasets.
+</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="fetalsyngen.data.datasets"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.data.datasets.FetalDataset" class="doc doc-heading">
+            <code>FetalDataset</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Abstract class defining a dataset for loading fetal data.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalDataset.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>bids_path</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Path to the bids folder with the data.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>sub_list</code></b>
+                  (<code>list[str] | None</code>)
+              –
+              <div class="doc-md-description">
+                <p>List of the subjects to use. If None, all subjects are used.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.data.datasets.FetalSimpleDataset" class="doc doc-heading">
+            <code>FetalSimpleDataset</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="fetalsyngen.data.datasets.FetalDataset" href="#fetalsyngen.data.datasets.FetalDataset">FetalDataset</a></code></p>
+
+
+        <p>Dataset class for loading fetal images offline.
+Used to load test/validation data.</p>
+<p>Use the <code>transforms</code> argument to pass additional processing steps
+(scaling, resampling, cropping, etc.).</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSimpleDataset.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">,</span> <span class="n">transforms</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>bids_path</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Path to the bids folder with the data.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>sub_list</code></b>
+                  (<code>list[str] | None</code>)
+              –
+              <div class="doc-md-description">
+                <p>List of the subjects to use. If None, all subjects are used.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>transforms</code></b>
+                  (<code><span title="monai.transforms.Compose">Compose</span> | None</code>, default:
+                      <code>None</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Compose object with the transformations to apply.
+Default is None, no transformations are applied.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSimpleDataset.__getitem__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code>dict</code>
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with the <code>image</code> , <code>label</code> and the <code>name</code>
+keys. <code>image</code> and <code>label</code> are  <code>torch.float32</code>
+<a href="https://docs.monai.io/en/stable/data.html#metatensor"><code>monai.data.meta_tensor.MetaTensor</code></a>
+instances  with dimensions <code>(1, H, W, D)</code> and <code>name</code> is a string
+of a format <code>sub_ses</code> where <code>sub</code> is the subject name
+and <code>ses</code> is the session name.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Tensors are returned on CPU and <code>image</code> is scaled <code>[0, 1]</code>
+and oriented together with <code>label</code> to <strong>RAS</strong>.</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSimpleDataset.reverse_transform" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">reverse_transform</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reverse the transformations applied to the data.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>data</code></b>
+                  (<code>dict</code>)
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with the <code>image</code> and <code>label</code> keys,
+like the one returned by the <code>__getitem__</code> method.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code>dict</code>
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with the <code>image</code> and <code>label</code> keys where
+the transformations are reversed.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.data.datasets.FetalSynthDataset" class="doc doc-heading">
+            <code>FetalSynthDataset</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="fetalsyngen.data.datasets.FetalDataset" href="#fetalsyngen.data.datasets.FetalDataset">FetalDataset</a></code></p>
+
+
+        <p>Dataset class for generating/augmenting on-the-fly fetal images"</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSynthDataset.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">seed_path</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">,</span> <span class="n">load_image</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_as_intensity</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>bids_path</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Path to the bids-formatted folder with the data.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>seed_path</code></b>
+                  (<code>str | None</code>)
+              –
+              <div class="doc-md-description">
+                <p>Path to the folder with the seeds to use for
+intensity sampling. See <code>scripts/seed_generation.py</code>
+for details on the data formatting. If seed_path is None,
+the intensity  sampling step is skipped and the output image
+intensities will be based on the input image.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>generator</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.model.FetalSynthGen" href="../generation/#fetalsyngen.generator.model.FetalSynthGen">FetalSynthGen</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>a class object defining a generator to use.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>sub_list</code></b>
+                  (<code>list[str] | None</code>)
+              –
+              <div class="doc-md-description">
+                <p>List of the subjects to use. If None, all subjects are used.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>load_image</code></b>
+                  (<code>bool</code>, default:
+                      <code>False</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>If <strong>True</strong>, the image is loaded and passed to the generator,
+where it can be used as the intensity prior instead of a random
+intensity sampling or spatially deformed with the same transformation
+field as segmentation and the syntehtic image. Default is <strong>False</strong>.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>image_as_intensity</code></b>
+                  (<code>bool</code>, default:
+                      <code>False</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>If <strong>True</strong>, the image is used as the intensity prior,
+instead of sampling the intensities from the seeds. Default is <strong>False</strong>.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSynthDataset.sample" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">sample</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Retrieve a single item from the dataset at the specified index.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>idx</code></b>
+                  (<code>int</code>)
+              –
+              <div class="doc-md-description">
+                <p>The index of the item to retrieve.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code>tuple[dict, dict]</code>
+              –
+              <div class="doc-md-description">
+                <p>Dictionaries with the generated data and the generation parameters.
+First dictionary contains the <code>image</code>, <code>label</code> and the <code>name</code> keys.
+The second dictionary contains the parameters used for the generation.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>The <code>image</code> is scaled to <code>[0, 1]</code> and oriented with the <code>label</code> to <strong>RAS</strong>
+and returned on the device  specified in the <code>generator</code> initialization.</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSynthDataset.__getitem__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Retrieve a single item from the dataset at the specified index.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>idx</code></b>
+                  (<code>int</code>)
+              –
+              <div class="doc-md-description">
+                <p>The index of the item to retrieve.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code>dict</code>
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with the <code>image</code>, <code>label</code> and the <code>name</code> keys.
+<code>image</code> and <code>label</code> are <code>torch.float32</code>
+<a href="https://docs.monai.io/en/stable/data.html#metatensor"><code>monai.data.meta_tensor.MetaTensor</code></a>
+and <code>name</code> is a string of a format <code>sub_ses</code> where <code>sub</code> is the subject name
+and <code>ses</code> is the session name.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>The <code>image</code> is scaled to <code>[0, 1]</code> and oriented to <strong>RAS</strong> and returned on the device
+specified in the <code>generator</code> initialization.</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSynthDataset.sample_with_meta" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">sample_with_meta</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Retrieve a sample along with its generation parameters
+and store them in the same dictionary.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>idx</code></b>
+                  (<code>int</code>)
+              –
+              <div class="doc-md-description">
+                <p>The index of the sample to retrieve.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code>dict</code>
+              –
+              <div class="doc-md-description">
+                <p>A dictionary with <code>image</code>, <code>label</code>, <code>name</code> and <code>generation_params</code> keys.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../configs/" class="btn btn-neutral float-left" title="Configs"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../generation/" class="btn btn-neutral float-right" title="Generation">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../configs/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../generation/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

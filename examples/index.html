@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Examples - FetalSynthGen</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Examples";
+        var mkdocs_page_input_path = "examples.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../media/fetsynthgen_logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">FetalSynthGen GitHub</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Usage</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../usage/">How to use the generator?</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Examples</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#recommended-using-configuration-files">Recommended: Using Configuration Files</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#steps-to-use-configuration-files">Steps to Use Configuration Files</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#using-direct-instantiation">Using Direct Instantiation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#additional-resources">Additional Resources</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../seed_generation/">Seed Generation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../configs/">Configs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../datasets/">Datasets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../generation/">Generation</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">FetalSynthGen</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Usage</li>
+      <li class="breadcrumb-item active">Examples</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="examples">Examples</h1>
+<p>After installing the package, you can directly use the generator and datasets in your project. See the following examples for guidance on how to instantiate the generator and datasets.</p>
+<h2 id="recommended-using-configuration-files">Recommended: Using Configuration Files</h2>
+<p>For reproducibility and greater flexibility, we recommend using the configuration files provided in the package. These files define the parameters for the generator and datasets, allowing for quick and easy setup with <a href="https://hydra.cc/"><code>hydra</code></a>.</p>
+<h3 id="steps-to-use-configuration-files">Steps to Use Configuration Files</h3>
+<ol>
+<li>Copy the configuration files (entire <a href="https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/tree/dev/configs/dataset"><code>configs/dataset</code></a> folder) to your project root directory into <code>configs/dataset</code>.</li>
+<li>Use the following methods to instantiate the generator and dataset classes:</li>
+</ol>
+<p>For examples below, set up <code>cfg_path = "configs/dataset"</code> as the path to the configuration files and <code>cfg_name</code> as the name of the configuration file you want to use (<code>cfg_name='synth_train'</code> for example for the synthetic training dataset).</p>
+<p>See the <a href="../configs/"><code>Configs</code></a> page for detailed information on configuration files and available generation modes.</p>
+<details open>
+
+Using the Imperative API
+
+
+<pre><code class="language-python">import hydra
+
+with hydra.initialize(config_path=cfg_path, version_base=&quot;1.2&quot;):
+    cfg = hydra.compose(config_name=cfg_name)
+    print(f&quot;Composed config: {cfg}&quot;)
+    dataset = hydra.utils.instantiate(cfg)
+</code></pre>
+
+
+Using the Declarative API
+
+
+<pre><code class="language-python">import hydra
+from omegaconf import DictConfig
+
+@hydra.main(config_path=cfg_path, config_name=cfg_name)
+def my_app(cfg: DictConfig) -&gt; None:
+    print(cfg)
+</code></pre>
+
+</details>
+<p><br>
+<strong>Note:</strong> Ensure that the <code>bids</code> and <code>seeds</code> paths in the configuration files are updated to the absolute paths for your data.</p>
+<h2 id="using-direct-instantiation">Using Direct Instantiation</h2>
+<p>You can manually instantiate required classes from the <code>FetalSynthGen</code> in your project as needed. For example, to instantiate the <code>FetalSynthDataset</code> class and generator components follow the example below:</p>
+<details close>
+
+
+<pre><code class="language-python"># Import necessary classes
+from fetalsyngen.data.datasets import FetalSynthDataset
+
+from fetalsyngen.generator.model import FetalSynthGen
+from fetalsyngen.generator.augmentation.synthseg import (
+    RandBiasField,
+    RandGamma,
+    RandNoise,
+    RandResample,
+)
+from fetalsyngen.generator.deformation.affine_nonrigid import SpatialDeformation
+from fetalsyngen.generator.intensity.rand_gmm import ImageFromSeeds
+
+# Instantiate the generator components
+intensity_generator = ImageFromSeeds(
+    min_subclusters=1,
+    max_subclusters=3,
+    seed_labels=[1, 2, 3, 4, 5],
+    generation_classes=[1, 2, 3, 4, 5],
+    meta_labels=4,
+)
+spatial_deform = SpatialDeformation(
+    max_rotation=10,
+    max_shear=1,
+    max_scaling=1,
+    size=(256, 256, 256),
+    nonlinear_transform=1,
+    nonlin_scale_min=1,
+    nonlin_scale_max=1,
+    nonlin_std_max=1,
+    flip_prb=1,
+    device=&quot;cuda&quot;,
+)
+resampler = RandResample(prob=0.5, max_resolution=1.5, min_resolution=0.5)
+bias_field = RandBiasField(
+    prob=0.5, scale_min=0.5, scale_max=1.5, std_min=0.5, std_max=1.5
+)
+noise = RandNoise(prob=0.5, std_min=0.5, std_max=1.5)
+gamma = RandGamma(prob=0.5, gamma_std=0.5)
+
+# Instantiate the generator
+generator = FetalSynthGen(
+    shape=(256, 256, 256),
+    resolution=(0.5, 0.5, 0.5),
+    device=&quot;cuda&quot;,
+    intensity_generator=intensity_generator,
+    spatial_deform=spatial_deform,
+    resampler=resampler,
+    bias_field=bias_field,
+    noise=noise,
+    gamma=gamma,
+)
+
+# Instantiate the dataset
+dataset = FetalSynthDataset(
+    bids_path=&quot;./../../data&quot;,
+    generator=generator,
+    seed_path=&quot;./../../data/derivatives/seeds&quot;,
+    sub_list=None,
+)
+</code></pre>
+
+
+</details>
+
+<p><br></p>
+<h2 id="additional-resources">Additional Resources</h2>
+<p>For more examples of generator instantiation with <code>hydra</code>, see the <a href="https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/dev/fetalsyngen/examples/generator.ipynb"><code>Generator Instantiation</code></a> notebook.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../usage/" class="btn btn-neutral float-left" title="How to use the generator?"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../seed_generation/" class="btn btn-neutral float-right" title="Seed Generation">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../usage/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../seed_generation/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

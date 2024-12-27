@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Generation - FetalSynthGen</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Generation";
+        var mkdocs_page_input_path = "generation.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../media/fetsynthgen_logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">FetalSynthGen GitHub</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Usage</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../usage/">How to use the generator?</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../seed_generation/">Seed Generation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../configs/">Configs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../datasets/">Datasets</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Generation</a>
+    <ul class="current">
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">FetalSynthGen</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">API</li>
+      <li class="breadcrumb-item active">Generation</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <div class="doc doc-object doc-module">
+
+
+
+<a id="fetalsyngen.generator.model"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.model.FetalSynthGen" class="doc doc-heading">
+            <code>FetalSynthGen</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.model.FetalSynthGen.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">intensity_generator</span><span class="p">,</span> <span class="n">spatial_deform</span><span class="p">,</span> <span class="n">resampler</span><span class="p">,</span> <span class="n">bias_field</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initialize the model with the given parameters.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>shape</code></b>
+                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+              –
+              <div class="doc-md-description">
+                <p>Shape of the output image.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>resolution</code></b>
+                  (<code><span title="typing.Iterable">Iterable</span>[float]</code>)
+              –
+              <div class="doc-md-description">
+                <p>Resolution of the output image.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>device</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Device to use for computation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>intensity_generator</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds">ImageFromSeeds</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Intensity generator.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>spatial_deform</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation" href="#fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation">SpatialDeformation</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Spatial deformation generator.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>resampler</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandResample" href="#fetalsyngen.generator.augmentation.synthseg.RandResample">RandResample</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Resampler.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>bias_field</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandBiasField" href="#fetalsyngen.generator.augmentation.synthseg.RandBiasField">RandBiasField</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Bias field generator.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>noise</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandNoise" href="#fetalsyngen.generator.augmentation.synthseg.RandNoise">RandNoise</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Noise generator.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>gamma</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandGamma" href="#fetalsyngen.generator.augmentation.synthseg.RandGamma">RandGamma</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Gamma correction generator.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="fetalsyngen.generator.intensity.rand_gmm"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds" class="doc doc-heading">
+            <code>ImageFromSeeds</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">min_subclusters</span><span class="p">,</span> <span class="n">max_subclusters</span><span class="p">,</span> <span class="n">seed_labels</span><span class="p">,</span> <span class="n">generation_classes</span><span class="p">,</span> <span class="n">meta_labels</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>min_subclusters</code></b>
+                  (<code>int</code>)
+              –
+              <div class="doc-md-description">
+                <p>Minimum number of subclusters to use.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>max_subclusters</code></b>
+                  (<code>int</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum number of subclusters to use.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>seed_labels</code></b>
+                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+              –
+              <div class="doc-md-description">
+                <p>Iterable with all possible labels
+that can occur in the loaded seeds. Should be a unique set of
+integers starting from [0, ...]. 0 is reserved for the background,
+that will not have any intensity generated.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>generation_classes</code></b>
+                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+              –
+              <div class="doc-md-description">
+                <p>Classes to use for generation.
+Seeds with the same generation calss will be generated with
+the same GMM. Should be the same length as seed_labels.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>meta_labels</code></b>
+                  (<code>int</code>, default:
+                      <code>4</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Number of meta-labels used. Defaults to 4.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.load_seeds" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">load_seeds</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">mlabel2subclusters</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate an intensity image from seeds.
+If seed_mapping is provided, it is used to
+select the number of subclusters to use for
+each meta label. Otherwise, the number of subclusters
+is randomly selected from a uniform discrete distribution
+between <code>min_subclusters</code> and <code>max_subclusters</code> (both inclusive).</p>
+<p>Args:</p>
+<pre><code>seeds: Dictionary with the mapping `subcluster_number: {meta_label: seed_path}`.
+mlabel2subclusters: Mapping to use when defining how many subclusters to
+    use for each meta-label. Defaults to None.
+</code></pre>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code><span title="torch.Tensor">Tensor</span></code>
+              –
+              <div class="doc-md-description">
+                <p>torch.Tensor: Intensity image with the same shape as the seeds.
+Tensor dimensions are <strong>(H, W, D)</strong>. Values inside the tensor
+correspond to the subclusters, and are grouped by meta-label.
+<code>1-19: CSF, 20-29: GM, 30-39: WM, 40-49: Extra-cerebral</code>.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.sample_intensities" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">sample_intensities</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Sample the intensities from the seeds.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>seeds</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Tensor with the seeds.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>device</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Device to use. Should be "cuda" or "cpu".</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code><span title="torch.Tensor">Tensor</span></code>
+              –
+              <div class="doc-md-description">
+                <p>torch.Tensor: Tensor with the intensities.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="fetalsyngen.generator.deformation.affine_nonrigid"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation" class="doc doc-heading">
+            <code>SpatialDeformation</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Class defining the spatial deformation of the image.
+Combines both random affine and nonlinear transformations to deform the image.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">max_rotation</span><span class="p">,</span> <span class="n">max_shear</span><span class="p">,</span> <span class="n">max_scaling</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">nonlinear_transform</span><span class="p">,</span> <span class="n">nonlin_scale_min</span><span class="p">,</span> <span class="n">nonlin_scale_max</span><span class="p">,</span> <span class="n">nonlin_std_max</span><span class="p">,</span> <span class="n">flip_prb</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initialize the spatial deformation.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>max_rotation</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum rotation in degrees.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>max_shear</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum shear.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>max_scaling</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum scaling.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>size</code></b>
+                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+              –
+              <div class="doc-md-description">
+                <p>Size of the output image.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>nonlinear_transform</code></b>
+                  (<code>bool</code>)
+              –
+              <div class="doc-md-description">
+                <p>Whether to apply nonlinear transformation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>nonlin_scale_min</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Minimum scale for the nonlinear transformation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>nonlin_scale_max</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum scale for the nonlinear transformation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>nonlin_std_max</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum standard deviation for the nonlinear transformation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>flip_prb</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Probability of flipping the image.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>device</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Device to use for computation. Either "cuda" or "cpu".</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="fetalsyngen.generator.augmentation.synthseg"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.augmentation.synthseg.RandResample" class="doc doc-heading">
+            <code>RandResample</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="fetalsyngen.generator.augmentation.synthseg.RandTransform">RandTransform</span></code></p>
+
+
+        <p>Resample the input image to a random resolution sampled uniformly between
+<code>min_resolution</code> and <code>max_resolution</code> with a probability of <code>prob</code>.</p>
+<p>If the resolution is smaller than the input resolution, no resampling is performed.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandResample.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">min_resolution</span><span class="p">,</span> <span class="n">max_resolution</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initialize the augmentation parameters.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>prob</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Probability of applying the augmentation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>min_resolution</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Minimum resolution for the augmentation (in mm).</p>
+              </div>
+            </li>
+            <li>
+              <b><code>max_resolution</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum resolution for the augmentation.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.augmentation.synthseg.RandBiasField" class="doc doc-heading">
+            <code>RandBiasField</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="fetalsyngen.generator.augmentation.synthseg.RandTransform">RandTransform</span></code></p>
+
+
+        <p>Add a random bias field to the input image with a probability of <code>prob</code>.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandBiasField.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">scale_min</span><span class="p">,</span> <span class="n">scale_max</span><span class="p">,</span> <span class="n">std_min</span><span class="p">,</span> <span class="n">std_max</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>prob</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Probability of applying the augmentation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>scale_min</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Minimum scale of the bias field.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>scale_max</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum scale of the bias field.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>std_min</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Minimum standard deviation of the bias field.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>std_max</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum standard deviation of the bias.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.augmentation.synthseg.RandNoise" class="doc doc-heading">
+            <code>RandNoise</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="fetalsyngen.generator.augmentation.synthseg.RandTransform">RandTransform</span></code></p>
+
+
+        <p>Add random Gaussian noise to the input image with a probability of <code>prob</code>.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandNoise.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">std_min</span><span class="p">,</span> <span class="n">std_max</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>prob</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Probability of applying the augmentation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>std_min</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Minimum standard deviation of the noise.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>std_max</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Maximum standard deviation of the noise</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="fetalsyngen.generator.augmentation.synthseg.RandGamma" class="doc doc-heading">
+            <code>RandGamma</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="fetalsyngen.generator.augmentation.synthseg.RandTransform">RandTransform</span></code></p>
+
+
+        <p>Apply gamma correction to the input image with a probability of <code>prob</code>.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandGamma.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">gamma_std</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>prob</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Probability of applying the augmentation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>gamma_std</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Standard deviation of the gamma correction.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../datasets/" class="btn btn-neutral float-left" title="Datasets"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../datasets/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

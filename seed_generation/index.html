@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Seed Generation - FetalSynthGen</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Seed Generation";
+        var mkdocs_page_input_path = "seed_generation.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../media/fetsynthgen_logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Home</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">FetalSynthGen GitHub</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Usage</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../usage/">How to use the generator?</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Seed Generation</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#output-format">Output Format</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../configs/">Configs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../datasets/">Datasets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../generation/">Generation</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">FetalSynthGen</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">API</li>
+      <li class="breadcrumb-item active">Seed Generation</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="seed-generation">Seed Generation</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Seed generation is the first step in creating synthetic fetal brain MRI images with FetalSynthGen.</p>
+<ul>
+<li>It addresses the <strong>limited number of segmentation classes</strong> in fetal brain MRI.</li>
+<li>It allows the simulation of <strong>finer variations</strong> in tissue data.</li>
+<li>It reduces reliance on <strong>artificial contrast</strong> between segmentation labels and instead focuses on simulating anatomical variability within tissue types, helping to <strong>prevent models from learning label-specific contrast boundaries</strong> that may not exist in real images, which can be a problem with super-resolution MRI.</li>
+</ul>
+<p><strong>How is it performed?</strong></p>
+<ul>
+<li>First, <strong>original segmentation labels are merged into four meta-labels</strong>: cerebrospinal fluid (CSF), white matter (WM), gray matter (GM), and non-brain tissue (skull and surrounding tissue).</li>
+<li>Then, the <strong>Expectation-Maximisation (EM) algorithm</strong> is used for <strong>intensity clustering</strong> within each meta-label.</li>
+<li>This process divides each meta-label into a <strong>random number of subclasses</strong>, from one to four. These subclasses become the basis for generating synthetic images.</li>
+<li>Later in the generation pipeline, a <strong>Gaussian Mixture Model (GMM)</strong> is sampled for each subclass, and is used to sample intensities for voxels inside of it.</li>
+</ul>
+<p>This process ensures the synthetic images better reflect the heterogeneous nature of fetal brain tissue and the variability seen in real MRI data. See figure below for an example of seed generation.</p>
+<p><img alt="Seed Generation" src="../media/seed_gen.jpg" /> </p>
+<h2 id="usage">Usage</h2>
+<p>The script <code>fetalsyngen/scripts/generate_seeds.py</code> is used to generate seeds for the FetalSynthGen pipeline.</p>
+<p><code>generate_seeds.py [-h] --bids_path BIDS_PATH --out_path OUT_PATH [--max_subclasses MAX_SUBCLASSES] --annotation {feta,dhcp}</code></p>
+<pre><code class="language-text">options:
+  -h, --help            show this help message and exit
+  --bids_path BIDS_PATH
+                        Path to BIDS folder with the segmentations and images for seeds generation
+  --out_path OUT_PATH   Path to save the seeds
+  --max_subclasses MAX_SUBCLASSES
+                        How many subclasses to simulate for each tissue type (meta-label)
+  --annotation {feta,dhcp}
+                        Annotation type. Should be either 'feta' or 'dhcp'
+
+Example: python generate_seeds.py --bids_path /path/to/bids --out_path /path/to/out --max_subclasses 10 --annotation feta
+</code></pre>
+<p><strong>Note:</strong></p>
+<ul>
+<li>The <code>--annotation</code> flag specifies the type of segmentation labels to use. The <code>feta</code> option uses the <a href="https://fetachallenge.github.io/">FeTA Challenge</a> labels, while the <code>dhcp</code> option uses the <a href="https://biomedia.github.io/dHCP-release-notes/"><code>Developing Human Connectome Project (dHCP)</code></a> labels as they have different segmentation classes.</li>
+</ul>
+<h2 id="output-format">Output Format</h2>
+<p>The output seeds are saved as <code>int8</code> NIfTI files, with the same dimensions as the input images to speed up the seed loading process during generation.</p>
+<p>The output folder structure is as follows:</p>
+<pre><code class="language-python">├── derivatives
+│   ├── seeds
+│   │   └── subclasses_{1-max_subclasses}
+│   │       └── sub-sta30
+│   │           └── anat
+│   │               └── sub-sta30_rec-irtk_T2w_dseg_mlabel_{1-4}.nii.gz
+└── sub-sta30
+   └── anat
+       ├── sub-sta30_rec-irtk_T2w_dseg.nii.gz
+       └── sub-sta30_rec-irtk_T2w.nii.gz
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../examples/" class="btn btn-neutral float-left" title="Examples"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../configs/" class="btn btn-neutral float-right" title="Configs">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../examples/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../configs/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
