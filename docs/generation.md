@@ -1,4 +1,4 @@
-
+# Generation
 ::: fetalsyngen.generator.model
 
 ::: fetalsyngen.generator.intensity.rand_gmm

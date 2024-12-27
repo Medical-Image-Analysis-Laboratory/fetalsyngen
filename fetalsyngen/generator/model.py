@@ -10,14 +10,8 @@ from fetalsyngen.generator.augmentation.synthseg import (
 from typing import Iterable
 import numpy as np
 
-# TODO: Make different versions of the feta.yaml that work
-# with FetalSimpleDataset and FetalSynthDataset as well as
-# versions with/withoout transforms, with/without seeds
-# and make an example notebook where all is called and illustrated
-# time the synthetic generation
 
-
-# TODO: allow generating output images with other shapes/dimensions!
+# TODO: Thomas allow generating output images with other shapes/dimensions!
 class FetalSynthGen:
     def __init__(
         self,

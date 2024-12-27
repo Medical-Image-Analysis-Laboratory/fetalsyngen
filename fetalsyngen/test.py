@@ -1,14 +1,6 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-# TODO: Have a config loading that doesn't depend on decorators of hydra
-# and give examples of, so it can be flexibly run from
-# any point in the the computer
-
-# 2.
-# TODO: Write a dataloader to see if spawning multiple
-# proceess and see if metatensors are causing an issue
-
 
 @hydra.main(version_base=None, config_path="./../configs", config_name="test")
 def my_app(cfg: DictConfig) -> None:

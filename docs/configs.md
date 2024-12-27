@@ -1,4 +1,5 @@
 # Configs
+
 We use Hydra to manage configurations and instantiate classes in the `FetalSynthGen` pipeline. It allows us to define configurations in YAML files and instantiate classes with these configurations. This makes it easy to modify parameters and experiment with different settings.
 
 See the [Hydra documentation](https://hydra.cc/docs/intro) for more information.
@@ -30,7 +31,7 @@ defaults:
 * `null` is used in the configuration files to specify a `None` value in Python.
 * expressions like `"${var}"` can be used to access variable value in the same level of a given config while `"${..var}"` can be used to access variable value from the parent config.
 
-# Configuration Files
+## Configuration Files
 We provide a variety of ready-to-use configurations for different tasks. These configuration files are stored in the [`fetalsyngen/configs/dataset`](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/tree/dev/configs) directory.
 
 To use them, copy the configuration files to your project root directory into `configs/dataset`. Feel free to modify these configurations to suit the specific requirements of your project.
@@ -84,7 +85,7 @@ image_as_intensity: False
 ```yaml
 _target_: fetalsyngen.generator.model.FetalSynthGen
 
-shape: [256, 256, 256] # TODO: Note that this is input/output
+shape: [256, 256, 256]
 resolution: [0.5, 0.5, 0.5]
 device: cuda # cuda ~6x faster than cpu
 

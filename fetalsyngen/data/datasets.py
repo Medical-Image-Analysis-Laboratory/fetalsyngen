@@ -13,7 +13,7 @@ import torch
 import numpy as np
 from monai.data import MetaTensor
 
-# TODO: keep in mind base_transforms (croppings) to be applied and think of the way to aooly them
+# TODO: keep in mind base_transforms (croppings) to be applied and think of the way to apply them
 
 
 class FetalDataset:
@@ -316,6 +316,11 @@ class FetalSynthDataset(FetalDataset):
         # scale the images to [0, 1]
         gen_output = self.scaler(gen_output)
         image = self.scaler(image) if image is not None else None
+
+        # ensure image and segmentation are on the cpu
+        gen_output = gen_output.cpu()
+        segmentation = segmentation.cpu()
+        image = image.cpu() if image is not None else None
 
         generation_params = {**generation_params, **synth_params}
         generation_params["generation_time"] = time.time() - generation_time_start
