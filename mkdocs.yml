@@ -1,7 +1,9 @@
-site_name: My Docs
+site_name: FetalSynthGen
 
 theme:
   name: readthedocs
+  logo: media/fetsynthgen_logo.png  # Path to your logo file
+  favicon: media/favicon-32x32.pngs  # Path to your favicon file
 
 plugins:
 - mkdocstrings:
@@ -13,6 +15,8 @@ plugins:
           show_source: false
           members_order: source
           relative_crossrefs: true
+
         
 - search
 - autorefs
+- awesome-pages

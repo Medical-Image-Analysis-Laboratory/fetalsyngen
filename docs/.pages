@@ -1,0 +1,11 @@
+nav:
+    - Home:
+        - index.md
+    - Usage:
+        - usage.md
+        - examples.md
+    - API:
+        - seed_generation.md
+        - configs.md
+        - datasets.md
+        - generation.md

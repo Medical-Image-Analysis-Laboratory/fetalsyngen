@@ -1,7 +1,7 @@
 # Seed Generation
 
 ## Introduction
-Seed generation is an intermediate step in creating synthetic fetal brain MRI images with FetalSynthGen.
+Seed generation is the first step in creating synthetic fetal brain MRI images with FetalSynthGen.
 
 * It addresses the **limited number of segmentation classes** in fetal brain MRI.
 * It allows the simulation of **finer variations** in tissue data.

@@ -1,2 +1,2 @@
-Data bla-bla
+Classes for loading and processing datasets.
 ::: fetalsyngen.data.datasets

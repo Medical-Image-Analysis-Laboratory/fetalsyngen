@@ -14,7 +14,6 @@ import numpy as np
 from monai.data import MetaTensor
 
 # TODO: keep in mind base_transforms (croppings) to be applied and think of the way to aooly them
-# TODO: Keep in mind scaling and orientation in getitem of all datasets and dimensions and devices and data types
 
 
 class FetalDataset:
