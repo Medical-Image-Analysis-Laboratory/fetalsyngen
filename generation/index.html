@@ -63,6 +63,76 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Generation</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#api">API</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.model">model</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.model.FetalSynthGen">FetalSynthGen</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.model.FetalSynthGen.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.model.FetalSynthGen.sample">sample</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.intensity.rand_gmm">rand_gmm</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds">ImageFromSeeds</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.load_seeds">load_seeds</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.sample_intensities">sample_intensities</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.deformation.affine_nonrigid">affine_nonrigid</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation">SpatialDeformation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation.deform">deform</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg">synthseg</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandResample">RandResample</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandResample.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandResample.__call__">__call__</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandBiasField">RandBiasField</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandBiasField.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandBiasField.__call__">__call__</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandNoise">RandNoise</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandNoise.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandNoise.__call__">__call__</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandGamma">RandGamma</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandGamma.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.augmentation.synthseg.RandGamma.__call__">__call__</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fixed-image-generation">Fixed Image Generation</a>
+    </li>
     </ul>
                   </li>
               </ul>
@@ -90,7 +160,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <div class="doc doc-object doc-module">
+                <h1 id="generation">Generation</h1>
+<h2 id="api">API</h2>
+
+
+<div class="doc doc-object doc-module">
 
 
 
@@ -239,6 +313,98 @@
               –
               <div class="doc-md-description">
                 <p>Gamma correction generator.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.model.FetalSynthGen.sample" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">sample</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">segmentation</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate a synthetic image from the input data.
+Supports both random generation and from a fixed genparams dictionary.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>image</code></b>
+              –
+              <div class="doc-md-description">
+                <p>Image to use as intensity prior.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>segmentation</code></b>
+              –
+              <div class="doc-md-description">
+                <p>Segmentation to use as spatial prior.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>seeds</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span> | None</code>)
+              –
+              <div class="doc-md-description">
+                <p>Seeds to use for intensity generation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with generation parameters.
+Used for fixed generation.
+Should follow the structure and be of the same type as
+the returned generation parameters.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code>tuple[<span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, dict]</code>
+              –
+              <div class="doc-md-description">
+                <p>The synthetic image, the segmentation, the original image, and the generation parameters.</p>
               </div>
             </li>
         </ul>
@@ -405,7 +571,7 @@ the same GMM. Should be the same length as seed_labels.</p>
 
 
 <h3 id="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.load_seeds" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">load_seeds</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">mlabel2subclusters</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">load_seeds</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">mlabel2subclusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
 
 </h3>
 
@@ -422,6 +588,8 @@ between <code>min_subclusters</code> and <code>max_subclusters</code> (both incl
 <pre><code>seeds: Dictionary with the mapping `subcluster_number: {meta_label: seed_path}`.
 mlabel2subclusters: Mapping to use when defining how many subclusters to
     use for each meta-label. Defaults to None.
+genparams: Dictionary with generation parameters. Defaults to {}.
+    Should contain the key "mlabel2subclusters" if the mapping is to be fixed.
 </code></pre>
 
 
@@ -458,7 +626,7 @@ correspond to the subclusters, and are grouped by meta-label.
 
 
 <h3 id="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds.sample_intensities" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">sample_intensities</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">sample_intensities</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
 
 </h3>
 
@@ -492,6 +660,18 @@ correspond to the subclusters, and are grouped by meta-label.
               –
               <div class="doc-md-description">
                 <p>Device to use. Should be "cuda" or "cpu".</p>
+              </div>
+            </li>
+            <li>
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with generation parameters.
+Defaults to {}. Should contain the keys "mus" and "sigmas" if
+the GMM parameters are to be fixed.</p>
               </div>
             </li>
         </ul>
@@ -605,7 +785,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
 
 <h3 id="fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">max_rotation</span><span class="p">,</span> <span class="n">max_shear</span><span class="p">,</span> <span class="n">max_scaling</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">nonlinear_transform</span><span class="p">,</span> <span class="n">nonlin_scale_min</span><span class="p">,</span> <span class="n">nonlin_scale_max</span><span class="p">,</span> <span class="n">nonlin_std_max</span><span class="p">,</span> <span class="n">flip_prb</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">max_rotation</span><span class="p">,</span> <span class="n">max_shear</span><span class="p">,</span> <span class="n">max_scaling</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">nonlinear_transform</span><span class="p">,</span> <span class="n">nonlin_scale_min</span><span class="p">,</span> <span class="n">nonlin_scale_max</span><span class="p">,</span> <span class="n">nonlin_std_max</span><span class="p">,</span> <span class="n">flip_prb</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></code>
 
 </h3>
 
@@ -658,6 +838,14 @@ Combines both random affine and nonlinear transformations to deform the image.</
               </div>
             </li>
             <li>
+              <b><code>prob</code></b>
+                  (<code>float</code>)
+              –
+              <div class="doc-md-description">
+                <p>Probability of applying the deformation.</p>
+              </div>
+            </li>
+            <li>
               <b><code>nonlinear_transform</code></b>
                   (<code>bool</code>)
               –
@@ -703,6 +891,98 @@ Combines both random affine and nonlinear transformations to deform the image.</
               –
               <div class="doc-md-description">
                 <p>Device to use for computation. Either "cuda" or "cpu".</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation.deform" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">deform</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">segmentation</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Deform the image, segmentation and output.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>image</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Image to deform.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>segmentation</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Segmentation to deform.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>output</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Output to deform.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Dictionary with generation parameters. Defaults to {}.
+Should contain the keys "affine" and "non_rigid" if the parameters are fixed.
+Affine parameters should contain the keys "rotations", "shears" and "scalings".
+Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "size_F_small".</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              –
+              <div class="doc-md-description">
+                <p>tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]: Deformed image, segmentation, output and deformation parameters.</p>
               </div>
             </li>
         </ul>
@@ -849,6 +1129,96 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandResample.__call__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">input_resolution</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Apply the resampling to the input image.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>output</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Input image to resample.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>input_resolution</code></b>
+                  (<code><span title="numpy.array">array</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Resolution of the input image.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>device</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Device to use for computation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Generation parameters.
+Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              –
+              <div class="doc-md-description">
+                <p>torch.Tensor: Resampled image.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
 
 
   </div>
@@ -965,6 +1335,89 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandBiasField.__call__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Apply the bias field to the input image.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>output</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Input image to apply the bias field.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>device</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Device to use for computation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Generation parameters.
+Default: {}. Should contain the keys "bf_scale", "bf_std" and "bf_size" if
+the bias field parameters are fixed.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              –
+              <div class="doc-md-description">
+                <p>torch.Tensor: Image with the bias field applied.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
 
 
   </div>
@@ -1020,6 +1473,28 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
     <div class="doc doc-contents ">
 
+        <p>The image scale is 0-255 so the noise is added in the same scale.
+Args:
+    prob: Probability of applying the augmentation.
+    std_min: Minimum standard deviation of the noise.
+    std_max: Maximum standard deviation of the noise</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandNoise.__call__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Apply the noise to the input image.</p>
 
 
 <table class="field-list">
@@ -1033,27 +1508,52 @@ Combines both random affine and nonlinear transformations to deform the image.</
       <td class="field-body">
         <ul class="first simple">
             <li>
-              <b><code>prob</code></b>
-                  (<code>float</code>)
+              <b><code>output</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
               –
               <div class="doc-md-description">
-                <p>Probability of applying the augmentation.</p>
+                <p>Input image to apply the noise.</p>
               </div>
             </li>
             <li>
-              <b><code>std_min</code></b>
-                  (<code>float</code>)
+              <b><code>device</code></b>
+                  (<code>str</code>)
               –
               <div class="doc-md-description">
-                <p>Minimum standard deviation of the noise.</p>
+                <p>Device to use for computation.</p>
               </div>
             </li>
             <li>
-              <b><code>std_max</code></b>
-                  (<code>float</code>)
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
               –
               <div class="doc-md-description">
-                <p>Maximum standard deviation of the noise</p>
+                <p>Generation parameters.
+Default: {}. Should contain the key "noise_std" if the noise standard deviation is fixed.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              –
+              <div class="doc-md-description">
+                <p>torch.Tensor: Image with the noise applied.</p>
               </div>
             </li>
         </ul>
@@ -1157,6 +1657,88 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.generator.augmentation.synthseg.RandGamma.__call__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Apply the gamma correction to the input image.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>output</code></b>
+                  (<code><span title="torch.Tensor">Tensor</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Input image to apply the gamma correction.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>device</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Device to use for computation.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>genparams</code></b>
+                  (<code>dict</code>, default:
+                      <code>{}</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Generation parameters.
+Default: {}. Should contain the key "gamma" if the gamma correction is fixed.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              –
+              <div class="doc-md-description">
+                <p>torch.Tensor: Image with the gamma correction applied.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+</div>
+
 
 
   </div>
@@ -1172,7 +1754,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
     </div>
 
-</div>
+</div><h2 id="fixed-image-generation">Fixed Image Generation</h2>
               
             </div>
           </div><footer>

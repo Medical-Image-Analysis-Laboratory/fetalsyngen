@@ -116,7 +116,7 @@
 <h2 id="usage">Usage</h2>
 <p>The script <code>fetalsyngen/scripts/generate_seeds.py</code> is used to generate seeds for the FetalSynthGen pipeline.</p>
 <p><code>generate_seeds.py [-h] --bids_path BIDS_PATH --out_path OUT_PATH [--max_subclasses MAX_SUBCLASSES] --annotation {feta,dhcp}</code></p>
-<pre><code class="language-text">options:
+<div class="highlight"><pre><span></span><code>options:
   -h, --help            show this help message and exit
   --bids_path BIDS_PATH
                         Path to BIDS folder with the segmentations and images for seeds generation
@@ -124,28 +124,30 @@
   --max_subclasses MAX_SUBCLASSES
                         How many subclasses to simulate for each tissue type (meta-label)
   --annotation {feta,dhcp}
-                        Annotation type. Should be either 'feta' or 'dhcp'
+                        Annotation type. Should be either &#39;feta&#39; or &#39;dhcp&#39;
 
 Example: python generate_seeds.py --bids_path /path/to/bids --out_path /path/to/out --max_subclasses 10 --annotation feta
-</code></pre>
-<p><strong>Note:</strong></p>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+</div>
 <ul>
 <li>The <code>--annotation</code> flag specifies the type of segmentation labels to use. The <code>feta</code> option uses the <a href="https://fetachallenge.github.io/">FeTA Challenge</a> labels, while the <code>dhcp</code> option uses the <a href="https://biomedia.github.io/dHCP-release-notes/"><code>Developing Human Connectome Project (dHCP)</code></a> labels as they have different segmentation classes.</li>
 </ul>
 <h2 id="output-format">Output Format</h2>
 <p>The output seeds are saved as <code>int8</code> NIfTI files, with the same dimensions as the input images to speed up the seed loading process during generation.</p>
 <p>The output folder structure is as follows:</p>
-<pre><code class="language-python">├── derivatives
-│   ├── seeds
-│   │   └── subclasses_{1-max_subclasses}
-│   │       └── sub-sta30
-│   │           └── anat
-│   │               └── sub-sta30_rec-irtk_T2w_dseg_mlabel_{1-4}.nii.gz
-└── sub-sta30
-   └── anat
-       ├── sub-sta30_rec-irtk_T2w_dseg.nii.gz
-       └── sub-sta30_rec-irtk_T2w.nii.gz
-</code></pre>
+<div class="highlight"><pre><span></span><code><span class="err">├──</span> <span class="n">derivatives</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">seeds</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">subclasses_</span><span class="p">{</span><span class="mi">1</span><span class="o">-</span><span class="n">max_subclasses</span><span class="p">}</span>
+<span class="err">│</span>   <span class="err">│</span>       <span class="err">└──</span> <span class="n">sub</span><span class="o">-</span><span class="n">sta30</span>
+<span class="err">│</span>   <span class="err">│</span>           <span class="err">└──</span> <span class="n">anat</span>
+<span class="err">│</span>   <span class="err">│</span>               <span class="err">└──</span> <span class="n">sub</span><span class="o">-</span><span class="n">sta30_rec</span><span class="o">-</span><span class="n">irtk_T2w_dseg_mlabel_</span><span class="p">{</span><span class="mi">1</span><span class="o">-</span><span class="mi">4</span><span class="p">}</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
+<span class="err">└──</span> <span class="n">sub</span><span class="o">-</span><span class="n">sta30</span>
+   <span class="err">└──</span> <span class="n">anat</span>
+       <span class="err">├──</span> <span class="n">sub</span><span class="o">-</span><span class="n">sta30_rec</span><span class="o">-</span><span class="n">irtk_T2w_dseg</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
+       <span class="err">└──</span> <span class="n">sub</span><span class="o">-</span><span class="n">sta30_rec</span><span class="o">-</span><span class="n">irtk_T2w</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
+</code></pre></div>
               
             </div>
           </div><footer>

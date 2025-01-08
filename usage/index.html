@@ -57,10 +57,6 @@
     <li class="toctree-l2"><a class="reference internal" href="#3-copy-dataset-configurations">3. Copy Dataset Configurations</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#4-run-the-generator">4. Run the Generator</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#notes">Notes</a>
-    </li>
-        </ul>
     </li>
     </ul>
                   </li>
@@ -119,15 +115,17 @@
 <h2 id="4-run-the-generator">4. Run the Generator</h2>
 <p>We offer several <code>torch.Dataset</code> classes for loading synthetic and real datasets:</p>
 <ul>
-<li><strong><code>fetalsyngen.data.datasets.FetalSimpleDataset</code></strong>: Loads real images and segmentations. Used for testing and validation on real data.</li>
+<li><strong><code>fetalsyngen.data.datasets.FetalTestDataset</code></strong>: Loads real images and segmentations. Used for testing and validation on real data.</li>
 <li><strong><code>fetalsyngen.data.datasets.FetalSynthDataset</code></strong>: Can be used to either to create synthetic images and segmentation on the fly or apply the same transformations used in generation of synthetic data to real images and segmentations.</li>
 </ul>
 <p>For more details on these datasets, see the <a href="../datasets/">Datasets</a> page.</p>
-<h3 id="notes">Notes</h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <blockquote>
 <p><strong>📝 Configs</strong>: Use the local copy of the config files from your repository to instantiate the generator/dataset classes.</p>
 <p><strong>📝 Paths</strong>: When using the dataset classes, ensure that the paths in your local configuration files are updated to correctly reference your dataset and seed files.</p>
 </blockquote>
+</div>
               
             </div>
           </div><footer>
