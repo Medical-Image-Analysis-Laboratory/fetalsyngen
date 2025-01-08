@@ -21,6 +21,7 @@ class SpatialDeformation:
         max_shear: float,
         max_scaling: float,
         size: Iterable[int],
+        prob: float,
         nonlinear_transform: bool,
         nonlin_scale_min: float,
         nonlin_scale_max: float,
@@ -35,6 +36,7 @@ class SpatialDeformation:
             max_shear (float): Maximum shear.
             max_scaling (float): Maximum scaling.
             size (Iterable[int]): Size of the output image.
+            prob (float): Probability of applying the deformation.
             nonlinear_transform (bool): Whether to apply nonlinear transformation.
             nonlin_scale_min (float): Minimum scale for the nonlinear transformation.
             nonlin_scale_max (float): Maximum scale for the nonlinear transformation.
@@ -43,7 +45,7 @@ class SpatialDeformation:
             device (str): Device to use for computation. Either "cuda" or "cpu".
         """
         self.size = size  # 256, 256, 256
-
+        self.prob = prob
         self.flip_prb = flip_prb
 
         # randaffine parameters
@@ -82,46 +84,58 @@ class SpatialDeformation:
         self.yc = self.yy - self.c[1]
         self.zc = self.zz - self.c[2]
 
-    def deform(self, image, segmentation, output):
-        image_shape = output.shape
-        flip = np.random.rand() < self.flip_prb
-        xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = (
-            self.generate_deformation(image_shape, random_shift=True)
-        )
-        # flip the image if nessesary
-        if flip:
-            segmentation = torch.flip(segmentation, [0])
-            output = torch.flip(output, [0])
-            image = torch.flip(image, [0]) if image is not None else None
+    def deform(self, image, segmentation, output, genparams: dict = {}):
+        deform_params = {}
+        if np.random.rand() < self.prob or len(genparams.keys()) > 0:
+            image_shape = output.shape
+            flip = (
+                np.random.rand() < self.flip_prb
+                if "flip" not in genparams.keys()
+                else genparams["flip"]
+            )
+            xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = (
+                self.generate_deformation(
+                    image_shape, random_shift=True, genparams=genparams
+                )
+            )
+            # flip the image if nessesary
+            if flip:
+                segmentation = torch.flip(segmentation, [0])
+                output = torch.flip(output, [0])
+                image = torch.flip(image, [0]) if image is not None else None
 
-        output = fast_3D_interp_torch(output, xx2, yy2, zz2, "linear")
-        segmentation = fast_3D_interp_torch(
-            segmentation.to(self.device), xx2, yy2, zz2, "nearest"
-        )
-        if image is not None:
-            image = fast_3D_interp_torch(image.to(self.device), xx2, yy2, zz2, "linear")
+            output = fast_3D_interp_torch(output, xx2, yy2, zz2, "linear")
+            segmentation = fast_3D_interp_torch(
+                segmentation.to(self.device), xx2, yy2, zz2, "nearest"
+            )
+            if image is not None:
+                image = fast_3D_interp_torch(
+                    image.to(self.device), xx2, yy2, zz2, "linear"
+                )
 
-        deform_params["flip"] = flip
+            deform_params["flip"] = flip
 
         return image, segmentation, output, deform_params
 
-    def generate_deformation(self, image_shape, random_shift=True):
+    def generate_deformation(self, image_shape, random_shift=True, genparams={}):
 
         # sample affine deformation
         A, c2, aff_params = self.random_affine_transform(
-            image_shape,
-            self.max_rotation,
-            self.max_shear,
-            self.max_scaling,
-            random_shift,
+            shp=image_shape,
+            max_rotation=self.max_rotation,
+            max_shear=self.max_shear,
+            max_scaling=self.max_scaling,
+            random_shift=random_shift,
+            genparams=genparams.get("affine", {}),
         )
 
         # sample nonlinear deformation
         if self.nonlinear_transform:
             F, non_rigid_params = self.random_nonlinear_transform(
-                self.nonlin_scale_min,
-                self.nonlin_scale_max,
-                self.nonlin_std_max,
+                nonlin_scale_min=self.nonlin_scale_min,
+                nonlin_scale_max=self.nonlin_scale_max,
+                nonlin_std_max=self.nonlin_std_max,
+                genparams=genparams.get("non_rigid", {}),
             )
         else:
             F = None
@@ -144,14 +158,24 @@ class SpatialDeformation:
         )
 
     def random_affine_transform(
-        self, shp, max_rotation, max_shear, max_scaling, random_shift=True
+        self, shp, max_rotation, max_shear, max_scaling, random_shift=True, genparams={}
     ):
         rotations = (
-            (2 * max_rotation * np.random.rand(3) - max_rotation) / 180.0 * np.pi
+            ((2 * max_rotation * np.random.rand(3) - max_rotation) / 180.0 * np.pi)
+            if "rotations" not in genparams.keys()
+            else genparams["rotations"]
         )
 
-        shears = 2 * max_shear * np.random.rand(3) - max_shear
-        scalings = 1 + (2 * max_scaling * np.random.rand(3) - max_scaling)
+        shears = (
+            2 * max_shear * np.random.rand(3) - max_shear
+            if "shears" not in genparams.keys()
+            else genparams["shears"]
+        )
+        scalings = (
+            1 + (2 * max_scaling * np.random.rand(3) - max_scaling)
+            if "scalings" not in genparams.keys()
+            else genparams["scalings"]
+        )
         # we divide distance maps by this, not perfect, but better than nothing
         A = torch.tensor(
             make_affine_matrix(rotations, shears, scalings),
@@ -187,17 +211,24 @@ class SpatialDeformation:
         return A, c2, affine_params
 
     def random_nonlinear_transform(
-        self,
-        nonlin_scale_min,
-        nonlin_scale_max,
-        nonlin_std_max,
+        self, nonlin_scale_min, nonlin_scale_max, nonlin_std_max, genparams={}
     ):
 
-        nonlin_scale = nonlin_scale_min + np.random.rand(1) * (
-            nonlin_scale_max - nonlin_scale_min
+        nonlin_scale = (
+            nonlin_scale_min + np.random.rand(1) * (nonlin_scale_max - nonlin_scale_min)
+            if "nonlin_scale" not in genparams.keys()
+            else genparams["nonlin_scale"]
         )
-        size_F_small = np.round(nonlin_scale * np.array(self.size)).astype(int).tolist()
-        nonlin_std = nonlin_std_max * np.random.rand()
+        size_F_small = (
+            np.round(nonlin_scale * np.array(self.size)).astype(int).tolist()
+            if "size_F_small" not in genparams.keys()
+            else genparams["size_F_small"]
+        )
+        nonlin_std = (
+            nonlin_std_max * np.random.rand()
+            if "nonlin_std" not in genparams.keys()
+            else genparams["nonlin_std"]
+        )
         Fsmall = nonlin_std * torch.randn(
             [*size_F_small, 3], dtype=torch.float, device=self.device
         )

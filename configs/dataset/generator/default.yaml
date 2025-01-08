@@ -16,6 +16,8 @@ spatial_deform:
   _target_: fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation
   device: "${..device}" # uses the device from the generator
   size: ${..shape} # uses the shape from the generator
+  prob: 1
+  
   flip_prb: 0.5
 
   max_rotation: 20

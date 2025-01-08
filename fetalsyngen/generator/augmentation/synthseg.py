@@ -47,11 +47,14 @@ class RandResample(RandTransform):
         self.min_resolution = min_resolution
         self.max_resolution = max_resolution
 
-    def __call__(self, output, input_resolution, device):
-        if np.random.rand() < self.prob:
+    def __call__(self, output, input_resolution, device, genparams: dict = {}):
+        if np.random.rand() < self.prob or "spacing" in genparams.keys():
             input_size = np.array(output.shape)
-            spacing = np.array([1.0, 1.0, 1.0]) * self.random_uniform(
-                self.min_resolution, self.max_resolution
+            spacing = (
+                np.array([1.0, 1.0, 1.0])
+                * self.random_uniform(self.min_resolution, self.max_resolution)
+                if "spacing" not in genparams.keys()
+                else genparams["spacing"]
             )
 
             # calculate stds of gaussian kernels
@@ -129,23 +132,36 @@ class RandBiasField(RandTransform):
         self.std_min = std_min
         self.std_max = std_max
 
-    def __call__(self, output, device):
-        image_size = output.shape
-        bf_scale = self.scale_min + np.random.rand(1) * (
-            self.scale_max - self.scale_min
-        )
-        bf_size = np.round(bf_scale * np.array(image_size)).astype(int).tolist()
-        bf_std = self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
+    def __call__(self, output, device, genparams: dict = {}):
+        if np.random.rand() < self.prob or len(genparams.keys()) > 0:
+            image_size = output.shape
+            bf_scale = (
+                self.scale_min + np.random.rand(1) * (self.scale_max - self.scale_min)
+                if "bf_scale" not in genparams.keys()
+                else genparams["bf_scale"]
+            )
+            bf_size = np.round(bf_scale * np.array(image_size)).astype(int).tolist()
+            bf_std = (
+                self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
+                if "bf_std" not in genparams.keys()
+                else genparams["bf_std"]
+            )
 
-        bf_low_scale = torch.tensor(
-            bf_std,
-            dtype=torch.float,
-            device=device,
-        ) * torch.randn(bf_size, dtype=torch.float, device=device)
-        bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
-        bf = torch.exp(bf_interp)
+            bf_low_scale = torch.tensor(
+                bf_std,
+                dtype=torch.float,
+                device=device,
+            ) * torch.randn(bf_size, dtype=torch.float, device=device)
+            bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
+            bf = torch.exp(bf_interp)
 
-        return output * bf, {"bf_scale": bf_scale, "bf_std": bf_std, "bf_size": bf_size}
+            return output * bf, {
+                "bf_scale": bf_scale,
+                "bf_std": bf_std,
+                "bf_size": bf_size,
+            }
+        else:
+            return output, {"bf_scale": None, "bf_std": None, "bf_size": None}
 
 
 class RandNoise(RandTransform):
@@ -163,18 +179,24 @@ class RandNoise(RandTransform):
         self.std_min = std_min
         self.std_max = std_max
 
-    def __call__(self, output, device):
-        noise_std = self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
+    def __call__(self, output, device, genparams: dict = {}):
+        noise_std = None
+        if np.random.rand() < self.prob or "noise_std" in genparams.keys():
+            noise_std = (
+                self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
+                if "noise_std" not in genparams.keys()
+                else genparams["noise_std"]
+            )
 
-        noise_std = torch.tensor(
-            noise_std,
-            dtype=torch.float,
-            device=device,
-        )
-        output_noisy = output + noise_std * torch.randn(
-            output.shape, dtype=torch.float, device=device
-        )
-        output_noisy[output_noisy < 0] = 0
+            noise_std = torch.tensor(
+                noise_std,
+                dtype=torch.float,
+                device=device,
+            )
+            output = output + noise_std * torch.randn(
+                output.shape, dtype=torch.float, device=device
+            )
+            output[output < 0] = 0
         return output, {"noise_std": noise_std}
 
 
@@ -190,10 +212,14 @@ class RandGamma(RandTransform):
         self.prob = prob
         self.gamma_std = gamma_std
 
-    def __call__(self, output, device):
+    def __call__(self, output, device, genparams: dict = {}):
         gamma = None
-        if np.random.rand() < self.prob:
-            gamma = np.exp(self.gamma_std * np.random.randn(1)[0])
+        if np.random.rand() < self.prob or "gamma" in genparams.keys():
+            gamma = (
+                np.exp(self.gamma_std * np.random.randn(1)[0])
+                if "gamma" not in genparams.keys()
+                else genparams["gamma"]
+            )
             gamma_tensor = torch.tensor(
                 gamma,
                 dtype=float,

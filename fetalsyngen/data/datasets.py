@@ -255,7 +255,7 @@ class FetalSynthDataset(FetalDataset):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_paths[sub_ses_str][n_sub][i] = file
 
-    def sample(self, idx) -> tuple[dict, dict]:
+    def sample(self, idx, genparams: dict = {}) -> tuple[dict, dict]:
         """
         Retrieve a single item from the dataset at the specified index.
 
@@ -304,7 +304,7 @@ class FetalSynthDataset(FetalDataset):
 
         # generate the synthetic data
         gen_output, segmentation, image, synth_params = self.generator.sample(
-            image=image, segmentation=segm, seeds=seeds
+            image=image, segmentation=segm, seeds=seeds, genparams=genparams
         )
 
         # scale the images to [0, 1]
@@ -343,7 +343,7 @@ class FetalSynthDataset(FetalDataset):
 
         return self.sample(idx)[0]
 
-    def sample_with_meta(self, idx: int) -> dict:
+    def sample_with_meta(self, idx: int, genparams: dict = {}) -> dict:
         """
         Retrieve a sample along with its generation parameters
         and store them in the same dictionary.
@@ -355,6 +355,6 @@ class FetalSynthDataset(FetalDataset):
             A dictionary with `image`, `label`, `name` and `generation_params` keys.
         """
 
-        data, generation_params = self.sample(idx)
+        data, generation_params = self.sample(idx, genparams=genparams)
         data["generation_params"] = generation_params
         return data

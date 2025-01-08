@@ -52,6 +52,7 @@ class ImageFromSeeds:
         self,
         seeds: dict[int : dict[int:Path]],
         mlabel2subclusters: dict[int:int] | None = None,
+        genparams: dict = {},
     ) -> torch.Tensor:
         """Generate an intensity image from seeds.
         If seed_mapping is provided, it is used to
@@ -65,6 +66,7 @@ class ImageFromSeeds:
             seeds: Dictionary with the mapping `subcluster_number: {meta_label: seed_path}`.
             mlabel2subclusters: Mapping to use when defining how many subclusters to
                 use for each meta-label. Defaults to None.
+
 
         Returns:
             torch.Tensor: Intensity image with the same shape as the seeds.
@@ -81,6 +83,8 @@ class ImageFromSeeds:
                 )
                 for meta_label in range(1, self.meta_labels + 1)
             }
+        if "mlabel2subclusters" in genparams.keys():
+            mlabel2subclusters = genparams["mlabel2subclusters"]
 
         # load the first seed as the one corresponding to mlabel 1
         seed = self.loader(seeds[mlabel2subclusters[1]][1])
@@ -94,7 +98,9 @@ class ImageFromSeeds:
 
         return seed.long().squeeze(0), {"mlabel2subclusters": mlabel2subclusters}
 
-    def sample_intensities(self, seeds: torch.Tensor, device) -> torch.Tensor:
+    def sample_intensities(
+        self, seeds: torch.Tensor, device: str, genparams: dict = {}
+    ) -> torch.Tensor:
         """Sample the intensities from the seeds.
 
         Args:
@@ -108,11 +114,21 @@ class ImageFromSeeds:
         nsamp = len(self.seed_labels)
 
         # # Sample GMMs means and stds
-        mus = 25 + 200 * torch.rand(nlabels, dtype=torch.float, device=device)
-        sigmas = 5 + 20 * torch.rand(
-            nlabels,
-            dtype=torch.float,
-            device=device,
+        mus = (
+            25 + 200 * torch.rand(nlabels, dtype=torch.float, device=device)
+            if "mus" not in genparams.keys()
+            else genparams["mus"]
+        )
+        sigmas = (
+            5
+            + 20
+            * torch.rand(
+                nlabels,
+                dtype=torch.float,
+                device=device,
+            )
+            if "sigmas" not in genparams.keys()
+            else genparams["sigmas"]
         )
 
         # if there are seed labels from the same generation class

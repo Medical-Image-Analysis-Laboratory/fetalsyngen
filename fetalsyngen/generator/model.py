@@ -48,14 +48,51 @@ class FetalSynthGen:
         self.noise = noise
         self.device = device
 
-    def sample(self, image, segmentation, seeds: torch.Tensor | None):
+    def _validated_genparams(self, d: dict) -> dict:
+        """Recursively removes all the keys with None values as they are not fixed in the generation."""
+        if not isinstance(d, dict):
+            return d  # Return non-dictionaries as-is
+
+        return {
+            key: self._validated_genparams(value)
+            for key, value in d.items()
+            if value is not None
+        }
+
+    def sample(
+        self, image, segmentation, seeds: torch.Tensor | None, genparams: dict = {}
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+        """
+        Generate a synthetic image from the input data.
+        Supports both random generation and from a fixed genparams dictionary.
+
+        Args:
+            image: Image to use as intensity prior.
+            segmentation: Segmentation to use as spatial prior.
+            seeds: Seeds to use for intensity generation.
+            genparams: Dictionary with generation parameters.
+                Used for fixed generation.
+                Should follow the structure and be of the same type as
+                the returned generation parameters.
+
+        Returns:
+            The synthetic image, the segmentation, the original image, and the generation parameters.
+
+        """
+        if genparams:
+            genparams = self._validated_genparams(genparams)
+
         synth_params = {}
 
         # 1. Generate intensity output.
         if seeds is not None:
-            seeds, selected_seeds = self.intensity_generator.load_seeds(seeds)
+            seeds, selected_seeds = self.intensity_generator.load_seeds(
+                seeds=seeds, genparams=genparams.get("selected_seeds", {})
+            )
             output, seed_intensities = self.intensity_generator.sample_intensities(
-                seeds, self.device
+                seeds=seeds,
+                device=self.device,
+                genparams=genparams.get("seed_intensities", {}),
             )
         else:
             if image is None:
@@ -73,22 +110,34 @@ class FetalSynthGen:
 
         # 2. Spatially deform the data
         image, segmentation, output, deform_params = self.spatial_deform.deform(
-            image, segmentation, output
+            image=image,
+            segmentation=segmentation,
+            output=output,
+            genparams=genparams.get("deform_params", {}),
         )
 
         # 3. Gamma contrast transformation
-        output, gamma_params = self.gamma(output, self.device)
+        output, gamma_params = self.gamma(
+            output, self.device, genparams=genparams.get("gamma_params", {})
+        )
 
         # 4. Bias field corruption
-        output, bf_params = self.biasfield(output, self.device)
+        output, bf_params = self.biasfield(
+            output, self.device, genparams=genparams.get("bf_params", {})
+        )
 
         # 5. Downsample to simulate lower reconstruction resolution
         output, factors, resample_params = self.resampled(
-            output, np.array(self.resolution), self.device
+            output,
+            np.array(self.resolution),
+            self.device,
+            genparams=genparams.get("resample_params", {}),
         )
 
         # 6. Noise corruption
-        output, noise_params = self.noise(output, self.device)
+        output, noise_params = self.noise(
+            output, self.device, genparams=genparams.get("noise_params", {})
+        )
 
         # 7. Up-sample back to the original resolution/shape
         output = self.resampled.resize_back(output, factors)
