@@ -155,7 +155,7 @@ class FetalTestDataset(FetalDataset):
                 of a format `sub_ses` where `sub` is the subject name
                 and `ses` is the session name.
 
-        Note:
+        !!! Note
             Tensors are returned on CPU and `image` is scaled `[0, 1]`
             and oriented together with `label` to **RAS**.
         """
@@ -271,7 +271,7 @@ class FetalSynthDataset(FetalDataset):
                 First dictionary contains the `image`, `label` and the `name` keys.
                 The second dictionary contains the parameters used for the generation.
 
-        Note:
+        !!! Note
             The `image` is scaled to `[0, 1]` and oriented with the `label` to **RAS**
             and returned on the device  specified in the `generator` initialization.
         """
@@ -340,7 +340,7 @@ class FetalSynthDataset(FetalDataset):
                 and `name` is a string of a format `sub_ses` where `sub` is the subject name
                 and `ses` is the session name.
 
-        Note:
+        !!!Note
             The `image` is scaled to `[0, 1]` and oriented to **RAS** and returned on the device
             specified in the `generator` initialization.
         """

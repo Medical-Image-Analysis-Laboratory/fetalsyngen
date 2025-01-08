@@ -1,6 +1,6 @@
 # Datasets
 Classes for loading and processing datasets.
-### Note
+!!! Note
 > **📝 Device**: All datasets return samples with tensors on the CPU (even when the synthetic data generation is done on the GPU). This is due to restriction on the GPU usage in the multiprocessing settings, where GPU memory cannot be easily shared between processes.
 
 > **📝 Dataloader**: When using `torch.utils.data.DataLoader` ensure that you pass `multiprocessing_context="spawn"` argument to the dataloader object when using `FetalSynthDataset` to ensure that the spawned processes have access to the GPU.
@@ -132,3 +132,8 @@ See how the keys `bf_scale`, `bf_std`, `bf_size` and `noise_std` have not been d
     ```
 
 </details>
+<br>
+!!! Note 
+    - If a specific parameter is passed in `genparams` it means that the probability of its application is 100%. The internal `prob` is not used as the parameter is fixed.
+    
+    - If using custom values for the parameters, ensure that the values are within the range of the parameters defined in the class attributes (especially for the spatial deformation parameters, as the grid is pre-defined at class initialization). Furthermore, ensure that the device location and parameter type is consistent with the one in the returned generation_parameters dictionary.

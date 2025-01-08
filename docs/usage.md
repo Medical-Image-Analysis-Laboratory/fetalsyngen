@@ -27,8 +27,8 @@ We offer several `torch.Dataset` classes for loading synthetic and real datasets
 
 For more details on these datasets, see the [Datasets](datasets.md) page.
 
-### Notes
-> **📝 Configs**: Use the local copy of the config files from your repository to instantiate the generator/dataset classes.
+!!! Note
+    > **📝 Configs**: Use the local copy of the config files from your repository to instantiate the generator/dataset classes.
 
-> **📝 Paths**: When using the dataset classes, ensure that the paths in your local configuration files are updated to correctly reference your dataset and seed files.
+    > **📝 Paths**: When using the dataset classes, ensure that the paths in your local configuration files are updated to correctly reference your dataset and seed files.
 

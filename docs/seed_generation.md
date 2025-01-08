@@ -37,9 +37,8 @@ options:
 Example: python generate_seeds.py --bids_path /path/to/bids --out_path /path/to/out --max_subclasses 10 --annotation feta
 ```
 
-**Note:**
-
-* The `--annotation` flag specifies the type of segmentation labels to use. The `feta` option uses the [FeTA Challenge](https://fetachallenge.github.io/) labels, while the `dhcp` option uses the [`Developing Human Connectome Project (dHCP)`](https://biomedia.github.io/dHCP-release-notes/) labels as they have different segmentation classes.
+!!! Note
+  * The `--annotation` flag specifies the type of segmentation labels to use. The `feta` option uses the [FeTA Challenge](https://fetachallenge.github.io/) labels, while the `dhcp` option uses the [`Developing Human Connectome Project (dHCP)`](https://biomedia.github.io/dHCP-release-notes/) labels as they have different segmentation classes.
 
 
 ## Output Format

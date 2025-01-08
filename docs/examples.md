@@ -40,7 +40,8 @@ def my_app(cfg: DictConfig) -> None:
 ```
 </details>
 <br>
-**Note:** Ensure that the `bids` and `seeds` paths in the configuration files are updated to the absolute paths for your data.
+!!! Note
+    Ensure that the `bids` and `seeds` paths in the configuration files are updated to the absolute paths for your data.
 
 
 ## Using Direct Instantiation

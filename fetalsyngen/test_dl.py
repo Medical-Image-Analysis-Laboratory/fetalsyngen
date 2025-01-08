@@ -1,3 +1,6 @@
+"""Test script to evaluate the speed of the dataloader."""
+
+# TODO: Remove this script after testing the dataloader speed
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader

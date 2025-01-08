@@ -20,3 +20,8 @@ plugins:
 - search
 - autorefs
 - awesome-pages
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
