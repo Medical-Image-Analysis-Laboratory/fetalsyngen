@@ -124,6 +124,13 @@ class FetalTestDataset(FetalDataset):
             sub_list: List of the subjects to use. If None, all subjects are used.
             transforms: Compose object with the transformations to apply.
                 Default is None, no transformations are applied.
+
+        !!! Note
+            We highle recommend using the `transforms` arguments with at
+            least the re-oriented transform to RAS and the intensity scaling
+            to `[0, 1]` to ensure the data consistency.
+
+            See [inference.yaml](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/dev/configs/dataset/transforms/inference.yaml) for an example of the transforms configuration.
         """
         super().__init__(bids_path, sub_list)
         self.transforms = transforms
@@ -155,9 +162,7 @@ class FetalTestDataset(FetalDataset):
                 of a format `sub_ses` where `sub` is the subject name
                 and `ses` is the session name.
 
-        !!! Note
-            Tensors are returned on CPU and `image` is scaled `[0, 1]`
-            and oriented together with `label` to **RAS**.
+
         """
         data = self._load_data(idx)
 
