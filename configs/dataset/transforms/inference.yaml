@@ -1,6 +1,10 @@
 _target_: monai.transforms.Compose
 transforms:
 
+  - _target_: monai.transforms.Orientationd
+    keys: ["image", "label"]
+    axcodes: "RAS"
+
   - _target_: monai.transforms.SignalFillEmptyd
     keys: ["image", "label"]
     replacement: 0
@@ -29,3 +33,8 @@ transforms:
     keys: ["image", "label"]
     roi_size: [256, 256, 256]
     allow_missing_keys: true
+
+  - _target_: monai.transforms.ScaleIntensityd
+    keys: ["image"]
+    minv: 0
+    maxv: 1

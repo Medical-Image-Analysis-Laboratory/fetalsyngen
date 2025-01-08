@@ -38,12 +38,12 @@ To use them, copy the configuration files to your project root directory into `c
 
 
 ## Validation/Testing Dataset
-Dataset configuration for loading real images and segmentations. Used for testing and validation on real data. See [`/datasets/#fetalsyngen.data.datasets.FetalSimpleDataset`](datasets.md#fetalsyngen.data.datasets.FetalSimpleDataset) for more details.
+Dataset configuration for loading real images and segmentations. Used for testing and validation on real data. See [`/datasets/#fetalsyngen.data.datasets.FetalTestDataset`](datasets.md#fetalsyngen.data.datasets.FetalTestDataset) for more details.
 ```yaml
 defaults:
   - transforms/inference
 
-_target_: fetalsyngen.data.datasets.FetalSimpleDataset
+_target_: fetalsyngen.data.datasets.FetalTestDataset
 bids_path: ./data
 sub_list: null
 ```

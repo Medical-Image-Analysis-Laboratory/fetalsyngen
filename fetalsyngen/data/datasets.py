@@ -13,8 +13,6 @@ import torch
 import numpy as np
 from monai.data import MetaTensor
 
-# TODO: keep in mind base_transforms (croppings) to be applied and think of the way to apply them
-
 
 class FetalDataset:
     """Abstract class defining a dataset for loading fetal data."""
@@ -106,7 +104,7 @@ class FetalDataset:
         )
 
 
-class FetalSimpleDataset(FetalDataset):
+class FetalTestDataset(FetalDataset):
     """Dataset class for loading fetal images offline.
     Used to load test/validation data.
 
@@ -130,6 +128,23 @@ class FetalSimpleDataset(FetalDataset):
         super().__init__(bids_path, sub_list)
         self.transforms = transforms
 
+    def _load_data(self, idx):
+        # load the image and segmentation
+        image = self.loader(self.img_paths[idx])
+        segm = self.loader(self.segm_paths[idx])
+        if len(image.shape) == 3:
+            # add channel dimension
+            image = image.unsqueeze(0)
+            segm = segm.unsqueeze(0)
+        elif len(image.shape) != 4:
+            raise ValueError(f"Expected 3D or 4D image, got {len(image.shape)}D image.")
+
+        # transform name into a single string otherwise collate fails
+        name = self.sub_ses[idx]
+        name = self._sub_ses_string(name[0], ses=name[1])
+
+        return {"image": image, "label": segm, "name": name}
+
     def __getitem__(self, idx) -> dict:
         """
         Returns:
@@ -144,29 +159,10 @@ class FetalSimpleDataset(FetalDataset):
             Tensors are returned on CPU and `image` is scaled `[0, 1]`
             and oriented together with `label` to **RAS**.
         """
-        # load the image and segmentation
-        image = self.loader(self.img_paths[idx])
-        segm = self.loader(self.segm_paths[idx])
+        data = self._load_data(idx)
 
-        # add channel dimension
-        image = image.unsqueeze(0)
-        segm = segm.unsqueeze(0)
-
-        # transform name into a single string otherwise collate fails
-        name = self.sub_ses[idx]
-        name = self._sub_ses_string(name[0], ses=name[1])
-
-        # orient to RAS for consistency
-        image = self.orientation(image)
-        segm = self.orientation(segm)
-
-        # apply additional transformations
-        data = {"image": image, "label": segm, "name": name}
         if self.transforms:
             data = self.transforms(data)
-
-        # scale the image to [0, 1]
-        data["image"] = self.scaler(data["image"])
 
         return data
 
@@ -183,8 +179,6 @@ class FetalSimpleDataset(FetalDataset):
         """
         if self.transforms:
             data = self.transforms.inverse(data)
-        data["image"] = self.orientation.inverse(data["image"])
-        data["label"] = self.orientation.inverse(data["label"])
         return data
 
 

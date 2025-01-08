@@ -22,7 +22,7 @@ Each configuration is a `.yaml` file that contains the parameters for the genera
 
 We offer several `torch.Dataset` classes for loading synthetic and real datasets:
 
-- **`fetalsyngen.data.datasets.FetalSimpleDataset`**: Loads real images and segmentations. Used for testing and validation on real data.
+- **`fetalsyngen.data.datasets.FetalTestDataset`**: Loads real images and segmentations. Used for testing and validation on real data.
 - **`fetalsyngen.data.datasets.FetalSynthDataset`**: Can be used to either to create synthetic images and segmentation on the fly or apply the same transformations used in generation of synthetic data to real images and segmentations.
 
 For more details on these datasets, see the [Datasets](datasets.md) page.

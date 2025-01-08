@@ -8,7 +8,7 @@ from fetalsyngen.utils.brainid import (
     myzoom_torch,
 )
 
-# TODO: Add deterministic augmentation option
+# TODO: Thomas add deterministic augmentation option
 
 
 class RandTransform(monai.transforms.Transform):
