@@ -11,7 +11,6 @@ from typing import Iterable
 import numpy as np
 
 
-# TODO: Thomas allow generating output images with other shapes/dimensions!
 class FetalSynthGen:
     def __init__(
         self,

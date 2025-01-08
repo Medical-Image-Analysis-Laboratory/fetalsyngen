@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from fetalsyngen.utils.brainid import (
+from fetalsyngen.utils.generation import (
     fast_3D_interp_torch,
     myzoom_torch,
     make_affine_matrix,

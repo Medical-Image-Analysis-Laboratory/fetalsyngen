@@ -2,7 +2,7 @@ import torch
 import monai
 import numpy as np
 from monai.transforms import Spacing
-from fetalsyngen.utils.brainid import (
+from fetalsyngen.utils.generation import (
     gaussian_blur_3d,
     fast_3D_interp_torch,
     myzoom_torch,
@@ -89,17 +89,17 @@ class RandResample(RandTransform):
             JJ = torch.tensor(JJ, dtype=torch.float, device=device)
             KK = torch.tensor(KK, dtype=torch.float, device=device)
 
-            output_reized = fast_3D_interp_torch(output_blurred, II, JJ, KK, "linear")
-            return output_reized, factors, {"spacing": spacing}
+            output_resized = fast_3D_interp_torch(output_blurred, II, JJ, KK, "linear")
+            return output_resized, factors, {"spacing": spacing}
         else:
             return output, None, {"spacing": None}
 
-    def resize_back(self, output_reized, factors):
+    def resize_back(self, output_resized, factors):
         if factors is not None:
-            output_reized = myzoom_torch(output_reized, 1 / factors)
-            return output_reized / torch.max(output_reized)
+            output_resized = myzoom_torch(output_resized, 1 / factors)
+            return output_resized / torch.max(output_resized)
         else:
-            return output_reized
+            return output_resized
 
 
 class RandBiasField(RandTransform):
@@ -153,7 +153,7 @@ class RandNoise(RandTransform):
 
     def __init__(self, prob: float, std_min: float, std_max: float):
         """
-
+        The image scale is 0-255 so the noise is added in the same scale.
         Args:
             prob: Probability of applying the augmentation.
             std_min: Minimum standard deviation of the noise.
@@ -171,10 +171,10 @@ class RandNoise(RandTransform):
             dtype=torch.float,
             device=device,
         )
-        SYN_noisy = output + noise_std * torch.randn(
+        output_noisy = output + noise_std * torch.randn(
             output.shape, dtype=torch.float, device=device
         )
-        SYN_noisy[SYN_noisy < 0] = 0
+        output_noisy[output_noisy < 0] = 0
         return output, {"noise_std": noise_std}
 
 
