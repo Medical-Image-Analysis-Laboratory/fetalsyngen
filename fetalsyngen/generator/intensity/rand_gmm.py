@@ -66,6 +66,8 @@ class ImageFromSeeds:
             seeds: Dictionary with the mapping `subcluster_number: {meta_label: seed_path}`.
             mlabel2subclusters: Mapping to use when defining how many subclusters to
                 use for each meta-label. Defaults to None.
+            genparams: Dictionary with generation parameters. Defaults to {}.
+                Should contain the key "mlabel2subclusters" if the mapping is to be fixed.
 
 
         Returns:
@@ -106,6 +108,9 @@ class ImageFromSeeds:
         Args:
             seeds (torch.Tensor): Tensor with the seeds.
             device (str): Device to use. Should be "cuda" or "cpu".
+            genparams (dict, optional): Dictionary with generation parameters.
+                Defaults to {}. Should contain the keys "mus" and "sigmas" if
+                the GMM parameters are to be fixed.
 
         Returns:
             torch.Tensor: Tensor with the intensities.

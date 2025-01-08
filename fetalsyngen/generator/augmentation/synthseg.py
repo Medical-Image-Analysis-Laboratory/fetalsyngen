@@ -48,6 +48,18 @@ class RandResample(RandTransform):
         self.max_resolution = max_resolution
 
     def __call__(self, output, input_resolution, device, genparams: dict = {}):
+        """Apply the resampling to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to resample.
+            input_resolution (np.array): Resolution of the input image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+                Default: {}. Should contain the key "spacing" if the spacing is fixed.
+
+        Returns:
+            torch.Tensor: Resampled image.
+        """
         if np.random.rand() < self.prob or "spacing" in genparams.keys():
             input_size = np.array(output.shape)
             spacing = (
@@ -133,6 +145,18 @@ class RandBiasField(RandTransform):
         self.std_max = std_max
 
     def __call__(self, output, device, genparams: dict = {}):
+        """Apply the bias field to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to apply the bias field.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+                Default: {}. Should contain the keys "bf_scale", "bf_std" and "bf_size" if
+                the bias field parameters are fixed.
+
+        Returns:
+            torch.Tensor: Image with the bias field applied.
+        """
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
             image_size = output.shape
             bf_scale = (
@@ -180,6 +204,16 @@ class RandNoise(RandTransform):
         self.std_max = std_max
 
     def __call__(self, output, device, genparams: dict = {}):
+        """Apply the noise to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to apply the noise.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+                Default: {}. Should contain the key "noise_std" if the noise standard deviation is fixed.
+
+        Returns:
+            torch.Tensor: Image with the noise applied."""
         noise_std = None
         if np.random.rand() < self.prob or "noise_std" in genparams.keys():
             noise_std = (
@@ -213,6 +247,17 @@ class RandGamma(RandTransform):
         self.gamma_std = gamma_std
 
     def __call__(self, output, device, genparams: dict = {}):
+        """Apply the gamma correction to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to apply the gamma correction.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+                Default: {}. Should contain the key "gamma" if the gamma correction is fixed.
+
+        Returns:
+            torch.Tensor: Image with the gamma correction applied.
+        """
         gamma = None
         if np.random.rand() < self.prob or "gamma" in genparams.keys():
             gamma = (

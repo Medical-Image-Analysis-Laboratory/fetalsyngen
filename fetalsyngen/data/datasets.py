@@ -261,7 +261,11 @@ class FetalSynthDataset(FetalDataset):
 
         Args:
             idx (int): The index of the item to retrieve.
-
+            genparams (dict): Dictionary with generation parameters.
+                Used for fixed generation. Should follow exactly the same structure
+                and be of the same type as the returned generation parameters.
+                Can be used to replicate the augmentations (power)
+                used for the generation of a specific sample.
         Returns:
             Dictionaries with the generated data and the generation parameters.
                 First dictionary contains the `image`, `label` and the `name` keys.
@@ -350,6 +354,11 @@ class FetalSynthDataset(FetalDataset):
 
         Args:
             idx: The index of the sample to retrieve.
+            genparams: Dictionary with generation parameters.
+                Used for fixed generation. Should follow exactly the same structure
+                and be of the same type as the returned generation parameters from the `sample()` method.
+                Can be used to replicate the augmentations (power)
+                used for the generation of a specific sample.
 
         Returns:
             A dictionary with `image`, `label`, `name` and `generation_params` keys.

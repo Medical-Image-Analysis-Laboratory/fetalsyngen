@@ -85,6 +85,20 @@ class SpatialDeformation:
         self.zc = self.zz - self.c[2]
 
     def deform(self, image, segmentation, output, genparams: dict = {}):
+        """Deform the image, segmentation and output.
+
+        Args:
+            image (torch.Tensor): Image to deform.
+            segmentation (torch.Tensor): Segmentation to deform.
+            output (torch.Tensor): Output to deform.
+            genparams (dict, optional): Dictionary with generation parameters. Defaults to {}.
+                Should contain the keys "affine" and "non_rigid" if the parameters are fixed.
+                Affine parameters should contain the keys "rotations", "shears" and "scalings".
+                Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "size_F_small".
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]: Deformed image, segmentation, output and deformation parameters.
+        """
         deform_params = {}
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
             image_shape = output.shape
