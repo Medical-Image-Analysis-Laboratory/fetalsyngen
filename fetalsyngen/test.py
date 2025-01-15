@@ -1,5 +1,7 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
+import os
+import nibabel as nib
 
 
 @hydra.main(version_base=None, config_path="./../configs", config_name="test")
@@ -27,6 +29,11 @@ def my_app(cfg: DictConfig) -> None:
     print(data["label"].max())
     print(data["image"].min())
     print(data["label"].min())
+    os.makedirs("test", exist_ok=True)
+    nib.save(
+        nib.Nifti1Image(data["image"].cpu().numpy(), affine=None),
+        "test/image.nii.gz",
+    )
 
 
 if __name__ == "__main__":

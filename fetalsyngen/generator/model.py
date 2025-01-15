@@ -1,6 +1,8 @@
 import torch
 from fetalsyngen.generator.intensity.rand_gmm import ImageFromSeeds
-from fetalsyngen.generator.deformation.affine_nonrigid import SpatialDeformation
+from fetalsyngen.generator.deformation.affine_nonrigid import (
+    SpatialDeformation,
+)
 from fetalsyngen.generator.augmentation.synthseg import (
     RandResample,
     RandBiasField,
@@ -9,6 +11,17 @@ from fetalsyngen.generator.augmentation.synthseg import (
 )
 from typing import Iterable
 import numpy as np
+from fetalsyngen.generator.artifacts.simulate_reco import (
+    Scanner,
+    PSFReconstructor,
+)
+from fetalsyngen.generator.augmentation.artifacts import (
+    SimulatedBoundaries,
+    StructNoise,
+    SimulateMotion,
+    BlurCortex,
+)
+from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
 
 
 class FetalSynthGen:
@@ -23,6 +36,10 @@ class FetalSynthGen:
         bias_field: RandBiasField,
         noise: RandNoise,
         gamma: RandGamma,
+        blur_cortex: BlurCortex,
+        struct_noise: StructNoise,
+        simulate_motion: SimulateMotion,
+        boundaries: SimulatedBoundaries,
     ):
         """
         Initialize the model with the given parameters.
@@ -46,6 +63,13 @@ class FetalSynthGen:
         self.biasfield = bias_field
         self.gamma = gamma
         self.noise = noise
+
+        self.artifacts = [
+            blur_cortex,
+            struct_noise,
+            simulate_motion,
+            boundaries,
+        ]
         self.device = device
 
     def _validated_genparams(self, d: dict) -> dict:
@@ -60,7 +84,11 @@ class FetalSynthGen:
         }
 
     def sample(
-        self, image, segmentation, seeds: torch.Tensor | None, genparams: dict = {}
+        self,
+        image,
+        segmentation,
+        seeds: torch.Tensor | None,
+        genparams: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         """
         Generate a synthetic image from the input data.
@@ -89,10 +117,12 @@ class FetalSynthGen:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
-            output, seed_intensities = self.intensity_generator.sample_intensities(
-                seeds=seeds,
-                device=self.device,
-                genparams=genparams.get("seed_intensities", {}),
+            output, seed_intensities = (
+                self.intensity_generator.sample_intensities(
+                    seeds=seeds,
+                    device=self.device,
+                    genparams=genparams.get("seed_intensities", {}),
+                )
             )
         else:
             if image is None:
@@ -109,11 +139,13 @@ class FetalSynthGen:
         image = image.to(self.device) if image is not None else None
 
         # 2. Spatially deform the data
-        image, segmentation, output, deform_params = self.spatial_deform.deform(
-            image=image,
-            segmentation=segmentation,
-            output=output,
-            genparams=genparams.get("deform_params", {}),
+        image, segmentation, output, deform_params = (
+            self.spatial_deform.deform(
+                image=image,
+                segmentation=segmentation,
+                output=output,
+                genparams=genparams.get("deform_params", {}),
+            )
         )
 
         # 3. Gamma contrast transformation
@@ -143,7 +175,15 @@ class FetalSynthGen:
         output = self.resampled.resize_back(output, factors)
 
         # 8. Induce SR-artifacts
-        # TODO: Thomas add the SR artifacts here
+        print(genparams.get("artifact_params", {}))
+        for artifact in self.artifacts:
+            output, _ = artifact(
+                output,
+                segmentation,
+                self.device,
+                genparams.get("artifact_params", {}),
+                resolution=self.resolution,
+            )
 
         # 9. Aggregete the synth params
         synth_params.update(
