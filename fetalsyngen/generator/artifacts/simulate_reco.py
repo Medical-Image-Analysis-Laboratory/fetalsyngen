@@ -32,6 +32,11 @@ from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
 
 
 def PSFreconstruction(transforms, slices, slices_mask, vol_mask, params):
+    """
+    Reconstruct the volume from the acquired slices using the PSF and the given transforms
+    by calling the `slice_acquisition_adjoint` cuda method.
+
+    """
     return slice_acquisition_adjoint(
         transforms,
         params["psf"],
@@ -46,6 +51,13 @@ def PSFreconstruction(transforms, slices, slices_mask, vol_mask, params):
 
 
 class Scanner:
+    """
+    Class that simulates the acquisition of slices from a volume.
+
+    Samples multiple stacks of slices at various resolutions, various slice_thicnkesses and gaps.
+    Adds artifacts to the simulated slices (noise, Gamma transform, signal voids) and spatial shifts.
+
+    """
 
     def __init__(
         self,
@@ -72,6 +84,34 @@ class Scanner:
         resolution_recon: float = None,
         slice_noise_threshold: float = 0.1,
     ):
+        """
+        Initialize the scanner with the given parameters.
+
+        Args:
+            resolution_slice_fac_min: Minimum slice resolution factor.
+            resolution_slice_fac_max: Maximum slice resolution factor.
+            resolution_slice_max: Maximum slice resolution.
+            slice_thickness_min: Minimum slice thickness.
+            slice_thickness_max: Maximum slice thickness.
+            gap_min: Minimum gap between slices.
+            gap_max: Maximum gap between slices.
+            min_num_stack: Minimum number of stacks.
+            max_num_stack: Maximum number of stacks.
+            max_num_slices: Maximum number of slices.
+            noise_sigma_min: Minimum noise sigma.
+            noise_sigma_max: Maximum noise sigma.
+            TR_min: Minimum TR.
+            TR_max: Maximum TR.
+            prob_gamma: Probability of applying the Gamma transform.
+            gamma_std: Standard deviation of the Gamma transform.
+            prob_void: Probability of applying the signal void.
+            slice_size: Size of the slices.
+            resolution_recon: Resolution of the reconstructed volume.
+            restrict_transform: Restrict the transformation.
+            txy: Translation factor.
+            slice_noise_threshold: Slice noise threshold.
+
+        """
         self.resolution_slice_fac_min = resolution_slice_fac_min
         self.resolution_slice_fac_max = resolution_slice_fac_max
         self.resolution_slice_max = resolution_slice_max
@@ -107,6 +147,13 @@ class Scanner:
             data["resolution"] and resolution_slice.
 
         Then, the slice_thickness is either randomly sampled, same for gap.
+
+        Args:
+            data: Dictionary containing the data.
+            genparams: Dictionary containing the generation parameters.
+
+        Returns:
+            dict: The updated data dictionary.
         """
         resolution = data["resolution"]
         if "resolution_slice_fac" not in genparams:
@@ -142,6 +189,16 @@ class Scanner:
         return data
 
     def sample_time(self, n_slice, genparams: dict = {}):
+        """
+        Sample the time points for the slices.
+
+        Args:
+            n_slice: Number of slices.
+            genparams: Dictionary containing the generation parameters.
+
+        Returns:
+            np.ndarray: The time points for the slices.
+        """
         if "TR" not in genparams:
             TR = np.random.uniform(self.TR_min, self.TR_max)
         else:
@@ -149,7 +206,16 @@ class Scanner:
         return np.arange(n_slice) * TR
 
     def random_gamma(self, slices, genparams: dict = {}):
-        # Gamma transform
+        """
+        Apply the Gamma transform to the slices.
+
+        Args:
+            slices: The slices to apply the transform to.
+            genparams: Dictionary containing the generation parameters.
+
+        Returns:
+            torch.Tensor: The transformed slices.
+        """
         if np.random.rand() < self.prob_gamma:
             if "gamma" not in genparams:
                 gamma = np.exp(self.gamma_std * np.random.randn(1)[0])
@@ -166,7 +232,16 @@ class Scanner:
         return slices
 
     def add_noise(self, slices, genparams: dict = {}):
+        """
+        Add noise to the slices.
 
+        Args:
+            slices: The slices to add noise to.
+            genparams: Dictionary containing the generation parameters.
+
+        Returns:
+            torch.Tensor: The noisy slices.
+        """
         mask = slices > self.slice_noise_threshold
         masked = slices[mask]
         if "noise_sigma" not in genparams:
@@ -181,8 +256,16 @@ class Scanner:
         return slices
 
     def signal_void(self, slices):
-        """I don't know for sure how I should make the transform deterministic.
-        Returning to it later."""
+        """
+        Apply signal voids to the slices.
+
+        Args:
+            slices: The slices to apply the signal voids to.
+
+        Returns:
+            torch.Tensor: The slices with the signal voids.
+        """
+
         idx = (
             torch.rand(slices.shape[0], device=slices.device) < self.prob_void
         )
@@ -221,6 +304,16 @@ class Scanner:
         return slices
 
     def scan(self, data, genparams: dict = {}):
+        """
+        Simulate the acquisition of slices from the volume.
+
+        Args:
+            data: Dictionary containing the data.
+            genparams: Dictionary containing the generation parameters.
+
+        Returns:
+            dict: The updated data dictionary with simulated acquired slices.
+        """
         data = self.get_resolution(data, genparams={})
         res = data["resolution"]
         res_r = data["resolution_recon"]
@@ -411,6 +504,14 @@ class Scanner:
 
 
 class PSFReconstructor:
+    """
+    Class that reconstructs the volume from the acquired slices using the PSF and the transforms given.
+
+    Randomly applies: misregistration of a part of the slices, removal of a portion of the slices, merging of the volume with the ground truth according to a 3D MoG and smoothing of the volume.
+
+
+    """
+
     def __init__(
         self,
         prob_misreg_slice: float,
@@ -425,6 +526,23 @@ class PSFReconstructor:
         rm_slices_min: float,
         rm_slices_max: float,
     ):
+        """
+        Initialize the reconstructor with the given parameters.
+
+        Args:
+            prob_misreg_slice: Probability of misregistering a slice.
+            slices_misreg_ratio: Ratio of slices to misregister.
+            prob_misreg_stack: Probability of misregistering a stack.
+            txy: Translation factor.
+            prob_merge: Probability of merging the volume with the ground truth.
+            merge_ngaussians_min: Minimum number of Gaussians for the merging.
+            merge_ngaussians_max: Maximum number of Gaussians for the merging.
+            prob_smooth: Probability of smoothing the volume.
+            prob_rm_slices: Probability of removing slices.
+            rm_slices_min: Minimum ratio of slices to remove.
+            rm_slices_max: Maximum ratio of slices to remove.
+
+        """
         self.prob_misreg_slice = prob_misreg_slice
         self.slices_misreg_ratio = slices_misreg_ratio
         self.prob_misreg_stack = prob_misreg_stack
@@ -438,6 +556,12 @@ class PSFReconstructor:
         self.rm_slices_max = rm_slices_max
 
     def sample_seeds(self, genparams: dict = {}):
+        """
+        Sample the seeds for the randomization.
+
+        Args:
+            genparams: Dictionary containing the generation parameters.
+        """
         self._smooth_volume_on = np.random.rand() < self.prob_smooth
         self._rm_slices_on = np.random.rand() < self.prob_rm_slices
         self._misreg_slice_on = np.random.rand() < self.prob_misreg_slice
@@ -459,6 +583,9 @@ class PSFReconstructor:
             )
 
     def get_seeds(self):
+        """
+        Get the dictionary of the seeds used for randomization.
+        """
         return {
             "smooth_volume_on": self._smooth_volume_on,
             "rm_slices_on": self._rm_slices_on,
@@ -470,6 +597,9 @@ class PSFReconstructor:
         }
 
     def smooth_volume(self, volume):
+        """
+        Smooth the volume using a 3x3x3 convolution kernel
+        """
         if self._smooth_volume_on:
             return F.conv3d(
                 volume,
@@ -480,7 +610,16 @@ class PSFReconstructor:
             return volume
 
     def misregistration_trf(self, positions, base_axisangle):
+        """
+        Simulate misalignment with a registration error.
 
+        Args:
+            positions: The positions of the slices.
+            base_axisangle: The base axis angle.
+
+        Returns:
+            RigidTransform: The misregistered transformation.
+        """
         nslices = len(positions)
         rand_angle = torch.zeros((nslices, 6)).to(self.device)
         for pos in torch.unique(positions[:, 1]):
@@ -509,6 +648,14 @@ class PSFReconstructor:
         return trf.compose(base_axisangle)
 
     def misregister_slices(self, trf, trf_gt):
+        """
+        Misregister a part of the slices based on the
+        misregistration transform defined in `misregistration_trf`.
+
+        Args:
+            trf: The misregistered transformation.
+            trf_gt: The ground truth transformation.
+        """
         trf1 = trf.axisangle()
         trf2 = trf_gt.axisangle()
         if self._misreg_slice_on:
@@ -521,7 +668,15 @@ class PSFReconstructor:
         return RigidTransform(trf2, trans_first=True)
 
     def merge_volumes(self, vol_mask, volume, volume_gt):
+        """
+        Merge the reconstructed volume with the ground truth according to a 3D mixture of Gaussians.
+        This allows to simulate spatially varying artifacts.
 
+        Args:
+            vol_mask: The volume mask.
+            volume: The reconstructed volume.
+            volume_gt: The ground truth volume.
+        """
         if self._merge_volume_on:
             device = volume.device
             pos = torch.where(vol_mask.squeeze() > 0)
@@ -547,7 +702,16 @@ class PSFReconstructor:
             return merged, torch.zeros_like(merged)
 
     def kept_slices_idx(self, nslices):
+        """
+        Get the indices of the slices that will be kept when removing a portion of the slices
+        to be used for reconstruction.
 
+        Args:
+            nslices: The number of slices.
+
+        Returns:
+            torch.Tensor: The indices of the kept slices.
+        """
         if self._rm_slices_on:
             # number of slices that will be kept.
             n = int(nslices * self._rm_slices_ratio)
@@ -557,6 +721,15 @@ class PSFReconstructor:
             return torch.arange(nslices)
 
     def recon_psf(self, data):
+        """
+        Reconstruct the volume using the PSF.
+
+        Args:
+            data: Dictionary containing the data.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: The reconstructed volume and the mixture of Gaussians.
+        """
         params = {
             "psf": data["psf_rec"],
             "slice_shape": data["slice_shape"],
@@ -572,6 +745,17 @@ class PSFReconstructor:
         return self.__recon_volume(data, rec)
 
     def __recon_volume(self, data, rec):
+        """
+        Reconstruct the volume using the given reconstruction function.
+
+        Args:
+            data: Dictionary containing the data.
+            rec: The reconstruction function.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: The reconstructed volume and the mixture of Gaussians.
+        """
+
         self.sample_seeds()
         self.device = data["stacks"].device
         trf = self.misregister_slices(
@@ -579,8 +763,6 @@ class PSFReconstructor:
         )
         trf = self.misregistration_trf(data["positions"], trf)
         kept_idx = self.kept_slices_idx(data["stacks"].shape[0])
-        # trf = data["transforms_gt_angle"]
-        # transforms, slices, slices_mask, vol_mask, params
         volume = rec(trf.matrix()[kept_idx], data["stacks"][kept_idx])
 
         volume = self.smooth_volume(volume)

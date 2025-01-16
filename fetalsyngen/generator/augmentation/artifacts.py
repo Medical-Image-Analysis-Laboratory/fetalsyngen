@@ -20,6 +20,11 @@ from dataclasses import asdict
 
 
 class BlurCortex(RandTransform):
+    """Blurs the cortex in the image (like in cases with imprecise reconstructions).
+    Given a `cortex_label`,  blurs the cortex with a Gaussian blur (shape and scale defined
+    by `std_blur_shape` and `std_blur_scale`). Then, generates 3D Gaussian blobs (between `nblur_min` and `nblur_max`)
+    with a given width (parametrized by a gamma distribution with parameters `sigma_gamma_loc` and `sigma_gamma_scale`) defining where the blurring will be applied.
+    """
 
     def __init__(
         self,
@@ -32,6 +37,19 @@ class BlurCortex(RandTransform):
         std_blur_shape: int = 2,
         std_blur_scale: int = 1,
     ):
+        """
+        Initialize the augmentation parameters.
+
+        Args:
+            prob (float): Probability of applying the augmentation.
+            cortex_label (int): Label of the cortex in the segmentation.
+            nblur_min (int): Minimum number of blurs to apply.
+            nblur_max (int): Maximum number of blurs to apply.
+            sigma_gamma_loc (int): Location parameter of the gamma distribution for the blurring width.
+            sigma_gamma_scale (int): Scale parameter of the gamma distribution for the blurring width.
+            std_blur_shape (int): Shape parameter of the gamma distribution defining the Gaussian blur standard deviation.
+            std_blur_scale (int): Scale parameter of the gamma distribution defining the Gaussian blur blur standard deviation.
+        """
         self.prob = prob
         self.cortex_label = cortex_label
         self.nblur_min = nblur_min
@@ -42,6 +60,11 @@ class BlurCortex(RandTransform):
         self.std_blur_scale = std_blur_scale
 
     def blur_proba(self, shape, cortex, device):
+        """
+        Generate the probability map for the blurring based on the cortex segmentation.
+        This functions puts more probability of a blurring occuring in the frontal region
+        of the brain, as observed empirically.
+        """
         x, y, z = shape
         # Blurring is more likely to happen in the frontal lobe
         cortex_prob = mog_3d_tensor(
@@ -56,7 +79,19 @@ class BlurCortex(RandTransform):
         return cortex_prob
 
     def __call__(self, output, seg, device, genparams: dict = {}, **kwargs):
+        """Apply the blurring to the input image.
 
+        Args:
+            output (torch.Tensor): Input image to resample.
+            seg (torch.Tensor): Input segmentation corresponding to the image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+                Default: {}. Should contain the key "spacing" if the spacing is fixed.
+
+        Returns:
+            torch.Tensor: Resampled image.
+            dict: Metadata containing the blurring parameters.
+        """
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
             nblur = (
                 np.random.randint(self.nblur_min, self.nblur_max)
@@ -103,6 +138,19 @@ class BlurCortex(RandTransform):
 
 
 class StructNoise(RandTransform):
+    """Adds a structured noise to the white matter in the image, similar to
+    what can be seen with NeSVoR reconstructions without prior denoising.
+
+    Given a `wm_label`, generates a multi-scale noise (between `nstages_min` and `nstages_max` stages)
+    with a standard deviation between `std_min` and `std_max`.
+
+    The noise is then added in a spatially varying manner at `nloc` locations (
+    between `n_loc_min` and `n_loc_max` locations) in the white matter. The merging
+    is done as a weighted sum of the original image and the noisy image, with the weights
+    defined by a MoG with centers at the `nloc` locations and sigmas defined by `sigma_mu` and
+    `sigma_std`.
+    """
+
     ### TO REFACTOR: THIS IS PERLIN NOISE
     def __init__(
         self,
@@ -117,6 +165,22 @@ class StructNoise(RandTransform):
         sigma_mu: int = 25,
         sigma_std: int = 5,
     ):
+        """
+        Initialize the augmentation parameters.
+
+        Args:
+            prob (float): Probability of applying the augmentation.
+            wm_label (int): Label of the white matter in the segmentation.
+            std_min (float): Minimum standard deviation of the noise.
+            std_max (float): Maximum standard deviation of the noise.
+            nloc_min (int): Minimum number of locations to add noise.
+            nloc_max (int): Maximum number of locations to add noise.
+            nstages_min (int): Minimum number of stages for the noise.
+            nstages_max (int): Maximum number of stages for the noise.
+            sigma_mu (int): Mean of the sigmas for the MoG.
+            sigma_std (int): Standard deviation of the sigmas for the MoG.
+
+        """
         self.prob = prob
         self.wm_label = wm_label
         self.nstages_min = nstages_min
@@ -129,7 +193,19 @@ class StructNoise(RandTransform):
         self.sigma_std = sigma_std
 
     def __call__(self, output, seg, device, genparams: dict = {}, **kwargs):
+        """
+        Apply the structured noise to the input image.
 
+        Args:
+            output (torch.Tensor): Input image to resample.
+            seg (torch.Tensor): Input segmentation corresponding to the image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+
+        Returns:
+            torch.Tensor: Image with structured noise.
+            dict: Metadata containing the structured noise parameters.
+        """
         if np.random.rand() < self.prob or "nloc" in genparams.keys():
             ## Parameters
             nstages = (
@@ -215,6 +291,11 @@ class StructNoise(RandTransform):
 
 
 class SimulateMotion(RandTransform):
+    """
+    Simulates motion in the image by simulating low-resolution slices (based
+    on the `scanner_params` and then doing a simple point-spread function based
+    on the low-resolution slices (using `recon_params`).
+    """
 
     def __init__(
         self,
@@ -222,12 +303,33 @@ class SimulateMotion(RandTransform):
         scanner_params: ScannerParams,
         recon_params: ReconParams,
     ):
+        """
+        Initialize the augmentation parameters.
 
+        Args:
+            prob (float): Probability of applying the augmentation.
+            scanner_params (ScannerParams): Dataclass of parameters for the scanner.
+            recon_params (ReconParams): Dataclass of parameters for the reconstructor.
+
+        """
         self.scanner_args = scanner_params
         self.recon_args = recon_params
         self.prob = prob
 
     def __call__(self, output, seg, device, genparams: dict = {}, **kwargs):
+        """
+        Apply the motion simulation to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to resample.
+            seg (torch.Tensor): Input segmentation corresponding to the image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+
+        Returns:
+            torch.Tensor: Image with simulated motion.
+            dict: Metadata containing the motion simulation parameters.
+        """
         # def _artifact_simulate_motion(self, im, seg, generator_params, res):
 
         if np.random.rand() < self.prob:
@@ -268,18 +370,37 @@ class SimulateMotion(RandTransform):
 
 
 class SimulatedBoundaries(RandTransform):
+    """
+    Simulates various types of boundaries in the image, either doing no masking
+    (with probability `prob_no_mask`), adding a halo around the mask (with probability
+    `prob_if_mask_halo`), or adding fuzzy boundaries to the mask (with probability `prob_if_mask_fuzzy`).
+    """
+
     def __init__(
         self,
         prob_no_mask: float,
         prob_if_mask_halo: float,
         prob_if_mask_fuzzy: float,
     ):
+        """
+        Initialize the augmentation parameters.
+
+        Args:
+            prob_no_mask (float): Probability of not applying any mask.
+            prob_if_mask_halo (float): Probability of applying a halo around the mask (in case masking is enabled).
+            prob_if_mask_fuzzy (float): Probability of applying fuzzy boundaries to the mask (in case masking is enabled).
+
+
+        """
         self.prob_no_mask = prob_no_mask
         self.prob_halo = prob_if_mask_halo
         self.prob_fuzzy = prob_if_mask_fuzzy
         self.reset_seeds()
 
     def reset_seeds(self):
+        """
+        Reset the seeds for the augmentation.
+        """
         self.no_mask_on = None
         self.halo_on = None
         self.halo_radius = None
@@ -289,6 +410,9 @@ class SimulatedBoundaries(RandTransform):
         self.base_sigma = None
 
     def sample_seeds(self):
+        """
+        Sample the seeds for the augmentation.
+        """
         self.reset_seeds()
         self.no_mask_on = np.random.rand() < self.prob_no_mask
         if not self.no_mask_on:
@@ -302,6 +426,16 @@ class SimulatedBoundaries(RandTransform):
                 self.base_sigma = np.random.poisson(8)
 
     def build_halo(self, mask, radius):
+        """
+        Build a halo around the mask with a given radius.
+
+        Args:
+            mask (torch.Tensor): Input mask.
+            radius (int): Radius of the halo.
+
+        Returns:
+            torch.Tensor: Mask with the halo.
+        """
         device = mask.device
         kernel = (
             torch.tensor(ball(radius))
@@ -317,6 +451,17 @@ class SimulatedBoundaries(RandTransform):
     def generate_fuzzy_boundaries(
         self, mask, kernel_size=7, threshold_filter=3
     ):
+        """
+        Generate fuzzy boundaries around the mask.
+
+        Args:
+            mask (torch.Tensor): Input mask.
+            kernel_size (int): Size of the kernel for the dilation.
+            threshold_filter (int): Threshold for the count of neighboring voxels.
+
+        Returns:
+            torch.Tensor: Mask with fuzzy boundaries.
+        """
         shape = mask.shape
         diff = (dilate(mask, kernel_size) - mask).view(shape[-3:])
         non_zero = diff.nonzero(as_tuple=True)
@@ -329,6 +474,19 @@ class SimulatedBoundaries(RandTransform):
         return closing.view(shape)
 
     def __call__(self, output, seg, device, genparams: dict = {}, **kwargs):
+        """
+        Apply the simulated boundaries to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to resample.
+            seg (torch.Tensor): Input segmentation corresponding to the image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+
+        Returns:
+            torch.Tensor: Image with simulated boundaries.
+            dict: Metadata containing the simulated boundaries parameters.
+        """
         device = seg.device
         mask = (seg > 0).int()
         mask = mask.clone()
@@ -339,13 +497,12 @@ class SimulatedBoundaries(RandTransform):
             "halo_on": self.halo_on,
             "fuzzy_on": self.fuzzy_on,
         }
-        # print("Begin boundaries", mask.shape)
+
         if self.no_mask_on:
             return output, metadata
         if self.halo_on:
-
             mask = self.build_halo(mask, self.halo_radius)
-            # print("Halo", mask.shape)
+
         if self.fuzzy_on:
             # Generate fuzzy boundaries for the mask
             mask_modif = mask.clone()
@@ -400,5 +557,4 @@ class SimulatedBoundaries(RandTransform):
             ).int()
             dilate_stack = dilate_stack.permute(1, 2, 3, 0).int()
             mask = (one_hot * dilate_stack).sum(-1)
-        print("After simulated boundaries", output.shape, mask.shape)
         return output * mask, metadata
