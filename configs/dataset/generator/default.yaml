@@ -31,9 +31,10 @@ spatial_deform:
 
 resampler:
   _target_: fetalsyngen.generator.augmentation.synthseg.RandResample
+  prob: 1
   min_resolution: 1.9
   max_resolution: 2
-  prob: 1
+  
 
 bias_field:
   _target_: fetalsyngen.generator.augmentation.synthseg.RandBiasField
@@ -56,17 +57,17 @@ noise:
 
 blur_cortex:
   _target_: fetalsyngen.generator.augmentation.artifacts.BlurCortex
-  prob: 1.0 # 0.4
+  prob: 0.4
   cortex_label: 2
   nblur_min: 50
   nblur_max: 200
 
 struct_noise:
   _target_: fetalsyngen.generator.augmentation.artifacts.StructNoise
-  prob: 1.0 # 0.4
+  prob: 0.4
   wm_label: 3
-  std_min: 0.3
-  std_max: 0.6
+  std_min: 0.2
+  std_max: 0.4
   nloc_min: 5
   nloc_max: 15
 
@@ -81,7 +82,7 @@ simulate_motion:
     slice_thickness_min: 1.5
     slice_thickness_max: 3.5
     gap_min: 1.5
-    gap_max: 8.5
+    gap_max: 5.5
     min_num_stack: 2
     max_num_stack: 6
     max_num_slices: 250
@@ -92,7 +93,7 @@ simulate_motion:
     prob_gamma: 0.1
     gamma_std: 0.05
     prob_void: 0.2
-    slice_size: None
+    slice_size: null
     restrict_transform: False
     txy: 3.0
   recon_params:
@@ -107,10 +108,10 @@ simulate_motion:
     prob_smooth: 0.3
     prob_rm_slices: 0.3
     rm_slices_min: 0.5
-    rm_slices_max: 0.98
+    rm_slices_max: 0.75
 
 boundaries:
   _target_: fetalsyngen.generator.augmentation.artifacts.SimulatedBoundaries
-  prob_no_mask: 1.
-  prob_halo: 0.5
-  prob_fuzzy: 0.5
+  prob_no_mask: 0.5
+  prob_if_mask_halo: 0.5
+  prob_if_mask_fuzzy: 0.5

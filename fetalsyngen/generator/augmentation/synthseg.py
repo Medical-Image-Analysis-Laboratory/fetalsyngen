@@ -84,7 +84,9 @@ class RandResample(RandTransform):
             output_blurred = gaussian_blur_3d(output, stds, device)
 
             # resize the blurred output to the new resolution
-            new_size = (np.array(input_size) * input_resolution / spacing).astype(int)
+            new_size = (
+                np.array(input_size) * input_resolution / spacing
+            ).astype(int)
 
             # calculate the factors for the interpolation
             factors = np.array(new_size) / np.array(input_size)
@@ -104,8 +106,10 @@ class RandResample(RandTransform):
             JJ = torch.tensor(JJ, dtype=torch.float, device=device)
             KK = torch.tensor(KK, dtype=torch.float, device=device)
 
-            output_resized = fast_3D_interp_torch(output_blurred, II, JJ, KK, "linear")
-            return output_resized, factors, {"spacing": spacing}
+            output_resized = fast_3D_interp_torch(
+                output_blurred, II, JJ, KK, "linear"
+            )
+            return output_resized, factors, {"spacing": spacing.tolist()}
         else:
             return output, None, {"spacing": None}
 
@@ -160,13 +164,17 @@ class RandBiasField(RandTransform):
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
             image_size = output.shape
             bf_scale = (
-                self.scale_min + np.random.rand(1) * (self.scale_max - self.scale_min)
+                self.scale_min
+                + np.random.rand(1) * (self.scale_max - self.scale_min)
                 if "bf_scale" not in genparams.keys()
                 else genparams["bf_scale"]
             )
-            bf_size = np.round(bf_scale * np.array(image_size)).astype(int).tolist()
+            bf_size = (
+                np.round(bf_scale * np.array(image_size)).astype(int).tolist()
+            )
             bf_std = (
-                self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
+                self.std_min
+                + (self.std_max - self.std_min) * np.random.rand(1)
                 if "bf_std" not in genparams.keys()
                 else genparams["bf_std"]
             )
@@ -176,12 +184,14 @@ class RandBiasField(RandTransform):
                 dtype=torch.float,
                 device=device,
             ) * torch.randn(bf_size, dtype=torch.float, device=device)
-            bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
+            bf_interp = myzoom_torch(
+                bf_low_scale, np.array(image_size) / bf_size
+            )
             bf = torch.exp(bf_interp)
 
             return output * bf, {
-                "bf_scale": bf_scale,
-                "bf_std": bf_std,
+                "bf_scale": bf_scale[0],
+                "bf_std": bf_std[0],
                 "bf_size": bf_size,
             }
         else:
@@ -217,7 +227,8 @@ class RandNoise(RandTransform):
         noise_std = None
         if np.random.rand() < self.prob or "noise_std" in genparams.keys():
             noise_std = (
-                self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
+                self.std_min
+                + (self.std_max - self.std_min) * np.random.rand(1)
                 if "noise_std" not in genparams.keys()
                 else genparams["noise_std"]
             )
@@ -231,7 +242,7 @@ class RandNoise(RandTransform):
                 output.shape, dtype=torch.float, device=device
             )
             output[output < 0] = 0
-        return output, {"noise_std": noise_std}
+        return output, {"noise_std": noise_std.item()}
 
 
 class RandGamma(RandTransform):

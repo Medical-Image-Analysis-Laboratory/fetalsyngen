@@ -314,9 +314,9 @@ class FetalSynthDataset(FetalDataset):
 
         # log input data
         generation_params["idx"] = idx
-        generation_params["img_paths"] = self.img_paths[idx]
-        generation_params["segm_paths"] = self.img_paths[idx]
-        generation_params["seeds"] = seeds
+        generation_params["img_paths"] = str(self.img_paths[idx])
+        generation_params["segm_paths"] = str(self.img_paths[idx])
+        generation_params["seeds"] = str(self.seed_path)
         generation_time_start = time.time()
 
         # generate the synthetic data
@@ -359,8 +359,9 @@ class FetalSynthDataset(FetalDataset):
             The `image` is scaled to `[0, 1]` and oriented to **RAS** and returned on the device
             specified in the `generator` initialization.
         """
-
-        return self.sample(idx)[0]
+        data_out, generation_params = self.sample(idx)
+        self.generation_params = generation_params
+        return data_out
 
     def sample_with_meta(self, idx: int, genparams: dict = {}) -> dict:
         """

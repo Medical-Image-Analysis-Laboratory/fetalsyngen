@@ -143,9 +143,9 @@ class Scanner:
 
     def sample_time(self, n_slice, genparams: dict = {}):
         if "TR" not in genparams:
-            TR = genparams["TR"]
-        else:
             TR = np.random.uniform(self.TR_min, self.TR_max)
+        else:
+            TR = genparams["TR"]
         return np.arange(n_slice) * TR
 
     def random_gamma(self, slices, genparams: dict = {}):
@@ -166,15 +166,12 @@ class Scanner:
         return slices
 
     def add_noise(self, slices, genparams: dict = {}):
-        if (
-            not hasattr(self.noise_sigma, "__len__")
-        ) and self.noise_sigma == 0:
-            return slices
+
         mask = slices > self.slice_noise_threshold
         masked = slices[mask]
         if "noise_sigma" not in genparams:
             sigma = np.random.uniform(
-                self.noise_sigma[0], self.noise_sigma[-1]
+                self.noise_sigma_min, self.noise_sigma_max
             )
         else:
             sigma = genparams["noise_sigma"]
@@ -276,6 +273,7 @@ class Scanner:
 
         # Voxel size? Not sure what this defines.
         vs = data["volume"].shape
+
         if self.slice_size is None:
             ss = int(
                 np.sqrt((vs[-1] ** 2 + vs[-2] ** 2 + vs[-3] ** 2) / 2.0)
@@ -324,7 +322,6 @@ class Scanner:
 
             # sample slices
             mat = mat_update_resolution(transform_target.matrix(), res_r, res)
-
             slices = slice_acquisition(
                 mat,
                 data["volume"],

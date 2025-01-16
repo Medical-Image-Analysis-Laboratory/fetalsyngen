@@ -198,9 +198,6 @@ class StructNoise(RandTransform):
                 )
                 for id in idx
             ]
-            import pdb
-
-            pdb.set_trace()
             gaussian = mog_3d_tensor(
                 output.shape, centers=centers, sigmas=sigmas, device=device
             )
@@ -214,11 +211,7 @@ class StructNoise(RandTransform):
             }
             return output, args
         else:
-            return output, {
-                "nstages": None,
-                "noise_std": None,
-                "nloc": None,
-            }
+            return output, {}
 
 
 class SimulateMotion(RandTransform):
@@ -236,12 +229,13 @@ class SimulateMotion(RandTransform):
 
     def __call__(self, output, seg, device, genparams: dict = {}, **kwargs):
         # def _artifact_simulate_motion(self, im, seg, generator_params, res):
+
         if np.random.rand() < self.prob:
             device = output.device
             dshape = (1, 1, *output.shape[-3:])
             res = kwargs["resolution"]
             res_ = np.float64(res[0])
-
+            metadata = {}
             d = {
                 "resolution": res_,
                 "volume": output.view(dshape).float().to(device),
@@ -253,20 +247,11 @@ class SimulateMotion(RandTransform):
             self.scanner_args.resolution_recon = res_
             scanner = Scanner(**asdict(self.scanner_args))
             d_scan = scanner.scan(d)
-            # Copy self recon_args
 
-            # recon_args = copy.deepcopy(self.recon_args)
-            # recon_args["prob_merge"] = generator_params.rec_prob_merge
-            # recon_args["merge_ngaussians_min"] = (
-            #     generator_params.rec_merge_ngaussians_min
-            # )
-            # recon_args["merge_ngaussians_max"] = (
-            #     generator_params.rec_merge_ngaussians_max
-            # )
             recon = PSFReconstructor(**asdict(self.recon_args))
             output, _ = recon.recon_psf(d_scan)
 
-            self.metadata.update(
+            metadata.update(
                 {
                     "resolution_recon": d_scan["resolution_recon"],
                     "resolution_slice": d_scan["resolution_slice"],
@@ -275,20 +260,23 @@ class SimulateMotion(RandTransform):
                     "nstacks": len(torch.unique(d_scan["positions"][:, 1])),
                 }
             )
-            self.metadata.update(recon.get_seeds())
+            metadata.update(recon.get_seeds())
 
-            return output.squeeze(), {}
+            return output.squeeze(), metadata
         else:
             return output, {}
 
 
 class SimulatedBoundaries(RandTransform):
     def __init__(
-        self, prob_no_mask: float, prob_halo: float, prob_fuzzy: float
+        self,
+        prob_no_mask: float,
+        prob_if_mask_halo: float,
+        prob_if_mask_fuzzy: float,
     ):
         self.prob_no_mask = prob_no_mask
-        self.prob_halo = prob_halo
-        self.prob_fuzzy = prob_fuzzy
+        self.prob_halo = prob_if_mask_halo
+        self.prob_fuzzy = prob_if_mask_fuzzy
         self.reset_seeds()
 
     def reset_seeds(self):
@@ -314,7 +302,6 @@ class SimulatedBoundaries(RandTransform):
                 self.base_sigma = np.random.poisson(8)
 
     def build_halo(self, mask, radius):
-
         device = mask.device
         kernel = (
             torch.tensor(ball(radius))
@@ -325,7 +312,7 @@ class SimulatedBoundaries(RandTransform):
         )
         mask = mask.float().view(1, 1, *mask.shape[-3:])
         mask = torch.nn.functional.conv3d(mask, kernel, padding="same")
-        return (mask > 0).int()
+        return (mask > 0).int().view(*mask.shape[-3:])
 
     def generate_fuzzy_boundaries(
         self, mask, kernel_size=7, threshold_filter=3
@@ -347,10 +334,18 @@ class SimulatedBoundaries(RandTransform):
         mask = mask.clone()
 
         self.sample_seeds()
+        metadata = {
+            "no_mask_on": self.no_mask_on,
+            "halo_on": self.halo_on,
+            "fuzzy_on": self.fuzzy_on,
+        }
+        # print("Begin boundaries", mask.shape)
         if self.no_mask_on:
-            return output, mask
+            return output, metadata
         if self.halo_on:
+
             mask = self.build_halo(mask, self.halo_radius)
+            # print("Halo", mask.shape)
         if self.fuzzy_on:
             # Generate fuzzy boundaries for the mask
             mask_modif = mask.clone()
@@ -385,14 +380,14 @@ class SimulatedBoundaries(RandTransform):
             # Then, generate more realistic boundaries by making the
             # boundary of the bask more or less large according to the
             # probability map.
-            dilate_stack = [mask.view(1, 1, *mask.shape[-3:])] * 2
+            dilate_stack = [mask] * 2
             for i in range(n_dilate - 2):
                 dilate_stack.append(self.build_halo(dilate_stack[-1], 1))
 
             # Generate a stack of dilations intersected with the mask
-            dilate_stack = torch.stack(dilate_stack, 0)[
-                :, 0, 0
-            ] * mask_modif.view(1, *mask_modif.shape[-3:])
+            dilate_stack = torch.stack(dilate_stack, 0) * mask_modif.view(
+                1, *mask_modif.shape[-3:]
+            )
 
             surf_proba = torch.clamp(
                 (surf_proba * len(dilate_stack) - 1).round().int(), 0, None
@@ -404,5 +399,6 @@ class SimulatedBoundaries(RandTransform):
                 surf_proba.to(torch.int64), num_classes=len(dilate_stack)
             ).int()
             dilate_stack = dilate_stack.permute(1, 2, 3, 0).int()
-            mask = (one_hot * dilate_stack).sum(-1).unsqueeze(0).unsqueeze(0)
-        return output * mask, {}
+            mask = (one_hot * dilate_stack).sum(-1)
+        print("After simulated boundaries", output.shape, mask.shape)
+        return output * mask, metadata

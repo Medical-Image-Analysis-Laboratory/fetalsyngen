@@ -64,12 +64,12 @@ class FetalSynthGen:
         self.gamma = gamma
         self.noise = noise
 
-        self.artifacts = [
-            blur_cortex,
-            struct_noise,
-            simulate_motion,
-            boundaries,
-        ]
+        self.artifacts = {
+            "blur_cortex": blur_cortex,
+            "struct_noise": struct_noise,
+            "simulate_motion": simulate_motion,
+            "boundaries": boundaries,
+        }
         self.device = device
 
     def _validated_genparams(self, d: dict) -> dict:
@@ -109,8 +109,6 @@ class FetalSynthGen:
         """
         if genparams:
             genparams = self._validated_genparams(genparams)
-
-        synth_params = {}
 
         # 1. Generate intensity output.
         if seeds is not None:
@@ -176,25 +174,27 @@ class FetalSynthGen:
 
         # 8. Induce SR-artifacts
         print(genparams.get("artifact_params", {}))
-        for artifact in self.artifacts:
-            output, _ = artifact(
+        artifacts = {}
+        for name, artifact in self.artifacts.items():
+            output, metadata = artifact(
                 output,
                 segmentation,
                 self.device,
                 genparams.get("artifact_params", {}),
                 resolution=self.resolution,
             )
+            artifacts[name] = metadata
 
         # 9. Aggregete the synth params
-        synth_params.update(
-            {
-                "selected_seeds": selected_seeds,
-                "seed_intensities": seed_intensities,
-                "deform_params": deform_params,
-                "gamma_params": gamma_params,
-                "bf_params": bf_params,
-                "resample_params": resample_params,
-                "noise_params": noise_params,
-            }
-        )
+        synth_params = {
+            "selected_seeds": selected_seeds,
+            "seed_intensities": seed_intensities,
+            "deform_params": deform_params,
+            "gamma_params": gamma_params,
+            "bf_params": bf_params,
+            "resample_params": resample_params,
+            "noise_params": noise_params,
+            "artifacts": artifacts,
+        }
+        print("Synth params: ", synth_params)
         return output, segmentation, image, synth_params
