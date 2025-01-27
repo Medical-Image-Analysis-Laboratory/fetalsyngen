@@ -1,3 +1,13 @@
+# Install the minimal conda environment for the project using fetalsyngen using conda (recommended)
+```shell
+conda env create -f environment.yml
+```
+Or using pip
+```shell
+pip install -r requirements.txt
+```
+
+
 # syngen
 Synthetic data generator based on the domain randomization idea.
 
