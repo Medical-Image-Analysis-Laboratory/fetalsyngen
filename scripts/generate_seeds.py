@@ -17,11 +17,12 @@ import monai
 import torch
 import argparse
 import numpy as np
+from multiprocessing import Pool
 
 
 parser = argparse.ArgumentParser(
     description="Generate seeds for FetalSynthGen",
-    epilog="Example: python generate_seeds.py --bids_path /path/to/bids --out_path /path/to/out --max_subclasses 10 --annotation feta",
+    epilog="Example: python scripts/generate_seeds.py --bids_path /path/to/bids --out_path /path/to/out --max_subclasses 6 --annotation feta",
 )
 
 parser.add_argument(
@@ -52,7 +53,6 @@ args = parser.parse_args()
 def main(args):
     # mapping fetal labels to meta labels
     if args.annotation == "feta":
-        # meta_label_name: [segmentation_labels]
         tissue_map = {
             "CSF": [1, 4],  # meta-label 1
             "GM": [2, 6],  # meta-label 2
@@ -65,54 +65,42 @@ def main(args):
             "GM": [2, 7, 9],  # meta-label 2
             "WM": [3, 6, 8],  # meta-label 3
         }
-        # mapping fetal labels to meta labels
         feta2meta = {1: 1, 5: 1, 2: 2, 7: 2, 9: 2, 3: 3, 6: 3, 8: 3}
-
     else:
         raise ValueError("Unknown annotation type. Should be either 'feta' or 'dhcp'")
+
     print(f'Using "{args.annotation}" annotation. Labels are mapped as follows:')
     for meta_label, segm_labels in tissue_map.items():
         print(
             f"Meta-label {meta_label} is a fusion of segmentation labels: {segm_labels}"
         )
-    # parse arguments
+
     max_subclusts = int(args.max_subclasses) + 1
     bids_path = Path(args.bids_path).absolute()
-    input_path = bids_path
     out_path = Path(args.out_path).absolute()
-
     loader = monai.transforms.LoadImaged(keys=["image", "label"])
+    subjects = list(bids_path.glob("sub-*"))
 
-    subjects = list(input_path.glob("sub-*"))
+    print(f"Found {len(subjects)} subjects in {bids_path}")
 
-    print(f"Found {len(subjects)} in {bids_path}")
+    # Prepare input arguments for parallel processing
+    tasks = []
+    for sub in subjects:
+        for subclasses in range(1, max_subclusts):
+            imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
+            label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
+            tasks.append(
+                (imgs, label, subclasses, feta2meta, out_path, sub, "", loader)
+            )
 
-    if args.annotation == "dhcp":
+    # Use multiprocessing Pool for parallel processing
+    with Pool(mp.cpu_count()) as pool:
+        list(tqdm(pool.imap_unordered(worker_process_subject, tasks), total=len(tasks)))
 
-        for sub in tqdm(subjects):
-            for ses in sub.glob("ses-*"):
-                session = ses.name
-                for subclasses in range(1, max_subclusts):
-                    imgs = list(sub.glob(f"{session}/anat/*_T2w.nii.gz"))[0]
-                    label = list(sub.glob(f"{session}/anat/*_dseg.nii.gz"))[0]
-                    process_subject(
-                        imgs,
-                        label,
-                        subclasses,
-                        feta2meta,
-                        out_path,
-                        sub,
-                        session,
-                        loader,
-                    )
-    elif args.annotation == "feta":
-        for sub in tqdm(subjects):
-            for subclasses in range(1, max_subclusts):
-                imgs = list(sub.glob(f"**/anat/*_T2w.nii.gz"))[0]
-                label = list(sub.glob(f"**/anat/*_dseg.nii.gz"))[0]
-                process_subject(
-                    imgs, label, subclasses, feta2meta, out_path, sub, "", loader
-                )
+
+def worker_process_subject(args):
+    """Wrapper for process_subject to unpack arguments for multiprocessing."""
+    process_subject(*args)
 
 
 def process_subject(imgs, label, subclasses, feta2meta, out_path, sub, session, loader):
