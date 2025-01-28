@@ -1,7 +1,7 @@
 from typing import Tuple, List, Optional, Collection, Sequence
 import torch
 import torch.nn.functional as F
-from fetalsynthgen.generation.svort.definitions import DeviceType
+from fetalsyngen.generator.artifacts.svort.definitions import DeviceType
 from math import log, sqrt
 
 

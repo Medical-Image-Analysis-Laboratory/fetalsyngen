@@ -35,9 +35,7 @@ class ImageFromSeeds:
         try:
             assert len(set(seed_labels)) == len(seed_labels)
         except AssertionError:
-            raise ValueError(
-                "Parameter seed_labels should have unique values."
-            )
+            raise ValueError("Parameter seed_labels should have unique values.")
         try:
             assert len(seed_labels) == len(generation_classes)
         except AssertionError:
@@ -100,9 +98,7 @@ class ImageFromSeeds:
             new_seed = self.orientation(new_seed.unsqueeze(0))
             seed += new_seed
 
-        return seed.long().squeeze(0), {
-            "mlabel2subclusters": mlabel2subclusters
-        }
+        return seed.long().squeeze(0), {"mlabel2subclusters": mlabel2subclusters}
 
     def sample_intensities(
         self, seeds: torch.Tensor, device: str, genparams: dict = {}
@@ -155,6 +151,6 @@ class ImageFromSeeds:
         intensity_image[intensity_image < 0] = 0
 
         return intensity_image, {
-            "mus": mus.cpu().tolist(),
-            "sigmas": sigmas.cpu().tolist(),
+            "mus": mus,
+            "sigmas": sigmas,
         }

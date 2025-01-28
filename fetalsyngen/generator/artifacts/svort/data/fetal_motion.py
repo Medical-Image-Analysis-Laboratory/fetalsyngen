@@ -2,7 +2,7 @@ import scipy.io as sio
 import numpy as np
 from scipy.spatial.transform import Rotation
 import os
-from fetalsynthgen.generation.svort.transform import RigidTransform
+from fetalsyngen.generator.artifacts.svort.transform import RigidTransform
 import torch
 
 _traj_rot = None

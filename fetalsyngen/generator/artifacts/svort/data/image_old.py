@@ -19,7 +19,7 @@ from typing import (
 import numpy as np
 import torch
 import torch.nn.functional as F
-from fetalsynthgen.generation.svort.transform import (
+from fetalsyngen.generator.artifacts.svort.transform import (
     RigidTransform,
     affine2transformation,
     compare_resolution_affine,
@@ -28,9 +28,9 @@ from fetalsynthgen.generation.svort.transform import (
     init_zero_transform,
     transform_points,
 )
-from fetalsynthgen.generation.svort.definitions import PathType, DeviceType
+from fetalsyngen.generator.artifacts.svort.definitions import PathType, DeviceType
 import nibabel as nib
-from fetalsynthgen.generation.svort.data.utils import meshgrid, resample
+from fetalsyngen.generator.artifacts.svort.data.utils import meshgrid, resample
 
 
 class _Data(object):

@@ -36,10 +36,11 @@ class FetalSynthGen:
         bias_field: RandBiasField,
         noise: RandNoise,
         gamma: RandGamma,
-        blur_cortex: BlurCortex,
-        struct_noise: StructNoise,
-        simulate_motion: SimulateMotion,
-        boundaries: SimulatedBoundaries,
+        # optional SR artifacts
+        blur_cortex: BlurCortex | None = None,
+        struct_noise: StructNoise | None = None,
+        simulate_motion: SimulateMotion | None = None,
+        boundaries: SimulatedBoundaries | None = None,
     ):
         """
         Initialize the model with the given parameters.
@@ -115,19 +116,19 @@ class FetalSynthGen:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
-            output, seed_intensities = (
-                self.intensity_generator.sample_intensities(
-                    seeds=seeds,
-                    device=self.device,
-                    genparams=genparams.get("seed_intensities", {}),
-                )
+            output, seed_intensities = self.intensity_generator.sample_intensities(
+                seeds=seeds,
+                device=self.device,
+                genparams=genparams.get("seed_intensities", {}),
             )
         else:
             if image is None:
                 raise ValueError(
                     "If no seeds are passed, an image must be loaded to be used as intensity prior!"
                 )
-            output = image
+            # normalize the image from 0 to 255 to
+            # match the intensity generator
+            output = (image - image.min()) / (image.max() - image.min()) * 255
             selected_seeds = {}
             seed_intensities = {}
 
@@ -135,15 +136,15 @@ class FetalSynthGen:
         output = output.to(self.device)
         segmentation = segmentation.to(self.device)
         image = image.to(self.device) if image is not None else None
-
+        print(
+            f"Output max: {output.max()} min {output.min()} std {output.std()} mean {output.mean()} shape {output.shape}"
+        )
         # 2. Spatially deform the data
-        image, segmentation, output, deform_params = (
-            self.spatial_deform.deform(
-                image=image,
-                segmentation=segmentation,
-                output=output,
-                genparams=genparams.get("deform_params", {}),
-            )
+        image, segmentation, output, deform_params = self.spatial_deform.deform(
+            image=image,
+            segmentation=segmentation,
+            output=output,
+            genparams=genparams.get("deform_params", {}),
         )
 
         # 3. Gamma contrast transformation
@@ -173,17 +174,17 @@ class FetalSynthGen:
         output = self.resampled.resize_back(output, factors)
 
         # 8. Induce SR-artifacts
-        print(genparams.get("artifact_params", {}))
         artifacts = {}
         for name, artifact in self.artifacts.items():
-            output, metadata = artifact(
-                output,
-                segmentation,
-                self.device,
-                genparams.get("artifact_params", {}),
-                resolution=self.resolution,
-            )
-            artifacts[name] = metadata
+            if artifact is not None:
+                output, metadata = artifact(
+                    output,
+                    segmentation,
+                    self.device,
+                    genparams.get("artifact_params", {}),
+                    resolution=self.resolution,
+                )
+                artifacts[name] = metadata
 
         # 9. Aggregete the synth params
         synth_params = {
@@ -196,5 +197,5 @@ class FetalSynthGen:
             "noise_params": noise_params,
             "artifacts": artifacts,
         }
-        print("Synth params: ", synth_params)
+
         return output, segmentation, image, synth_params

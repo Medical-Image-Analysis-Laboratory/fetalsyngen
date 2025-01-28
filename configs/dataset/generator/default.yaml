@@ -7,7 +7,7 @@ device: cuda:0 # cuda ~6x faster than cpu
 intensity_generator:
   _target_: fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds
   min_subclusters: 1
-  max_subclusters: 3
+  max_subclusters: 6
   seed_labels: [0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
   # generation_classes: [0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
   generation_classes: [0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49] # [0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49] # ##
@@ -16,7 +16,7 @@ spatial_deform:
   _target_: fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation
   device: "${..device}" # uses the device from the generator
   size: ${..shape} # uses the shape from the generator
-  prob: 1
+  prob: 0.9
   
   flip_prb: 0.5
 
@@ -31,14 +31,14 @@ spatial_deform:
 
 resampler:
   _target_: fetalsyngen.generator.augmentation.synthseg.RandResample
-  prob: 1
-  min_resolution: 1.9
-  max_resolution: 2
+  prob: 0.9
+  min_resolution: 0.5
+  max_resolution: 1.5
   
 
 bias_field:
   _target_: fetalsyngen.generator.augmentation.synthseg.RandBiasField
-  prob: 1
+  prob: 0.9
   scale_min: 0.004 
   scale_max: 0.02
   std_min:  0.01
@@ -46,12 +46,12 @@ bias_field:
 
 gamma:
   _target_: fetalsyngen.generator.augmentation.synthseg.RandGamma
-  prob: 1
+  prob: 0.9
   gamma_std: 0.1
 
 noise:
   _target_: fetalsyngen.generator.augmentation.synthseg.RandNoise
-  prob: 1
+  prob: 0.9
   std_min: 5
   std_max: 15
 
@@ -61,6 +61,10 @@ blur_cortex:
   cortex_label: 2
   nblur_min: 50
   nblur_max: 200
+  sigma_gamma_loc: 3
+  sigma_gamma_scale: 1
+  std_blur_shape: 2
+  std_blur_scale: 1
 
 struct_noise:
   _target_: fetalsyngen.generator.augmentation.artifacts.StructNoise
@@ -107,8 +111,8 @@ simulate_motion:
     merge_ngaussians_max: 4
     prob_smooth: 0.3
     prob_rm_slices: 0.3
-    rm_slices_min: 0.5
-    rm_slices_max: 0.75
+    rm_slices_min: 0.1
+    rm_slices_max: 0.4
 
 boundaries:
   _target_: fetalsyngen.generator.augmentation.artifacts.SimulatedBoundaries

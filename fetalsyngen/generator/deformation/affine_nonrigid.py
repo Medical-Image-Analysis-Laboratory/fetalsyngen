@@ -239,9 +239,9 @@ class SpatialDeformation:
                 device=self.device,
             )
         affine_params = {
-            "rotations": rotations.tolist(),
-            "shears": shears.tolist(),
-            "scalings": scalings.tolist(),
+            "rotations": rotations,
+            "shears": shears,
+            "scalings": scalings,
         }
 
         return A, c2, affine_params
@@ -272,7 +272,7 @@ class SpatialDeformation:
         F = myzoom_torch(Fsmall, np.array(self.size) / size_F_small)
 
         return F, {
-            "nonlin_scale": nonlin_scale.tolist(),
+            "nonlin_scale": nonlin_scale,
             "nonlin_std": nonlin_std,
             "size_F_small": size_F_small,
         }

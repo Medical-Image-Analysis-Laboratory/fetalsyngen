@@ -7,7 +7,7 @@ from .transform_convert import (
     mat2axisangle,
 )
 from scipy.spatial.transform import Rotation
-from fetalsynthgen.generation.svort.definitions import DeviceType
+from fetalsyngen.generator.artifacts.svort.definitions import DeviceType
 from typing import Iterable, Union, Tuple
 
 

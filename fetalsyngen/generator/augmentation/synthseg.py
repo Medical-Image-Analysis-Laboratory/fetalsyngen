@@ -68,7 +68,10 @@ class RandResample(RandTransform):
                 if "spacing" not in genparams.keys()
                 else genparams["spacing"]
             )
-
+            # Ensure spacing and input_resolution are numpy arrays
+            spacing = np.array(spacing)
+            input_resolution = np.array(input_resolution)
+        
             # calculate stds of gaussian kernels
             # used for blurring to simulate resampling
             # the data to different resolutions
@@ -190,8 +193,8 @@ class RandBiasField(RandTransform):
             bf = torch.exp(bf_interp)
 
             return output * bf, {
-                "bf_scale": bf_scale[0],
-                "bf_std": bf_std[0],
+                "bf_scale": bf_scale,
+                "bf_std": bf_std,
                 "bf_size": bf_size,
             }
         else:
@@ -242,7 +245,8 @@ class RandNoise(RandTransform):
                 output.shape, dtype=torch.float, device=device
             )
             output[output < 0] = 0
-        return output, {"noise_std": noise_std.item()}
+        noise_std = noise_std.item() if noise_std is not None else None
+        return output, {"noise_std": noise_std}
 
 
 class RandGamma(RandTransform):
