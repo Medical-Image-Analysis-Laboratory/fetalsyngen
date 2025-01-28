@@ -136,9 +136,7 @@ class FetalSynthGen:
         output = output.to(self.device)
         segmentation = segmentation.to(self.device)
         image = image.to(self.device) if image is not None else None
-        print(
-            f"Output max: {output.max()} min {output.min()} std {output.std()} mean {output.mean()} shape {output.shape}"
-        )
+
         # 2. Spatially deform the data
         image, segmentation, output, deform_params = self.spatial_deform.deform(
             image=image,
