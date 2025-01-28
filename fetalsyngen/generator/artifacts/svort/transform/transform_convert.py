@@ -12,7 +12,7 @@ transform_convert_cuda = load(
         os.path.join(dirname, "transform_convert_cuda.cpp"),
         os.path.join(dirname, "transform_convert_cuda_kernel.cu"),
     ],
-    verbose=True,
+    verbose=False,
 )
 
 
@@ -147,9 +147,7 @@ def mat2axisangle_cpu(mat, in_degrees=False):
     theta = 2 * torch.atan2(norm_axis, w)
     factor = torch.where(norm_axis > TRANSFORM_EPS, theta / norm_axis, 2.0 / w)
 
-    axis_angle = torch.zeros(
-        (aff.shape[0], 6), dtype=aff.dtype, device=aff.device
-    )
+    axis_angle = torch.zeros((aff.shape[0], 6), dtype=aff.dtype, device=aff.device)
     axis_angle[:, 0] = x * factor
     axis_angle[:, 1] = y * factor
     axis_angle[:, 2] = z * factor
@@ -178,9 +176,7 @@ class Axisangle2MatFunction(Function):
     @staticmethod
     def backward(ctx, grad_mat):
         axisangle = ctx.saved_variables[0]
-        outputs = transform_convert_cuda.axisangle2mat_backward(
-            grad_mat, axisangle
-        )
+        outputs = transform_convert_cuda.axisangle2mat_backward(grad_mat, axisangle)
         grad_axisangle = outputs[0]
         return grad_axisangle
 
@@ -200,9 +196,7 @@ class Mat2AxisangleFunction(Function):
     @staticmethod
     def backward(ctx, grad_axisangle):
         mat = ctx.saved_variables[0]
-        outputs = transform_convert_cuda.mat2axisangle_backward(
-            mat, grad_axisangle
-        )
+        outputs = transform_convert_cuda.mat2axisangle_backward(mat, grad_axisangle)
         grad_mat = outputs[0]
         return grad_mat
 

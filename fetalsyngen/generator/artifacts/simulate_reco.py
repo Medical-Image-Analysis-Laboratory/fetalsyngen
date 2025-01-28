@@ -1,5 +1,5 @@
 """
-This file contains the classes that are used to simulate randomized acquisitions and reconstructions, as well as
+This file contains the classes that are used to cpplate randomized acquisitions and reconstructions, as well as
 boundary modifications.
 
 - PSFReconstruction: Basic class that reconstructs the volume from the acquired slices using the PDF and the transforms given.
@@ -170,9 +170,7 @@ class Scanner:
         if self.resolution_recon is not None:
             data["resolution_recon"] = self.resolution_recon
         else:
-            data["resolution_recon"] = np.random.uniform(
-                resolution, resolution_slice
-            )
+            data["resolution_recon"] = np.random.uniform(resolution, resolution_slice)
         data["resolution_slice"] = resolution_slice
         if "slice_thickness" not in genparams:
             data["slice_thickness"] = np.random.uniform(
@@ -245,9 +243,7 @@ class Scanner:
         mask = slices > self.slice_noise_threshold
         masked = slices[mask]
         if "noise_sigma" not in genparams:
-            sigma = np.random.uniform(
-                self.noise_sigma_min, self.noise_sigma_max
-            )
+            sigma = np.random.uniform(self.noise_sigma_min, self.noise_sigma_max)
         else:
             sigma = genparams["noise_sigma"]
         noise1 = torch.randn_like(masked) * sigma
@@ -266,19 +262,13 @@ class Scanner:
             torch.Tensor: The slices with the signal voids.
         """
 
-        idx = (
-            torch.rand(slices.shape[0], device=slices.device) < self.prob_void
-        )
+        idx = torch.rand(slices.shape[0], device=slices.device) < self.prob_void
 
         n = idx.sum()
         if n > 0:
             h, w = slices.shape[-2:]
-            y = torch.linspace(
-                -(h - 1) / 2, (h - 1) / 2, h, device=slices.device
-            )
-            x = torch.linspace(
-                -(w - 1) / 2, (w - 1) / 2, w, device=slices.device
-            )
+            y = torch.linspace(-(h - 1) / 2, (h - 1) / 2, h, device=slices.device)
+            x = torch.linspace(-(w - 1) / 2, (w - 1) / 2, w, device=slices.device)
             yc = (torch.rand(n, device=slices.device) - 0.5) * (h - 1)
             xc = (torch.rand(n, device=slices.device) - 0.5) * (w - 1)
 
@@ -328,15 +318,10 @@ class Scanner:
             for i in range(3):
                 size_new = int(data["volume"].shape[i + 2] * res / res_r)
                 grid_max = (
-                    (size_new - 1)
-                    * res_r
-                    / (data["volume"].shape[i + 2] - 1)
-                    / res
+                    (size_new - 1) * res_r / (data["volume"].shape[i + 2] - 1) / res
                 )
                 grids.append(
-                    torch.linspace(
-                        -grid_max, grid_max, size_new, device=device
-                    )
+                    torch.linspace(-grid_max, grid_max, size_new, device=device)
                 )
             grid = torch.stack(
                 torch.meshgrid(*grids, indexing="ij")[::-1], -1
@@ -369,9 +354,7 @@ class Scanner:
 
         if self.slice_size is None:
             ss = int(
-                np.sqrt((vs[-1] ** 2 + vs[-2] ** 2 + vs[-3] ** 2) / 2.0)
-                * res
-                / res_s
+                np.sqrt((vs[-1] ** 2 + vs[-2] ** 2 + vs[-3] ** 2) / 2.0) * res / res_s
             )
             ss = int(np.ceil(ss / 32.0) * 32)
         else:
@@ -385,9 +368,7 @@ class Scanner:
         transforms_gt = []
         positions = []
 
-        num_stacks = np.random.randint(
-            self.min_num_stack, self.max_num_stack + 1
-        )
+        num_stacks = np.random.randint(self.min_num_stack, self.max_num_stack + 1)
 
         rand_motion = True
         while True:
@@ -403,11 +384,7 @@ class Scanner:
             # interleaved acquisition
             interleave_idx = interleave_index(
                 ns,
-                (
-                    np.random.randint(2, int(np.sqrt(ns)) + 1)
-                    if rand_motion
-                    else 2
-                ),
+                (np.random.randint(2, int(np.sqrt(ns)) + 1) if rand_motion else 2),
             )
             transform_motion = transform_motion[interleave_idx]
             # apply motion
@@ -466,9 +443,7 @@ class Scanner:
             transforms.append(transform_init)
             transforms_gt.append(transform_target)
             positions.append(
-                torch.arange(
-                    slices.shape[0], dtype=slices.dtype, device=device
-                )
+                torch.arange(slices.shape[0], dtype=slices.dtype, device=device)
                 - slices.shape[0] // 2
             )
             if len(stacks) >= num_stacks:
@@ -477,9 +452,7 @@ class Scanner:
         stacks_ids = np.random.choice(20, len(stacks), replace=False)
         positions = torch.cat(
             [
-                torch.stack(
-                    (positions[i], torch.full_like(positions[i], s_i)), -1
-                )
+                torch.stack((positions[i], torch.full_like(positions[i], s_i)), -1)
                 for i, s_i in enumerate(stacks_ids)
             ],
             0,
@@ -623,9 +596,7 @@ class PSFReconstructor:
         nslices = len(positions)
         rand_angle = torch.zeros((nslices, 6)).to(self.device)
         for pos in torch.unique(positions[:, 1]):
-            self._misreg_stack_on.append(
-                np.random.rand() < self.prob_misreg_stack
-            )
+            self._misreg_stack_on.append(np.random.rand() < self.prob_misreg_stack)
             if self._misreg_stack_on[-1]:
                 continue
             idx = torch.where(positions[:, 1] == pos)[0]
@@ -639,9 +610,7 @@ class PSFReconstructor:
             rand_angle[idx, 3:] = random_angle(
                 len(idx), restricted=True, device=self.device
             )
-            rand_angle[idx, :3] = torch.stack(
-                (tx, ty, torch.zeros_like(tx)), -1
-            )
+            rand_angle[idx, :3] = torch.stack((tx, ty, torch.zeros_like(tx)), -1)
 
         trf = RigidTransform(rand_angle, trans_first=True)
 
@@ -739,9 +708,7 @@ class PSFReconstructor:
             "s_thick": data["slice_thickness"],
             "volume_shape": data["volume_shape"],
         }
-        rec = partial(
-            PSFreconstruction, slices_mask=None, vol_mask=None, params=params
-        )
+        rec = partial(PSFreconstruction, slices_mask=None, vol_mask=None, params=params)
         return self.__recon_volume(data, rec)
 
     def __recon_volume(self, data, rec):
