@@ -565,6 +565,7 @@ class PSFReconstructor:
         self._smooth_volume_on = np.random.rand() < self.prob_smooth
         self._rm_slices_on = np.random.rand() < self.prob_rm_slices
         self._misreg_slice_on = np.random.rand() < self.prob_misreg_slice
+
         if "rm_slices_ratio" in genparams:
             self._rm_slices_ratio = genparams["rm_slices_ratio"]
         else:
@@ -626,7 +627,7 @@ class PSFReconstructor:
             self._misreg_stack_on.append(
                 np.random.rand() < self.prob_misreg_stack
             )
-            if self._misreg_stack_on[-1]:
+            if not self._misreg_stack_on[-1]:
                 continue
             idx = torch.where(positions[:, 1] == pos)[0]
 

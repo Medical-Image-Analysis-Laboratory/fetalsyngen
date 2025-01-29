@@ -116,10 +116,12 @@ class FetalSynthGen:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
-            output, seed_intensities = self.intensity_generator.sample_intensities(
-                seeds=seeds,
-                device=self.device,
-                genparams=genparams.get("seed_intensities", {}),
+            output, seed_intensities = (
+                self.intensity_generator.sample_intensities(
+                    seeds=seeds,
+                    device=self.device,
+                    genparams=genparams.get("seed_intensities", {}),
+                )
             )
         else:
             if image is None:
@@ -138,11 +140,13 @@ class FetalSynthGen:
         image = image.to(self.device) if image is not None else None
 
         # 2. Spatially deform the data
-        image, segmentation, output, deform_params = self.spatial_deform.deform(
-            image=image,
-            segmentation=segmentation,
-            output=output,
-            genparams=genparams.get("deform_params", {}),
+        image, segmentation, output, deform_params = (
+            self.spatial_deform.deform(
+                image=image,
+                segmentation=segmentation,
+                output=output,
+                genparams=genparams.get("deform_params", {}),
+            )
         )
 
         # 3. Gamma contrast transformation
