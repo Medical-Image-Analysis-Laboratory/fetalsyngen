@@ -47,7 +47,9 @@ class RandResample(RandTransform):
         self.min_resolution = min_resolution
         self.max_resolution = max_resolution
 
-    def __call__(self, output, input_resolution, device, genparams: dict = {}):
+    def __call__(
+        self, output, input_resolution, device, genparams: dict = {}
+    ) -> torch.Tensor:
         """Apply the resampling to the input image.
 
         Args:
@@ -58,7 +60,7 @@ class RandResample(RandTransform):
                 Default: {}. Should contain the key "spacing" if the spacing is fixed.
 
         Returns:
-            torch.Tensor: Resampled image.
+            Resampled image.
         """
         if np.random.rand() < self.prob or "spacing" in genparams.keys():
             input_size = np.array(output.shape)
@@ -71,7 +73,7 @@ class RandResample(RandTransform):
             # Ensure spacing and input_resolution are numpy arrays
             spacing = np.array(spacing)
             input_resolution = np.array(input_resolution)
-        
+
             # calculate stds of gaussian kernels
             # used for blurring to simulate resampling
             # the data to different resolutions
@@ -87,9 +89,7 @@ class RandResample(RandTransform):
             output_blurred = gaussian_blur_3d(output, stds, device)
 
             # resize the blurred output to the new resolution
-            new_size = (
-                np.array(input_size) * input_resolution / spacing
-            ).astype(int)
+            new_size = (np.array(input_size) * input_resolution / spacing).astype(int)
 
             # calculate the factors for the interpolation
             factors = np.array(new_size) / np.array(input_size)
@@ -109,9 +109,7 @@ class RandResample(RandTransform):
             JJ = torch.tensor(JJ, dtype=torch.float, device=device)
             KK = torch.tensor(KK, dtype=torch.float, device=device)
 
-            output_resized = fast_3D_interp_torch(
-                output_blurred, II, JJ, KK, "linear"
-            )
+            output_resized = fast_3D_interp_torch(output_blurred, II, JJ, KK, "linear")
             return output_resized, factors, {"spacing": spacing.tolist()}
         else:
             return output, None, {"spacing": None}
@@ -151,7 +149,7 @@ class RandBiasField(RandTransform):
         self.std_min = std_min
         self.std_max = std_max
 
-    def __call__(self, output, device, genparams: dict = {}):
+    def __call__(self, output, device, genparams: dict = {}) -> torch.Tensor:
         """Apply the bias field to the input image.
 
         Args:
@@ -162,22 +160,18 @@ class RandBiasField(RandTransform):
                 the bias field parameters are fixed.
 
         Returns:
-            torch.Tensor: Image with the bias field applied.
+            Image with the bias field applied.
         """
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
             image_size = output.shape
             bf_scale = (
-                self.scale_min
-                + np.random.rand(1) * (self.scale_max - self.scale_min)
+                self.scale_min + np.random.rand(1) * (self.scale_max - self.scale_min)
                 if "bf_scale" not in genparams.keys()
                 else genparams["bf_scale"]
             )
-            bf_size = (
-                np.round(bf_scale * np.array(image_size)).astype(int).tolist()
-            )
+            bf_size = np.round(bf_scale * np.array(image_size)).astype(int).tolist()
             bf_std = (
-                self.std_min
-                + (self.std_max - self.std_min) * np.random.rand(1)
+                self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
                 if "bf_std" not in genparams.keys()
                 else genparams["bf_std"]
             )
@@ -187,9 +181,7 @@ class RandBiasField(RandTransform):
                 dtype=torch.float,
                 device=device,
             ) * torch.randn(bf_size, dtype=torch.float, device=device)
-            bf_interp = myzoom_torch(
-                bf_low_scale, np.array(image_size) / bf_size
-            )
+            bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
             bf = torch.exp(bf_interp)
 
             return output * bf, {
@@ -216,7 +208,7 @@ class RandNoise(RandTransform):
         self.std_min = std_min
         self.std_max = std_max
 
-    def __call__(self, output, device, genparams: dict = {}):
+    def __call__(self, output, device, genparams: dict = {}) -> torch.Tensor:
         """Apply the noise to the input image.
 
         Args:
@@ -226,12 +218,11 @@ class RandNoise(RandTransform):
                 Default: {}. Should contain the key "noise_std" if the noise standard deviation is fixed.
 
         Returns:
-            torch.Tensor: Image with the noise applied."""
+            Image with the noise applied."""
         noise_std = None
         if np.random.rand() < self.prob or "noise_std" in genparams.keys():
             noise_std = (
-                self.std_min
-                + (self.std_max - self.std_min) * np.random.rand(1)
+                self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
                 if "noise_std" not in genparams.keys()
                 else genparams["noise_std"]
             )
@@ -261,7 +252,7 @@ class RandGamma(RandTransform):
         self.prob = prob
         self.gamma_std = gamma_std
 
-    def __call__(self, output, device, genparams: dict = {}):
+    def __call__(self, output, device, genparams: dict = {}) -> torch.Tensor:
         """Apply the gamma correction to the input image.
 
         Args:
@@ -271,7 +262,7 @@ class RandGamma(RandTransform):
                 Default: {}. Should contain the key "gamma" if the gamma correction is fixed.
 
         Returns:
-            torch.Tensor: Image with the gamma correction applied.
+            Image with the gamma correction applied.
         """
         gamma = None
         if np.random.rand() < self.prob or "gamma" in genparams.keys():

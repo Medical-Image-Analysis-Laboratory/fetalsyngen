@@ -8,7 +8,7 @@ Super-resolution reconstruction algorithms are used commonly in fetal MRI imagin
 
 
 We implemented a SR artifact simulation framework to generate synthetic fetal brain MRI images with different types of artifacts.
-To enable it, simply pass corresponding classes described below to the [generator class](../generation/#fetalsyngen.generator.model).
+To enable it, simply pass corresponding classes described below to the [generator class](generation.md#fetalsyngen.generator.model).
 
 You can see examples of its application in the following [notebook](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/a671486b9bf342a80b01ecbbde15976cfffa2fe1/examples/sr_artifacts_test.ipynb). It consists of following classes that each implement a specific type(s) of artifacts:
 

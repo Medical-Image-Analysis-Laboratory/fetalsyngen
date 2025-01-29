@@ -95,8 +95,8 @@ class FetalSynthGen:
 
     def sample(
         self,
-        image,
-        segmentation,
+        image: torch.Tensor | None,
+        segmentation: torch.Tensor,
         seeds: torch.Tensor | None,
         genparams: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
@@ -105,7 +105,7 @@ class FetalSynthGen:
         Supports both random generation and from a fixed genparams dictionary.
 
         Args:
-            image: Image to use as intensity prior.
+            image: Image to use as intensity prior if required.
             segmentation: Segmentation to use as spatial prior.
             seeds: Seeds to use for intensity generation.
             genparams: Dictionary with generation parameters.
