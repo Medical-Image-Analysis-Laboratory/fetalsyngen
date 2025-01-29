@@ -104,11 +104,15 @@ class BlurCortex(RandTransform):
 
             cortex = seg == self.cortex_label
             cortex_prob = self.blur_proba(output.shape, cortex, device)
+            # Reshape cortex prob onto to the cortex
+
             idx = torch.multinomial(cortex_prob, nblur)
 
             idx_cortex = torch.where(cortex > 0)
-            centers = [(idx_cortex[i][id] for i in range(3)) for id in idx]
-
+            centers = [
+                [idx_cortex[i][id.item()].item() for i in range(3)]
+                for id in idx
+            ]
             # Spatial merging parameters.
             sigmas = np.random.gamma(
                 self.sigma_gamma_loc, self.sigma_gamma_scale, (nblur, 3)
@@ -121,9 +125,6 @@ class BlurCortex(RandTransform):
             )
 
             # Generate the blurred image
-
-            # USELESS TO SPECIFY DEVICE. SHOULD BE
-            # THE SAME AS OUTPUT
             output_blur = gaussian_blur_3d(
                 output.float(), stds=std_blurs, device=output.device
             )
@@ -131,6 +132,7 @@ class BlurCortex(RandTransform):
             return output, {
                 "nblur": nblur,
             }
+
         else:
             return output, {
                 "nblur": None,
@@ -229,7 +231,7 @@ class StructNoise(RandTransform):
             wm = seg == self.wm_label
             idx_wm = torch.nonzero(wm, as_tuple=True)
             idx = torch.randint(0, len(idx_wm[0]), (nloc,))
-
+            mask = (seg > 0).int()
             # Add multiscale noise. Start with a small tensor and add the noise to it.
             lr_gaussian_noise = torch.zeros(
                 [i // 2**nstages for i in output.shape]
@@ -278,13 +280,16 @@ class StructNoise(RandTransform):
                 output.shape, centers=centers, sigmas=sigmas, device=device
             )
 
-            output = gaussian * output_noisy + (1 - gaussian) * output
+            output = output * (1 - mask) + mask * (
+                gaussian * output_noisy + (1 - gaussian) * output
+            )
 
             args = {
                 "nstages": nstages,
                 "noise_std": noise_std,
                 "nloc": nloc,
             }
+
             return output, args
         else:
             return output, {}
