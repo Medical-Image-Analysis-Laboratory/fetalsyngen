@@ -1,19 +1,26 @@
-# Install the minimal conda environment for the project using fetalsyngen using conda (recommended)
+# FetalSynGen
+FetalSynthGen is a synthetic data generator created to address the challenges of limited data and domain shifts in fetal brain MRI analysis. It is based on the domain randomization approach of SynthSeg [1], which uses anatomical segmentations to create diverse synthetic images.
+
+
+## Installation (local)
+1. Install the minimal conda environment for the project using fetalsyngen using conda (recommended)
 ```shell
 conda env create -f environment.yml
 ```
-Or using pip
+2. Activate the environment
 ```shell
-pip install -r requirements.txt
+conda activate fetalsyngen
 ```
+3. Install the package
+```shell
+git clone https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen
+cd fetalsyngen
+pip install -e .
+```
+Please refer to [the documentation](https://medical-image-analysis-laboratory.github.io/fetalsyngen/) for more information.
 
 
-# syngen
-Synthetic data generator based on the domain randomization idea.
-
-Run `pip install -e /home/vzalevskyi/projects/fetalsyngen` to set-up the package.
-
-### docs
+### Documentation edit set-up
 
 ```shell
 # install documentation tool
