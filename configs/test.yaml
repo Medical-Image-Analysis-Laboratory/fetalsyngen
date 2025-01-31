@@ -1,0 +1,4 @@
+defaults:
+  # - dataset/testing
+  - dataset/synth_train_ts
+  - hydra/default
