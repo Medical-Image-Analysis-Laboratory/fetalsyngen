@@ -36,9 +36,7 @@ class FetalDataset:
         if self.subjects is None:
             self.subjects = [x.name for x in self.bids_path.glob("sub-*")]
         self.sub_ses = [
-            (x, y)
-            for x in self.subjects
-            for y in self._get_ses(self.bids_path, x)
+            (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
@@ -50,11 +48,7 @@ class FetalDataset:
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
-        return (
-            list(set(subj_found) & set(sub_list))
-            if sub_list is not None
-            else None
-        )
+        return list(set(subj_found) & set(sub_list)) if sub_list is not None else None
 
     def _sub_ses_string(self, sub, ses):
         return f"{sub}_{ses}" if ses is not None else sub
@@ -154,9 +148,7 @@ class FetalTestDataset(FetalDataset):
             image = image.unsqueeze(0)
             segm = segm.unsqueeze(0)
         elif len(image.shape) != 4:
-            raise ValueError(
-                f"Expected 3D or 4D image, got {len(image.shape)}D image."
-            )
+            raise ValueError(f"Expected 3D or 4D image, got {len(image.shape)}D image.")
 
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
@@ -180,7 +172,7 @@ class FetalTestDataset(FetalDataset):
 
         if self.transforms:
             data = self.transforms(data)
-
+        data["label"] = data["label"].long()
         return data
 
     def reverse_transform(self, data: dict) -> dict:
@@ -230,9 +222,7 @@ class FetalSynthDataset(FetalDataset):
                 instead of sampling the intensities from the seeds. Default is **False**.
         """
         super().__init__(bids_path, sub_list)
-        self.seed_path = (
-            Path(seed_path) if isinstance(seed_path, str) else None
-        )
+        self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
         self.load_image = load_image
         self.generator = generator
         self.image_as_intensity = image_as_intensity
@@ -302,9 +292,7 @@ class FetalSynthDataset(FetalDataset):
 
         # orient to RAS for consistency
         image = (
-            self.orientation(image.unsqueeze(0)).squeeze(0)
-            if self.load_image
-            else None
+            self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
         )
         segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
 
@@ -342,9 +330,7 @@ class FetalSynthDataset(FetalDataset):
         image = image.cpu() if image is not None else None
 
         generation_params = {**generation_params, **synth_params}
-        generation_params["generation_time"] = (
-            time.time() - generation_time_start
-        )
+        generation_params["generation_time"] = time.time() - generation_time_start
         data_out = {
             "image": gen_output.unsqueeze(0),
             "label": segmentation.unsqueeze(0).long(),
