@@ -84,7 +84,9 @@ class SpatialDeformation:
         self.yc = self.yy - self.c[1]
         self.zc = self.zz - self.c[2]
 
-    def deform(self, image, segmentation, output, genparams: dict = {}):
+    def deform(
+        self, image, segmentation, output, genparams: dict = {}
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         """Deform the image, segmentation and output.
 
         Args:
@@ -97,7 +99,7 @@ class SpatialDeformation:
                 Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "size_F_small".
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]: Deformed image, segmentation, output and deformation parameters.
+            Deformed image, segmentation, output and deformation parameters.
         """
         deform_params = {}
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
@@ -131,9 +133,7 @@ class SpatialDeformation:
 
         return image, segmentation, output, deform_params
 
-    def generate_deformation(
-        self, image_shape, random_shift=True, genparams={}
-    ):
+    def generate_deformation(self, image_shape, random_shift=True, genparams={}):
 
         # sample affine deformation
         A, c2, aff_params = self.random_affine_transform(
@@ -158,9 +158,7 @@ class SpatialDeformation:
             non_rigid_params = {}
 
         # deform the images
-        xx2, yy2, zz2, x1, y1, z1, x2, y2, z2 = self.deform_image(
-            image_shape, A, c2, F
-        )
+        xx2, yy2, zz2, x1, y1, z1, x2, y2, z2 = self.deform_image(image_shape, A, c2, F)
 
         return (
             xx2,
@@ -188,11 +186,7 @@ class SpatialDeformation:
         genparams={},
     ):
         rotations = (
-            (
-                (2 * max_rotation * np.random.rand(3) - max_rotation)
-                / 180.0
-                * np.pi
-            )
+            ((2 * max_rotation * np.random.rand(3) - max_rotation) / 180.0 * np.pi)
             if "rotations" not in genparams.keys()
             else genparams["rotations"]
         )
@@ -228,8 +222,7 @@ class SpatialDeformation:
                 dtype=torch.float,
                 device=self.device,
             ) + (
-                2
-                * (max_shift * torch.rand(3, dtype=float, device=self.device))
+                2 * (max_shift * torch.rand(3, dtype=float, device=self.device))
                 - max_shift
             )
         else:
@@ -251,8 +244,7 @@ class SpatialDeformation:
     ):
 
         nonlin_scale = (
-            nonlin_scale_min
-            + np.random.rand(1) * (nonlin_scale_max - nonlin_scale_min)
+            nonlin_scale_min + np.random.rand(1) * (nonlin_scale_max - nonlin_scale_min)
             if "nonlin_scale" not in genparams.keys()
             else genparams["nonlin_scale"]
         )

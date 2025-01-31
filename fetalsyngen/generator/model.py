@@ -45,6 +45,10 @@ class FetalSynthGen:
         """
         Initialize the model with the given parameters.
 
+        !!!Note
+            Augmentations related to SR artifacts are optional and can be set to None
+            if not needed.
+
         Args:
             shape: Shape of the output image.
             resolution: Resolution of the output image.
@@ -55,6 +59,11 @@ class FetalSynthGen:
             bias_field: Bias field generator.
             noise: Noise generator.
             gamma: Gamma correction generator.
+            blur_cortex: Cortex blurring generator.
+            struct_noise: Structural noise generator.
+            simulate_motion: Motion simulation generator.
+            boundaries: Boundaries generator
+
         """
         self.shape = shape
         self.resolution = resolution
@@ -86,8 +95,8 @@ class FetalSynthGen:
 
     def sample(
         self,
-        image,
-        segmentation,
+        image: torch.Tensor | None,
+        segmentation: torch.Tensor,
         seeds: torch.Tensor | None,
         genparams: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
@@ -96,7 +105,7 @@ class FetalSynthGen:
         Supports both random generation and from a fixed genparams dictionary.
 
         Args:
-            image: Image to use as intensity prior.
+            image: Image to use as intensity prior if required.
             segmentation: Segmentation to use as spatial prior.
             seeds: Seeds to use for intensity generation.
             genparams: Dictionary with generation parameters.
@@ -116,12 +125,10 @@ class FetalSynthGen:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
-            output, seed_intensities = (
-                self.intensity_generator.sample_intensities(
-                    seeds=seeds,
-                    device=self.device,
-                    genparams=genparams.get("seed_intensities", {}),
-                )
+            output, seed_intensities = self.intensity_generator.sample_intensities(
+                seeds=seeds,
+                device=self.device,
+                genparams=genparams.get("seed_intensities", {}),
             )
         else:
             if image is None:
@@ -140,13 +147,11 @@ class FetalSynthGen:
         image = image.to(self.device) if image is not None else None
 
         # 2. Spatially deform the data
-        image, segmentation, output, deform_params = (
-            self.spatial_deform.deform(
-                image=image,
-                segmentation=segmentation,
-                output=output,
-                genparams=genparams.get("deform_params", {}),
-            )
+        image, segmentation, output, deform_params = self.spatial_deform.deform(
+            image=image,
+            segmentation=segmentation,
+            output=output,
+            genparams=genparams.get("deform_params", {}),
         )
 
         # 3. Gamma contrast transformation
