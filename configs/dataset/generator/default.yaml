@@ -103,9 +103,9 @@ simulate_motion:
 
   recon_params:
     _target_: fetalsyngen.generator.artifacts.utils.ReconParams
-    prob_misreg_slice: 0.08
+    prob_misreg_slice: 0.1
     slices_misreg_ratio: 0.1
-    prob_misreg_stack: 0.08
+    prob_misreg_stack: 0.1
     txy: 3.0
     prob_merge: 0.8
     merge_ngaussians_min: 2

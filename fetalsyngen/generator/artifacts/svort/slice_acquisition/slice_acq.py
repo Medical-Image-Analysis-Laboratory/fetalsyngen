@@ -38,7 +38,8 @@ class SliceAcqFunction(Function):
             vol_mask = torch.empty(0, device=vol.device)
         if slices_mask is None:
             slices_mask = torch.empty(0, device=vol.device)
-
+        vol = vol.contiguous()
+        vol_mask = vol_mask.contiguous()
         outputs = slice_acq_cuda.forward(
             transforms,
             vol,
