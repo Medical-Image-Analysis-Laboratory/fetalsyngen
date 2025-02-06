@@ -180,7 +180,9 @@ class Scanner:
             data["slice_thickness"] = genparams["slice_thickness"]
 
         if "gap" not in genparams:
-            data["gap"] = np.random.uniform(self.gap_min, self.gap_max)
+            data["gap"] = (
+                np.random.uniform(self.gap_min, self.gap_max) + data["slice_thickness"]
+            )
         else:
             data["gap"] = genparams["gap"]
 
@@ -293,7 +295,7 @@ class Scanner:
             slices[idx, 0] *= mask
         return slices
 
-    def scan(self, data, genparams: dict = {}):
+    def scan(self, data, genparams: dict = {}, scansegm: bool = False):
         """
         Simulate the acquisition of slices from the volume.
 
@@ -304,7 +306,7 @@ class Scanner:
         Returns:
             dict: The updated data dictionary with simulated acquired slices.
         """
-        data = self.get_resolution(data, genparams={})
+        data = self.get_resolution(data, genparams=genparams)
         res = data["resolution"]
         res_r = data["resolution_recon"]
         res_s = data["resolution_slice"]
@@ -363,16 +365,20 @@ class Scanner:
 
         ## Define the stacks and do the transformations.
         stacks = []
+        segmentations = []
         stacks_no_psf = []
         transforms = []
         transforms_gt = []
         positions = []
 
-        num_stacks = np.random.randint(self.min_num_stack, self.max_num_stack + 1)
+        num_stacks = (
+            np.random.randint(self.min_num_stack, self.max_num_stack + 1)
+            if "num_stacks" not in genparams
+            else genparams["num_stacks"]
+        )
 
         rand_motion = True
         while True:
-            # print(f"Generating stack : {len(stacks)}")
             # stack transformation
             transform_init = random_init_stack_transforms(
                 ns, gap, self.restrict_transform, self.txy, device
@@ -414,6 +420,28 @@ class Scanner:
                 False,
                 False,
             )
+            if scansegm:
+                labs = torch.unique(data["seg"])
+                seg1h = torch.stack([data["seg"] == l for l in labs], 0).float()
+                stacks_segm = []
+                for lab1h in range(len(labs)):
+                    seg = slice_acquisition(
+                        mat,
+                        seg1h[lab1h],
+                        None,
+                        None,
+                        get_PSF(0, device=device),
+                        (ss, ss),
+                        res_s / res,
+                        False,
+                        False,
+                    )
+                    stacks_segm.append(seg)
+                stacks_segm = torch.stack(tensors=stacks_segm, dim=0)
+                stacks_segm = torch.argmax(stacks_segm, 0)
+            else:
+                stacks_segm = torch.zeros_like(slices_no_psf)
+
             # remove zeros
             nnz = slices_no_psf.sum((1, 2, 3))
             idx = nnz > (nnz.max() * np.random.uniform(0.1, 0.3))
@@ -424,6 +452,7 @@ class Scanner:
                 idx[nz[0, 0] : nz[-1, 0]] = True
             slices = slices[idx]
             slices_no_psf = slices_no_psf[idx]
+            stacks_segm = stacks_segm[idx]
             transform_init = transform_init[idx]
             transform_init = reset_transform(transform_init)
             transform_target = transform_target[idx]
@@ -440,6 +469,7 @@ class Scanner:
                 break
             stacks.append(slices)
             stacks_no_psf.append(slices_no_psf)
+            segmentations.append(stacks_segm)
             transforms.append(transform_init)
             transforms_gt.append(transform_target)
             positions.append(
@@ -459,6 +489,7 @@ class Scanner:
         )
         stacks = torch.cat(stacks, 0)
         stacks_no_psf = torch.cat(stacks_no_psf, 0)
+        stacks_segm = torch.cat(segmentations, 0)
         transforms = RigidTransform.cat(transforms)
         transforms_gt = RigidTransform.cat(transforms_gt)
 
@@ -466,6 +497,7 @@ class Scanner:
         data["volume_shape"] = volume_gt.shape[-3:]
         data["stacks"] = stacks
         data["stacks_no_psf"] = stacks_no_psf
+        data["stacks_segm"] = stacks_segm
         data["positions"] = positions
         data["transforms"] = transforms.matrix()
         data["transforms_angle"] = transforms

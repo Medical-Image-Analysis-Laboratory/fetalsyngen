@@ -120,3 +120,31 @@ boundaries:
   prob_no_mask: 0.5
   prob_if_mask_halo: 0.5
   prob_if_mask_fuzzy: 0.5
+
+
+# stack_sampler:
+#   _target_: fetalsyngen.generator.augmentation.artifacts.StackSampler
+#   prob: 0.4
+#   resolution_recon: 1
+#   scanner_params:
+#     _target_: fetalsyngen.generator.artifacts.utils.ScannerParams
+#     resolution_slice_fac_min: 0.5
+#     resolution_slice_fac_max: 3.5
+#     resolution_slice_max: 3.5
+#     slice_thickness_min: 1
+#     slice_thickness_max: 5
+#     gap_min: 0
+#     gap_max: 1
+#     min_num_stack: 1
+#     max_num_stack: 1
+#     max_num_slices: null
+#     noise_sigma_min: 0
+#     noise_sigma_max: 0.01
+#     TR_min: 1
+#     TR_max: 2
+#     prob_gamma: 0.1
+#     gamma_std: 0.05
+#     prob_void: 0.2
+#     slice_size: null
+#     restrict_transform: False
+#     txy: 3.0
