@@ -205,6 +205,10 @@ class FetalSynthGen:
                 output, segmentation, device=self.device
             )
 
+            # unsqueeze the image to match the expected shape
+            output = output.squeeze(0)
+            segmentation = segmentation.squeeze(0)
+
         # 10. Aggregete the synth params
         synth_params = {
             "selected_seeds": selected_seeds,

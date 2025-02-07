@@ -83,17 +83,22 @@ class ImageFromSeeds:
                 meta_label: np.random.randint(
                     self.min_subclusters, self.max_subclusters + 1
                 )
-                for meta_label in range(1, self.meta_labels + 1)
+                for meta_label in self.meta_labels
             }
         if "mlabel2subclusters" in genparams.keys():
             mlabel2subclusters = genparams["mlabel2subclusters"]
 
         # load the first seed as the one corresponding to mlabel 1
-        seed = self.loader(seeds[mlabel2subclusters[1]][1])
+        first_mlab = list(mlabel2subclusters.keys())[0]
+        first_subcls = list(seeds[mlabel2subclusters[first_mlab]].keys())[0]
+
+        seed = self.loader(seeds[mlabel2subclusters[first_mlab]][first_subcls])
         seed = self.orientation(seed.unsqueeze(0))
         # re-orient seeds to RAS
 
-        for mlabel in range(2, self.meta_labels + 1):
+        for mlabel in self.meta_labels:
+            if mlabel == first_mlab:
+                continue
             new_seed = self.loader(seeds[mlabel2subclusters[mlabel]][mlabel])
             new_seed = self.orientation(new_seed.unsqueeze(0))
             seed += new_seed

@@ -202,6 +202,7 @@ class FetalSynthDataset(FetalDataset):
         sub_list: list[str] | None,
         load_image: bool = False,
         image_as_intensity: bool = False,
+        transforms: Compose | None = None,
     ):
         """
 
@@ -226,7 +227,7 @@ class FetalSynthDataset(FetalDataset):
         self.load_image = load_image
         self.generator = generator
         self.image_as_intensity = image_as_intensity
-
+        self.transforms = transforms
         # parse seeds paths
         if not self.image_as_intensity and isinstance(self.seed_path, Path):
             if not self.seed_path.exists():
@@ -258,7 +259,7 @@ class FetalSynthDataset(FetalDataset):
                     f"Provided seed path {seed_path} does not exist."
                 )
             # load the seeds for the subjects for each meta label 1-4
-            for i in range(1, 5):
+            for i in self.generator.intensity_generator.meta_labels:
                 files = self._load_bids_path(seed_path, f"mlabel_{i}")
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
@@ -334,8 +335,11 @@ class FetalSynthDataset(FetalDataset):
         data_out = {
             "image": gen_output.unsqueeze(0),
             "label": segmentation.unsqueeze(0).long(),
-            "name": name,
         }
+
+        if self.transforms:
+            data_out = self.transforms(data_out)
+        data_out["name"] = name
 
         return data_out, generation_params
 
