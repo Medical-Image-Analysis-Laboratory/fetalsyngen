@@ -67,6 +67,12 @@
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalDataset.__init__">__init__</a>
     </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalDataset._get_ses">_get_ses</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalDataset._get_pattern">_get_pattern</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalDataset._load_bids_path">_load_bids_path</a>
+    </li>
         </ul>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalTestDataset">FetalTestDataset</a>
@@ -82,6 +88,8 @@
     <li class="toctree-l2"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalSynthDataset">FetalSynthDataset</a>
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalSynthDataset.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalSynthDataset._load_seed_path">_load_seed_path</a>
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.data.datasets.FetalSynthDataset.sample">sample</a>
     </li>
@@ -272,16 +280,10 @@
 <span class="normal">105</span>
 <span class="normal">106</span>
 <span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
-<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FetalDataset</span><span class="p">:</span>
+<span class="normal">108</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FetalDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class defining a dataset for loading fetal data.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">bids_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sub_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
@@ -300,9 +302,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;sub-*&quot;</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span>
-            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">SimpleITKReader</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span> <span class="o">=</span> <span class="n">ScaleIntensity</span><span class="p">(</span><span class="n">minv</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxv</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -312,22 +312,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">img_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="s2">&quot;T2w&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">segm_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="s2">&quot;dseg&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">find_subjects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_subjects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">):</span>
         <span class="n">subj_found</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;sub-*&quot;</span><span class="p">)]</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">subj_found</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">sub_list</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">sub_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="k">else</span> <span class="kc">None</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">subj_found</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">sub_list</span><span class="p">))</span> <span class="k">if</span> <span class="n">sub_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">_sub_ses_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sub_ses_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">):</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">ses</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">ses</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">sub</span>
 
-    <span class="k">def</span> <span class="nf">_sub_ses_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sub_ses_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sub_ses_string</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bids_path</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bids_path</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the session names for the subject.&quot;&quot;&quot;</span>
         <span class="n">sub_path</span> <span class="o">=</span> <span class="n">bids_path</span> <span class="o">/</span> <span class="n">sub</span>
         <span class="n">ses_dir</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sub_path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]</span>
@@ -340,14 +336,14 @@
 
         <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ses</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;.nii.gz&quot;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;.nii.gz&quot;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the pattern for the file name.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">ses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">/anat/</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">*_</span><span class="si">{</span><span class="n">suffix</span><span class="si">}{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ses</span><span class="si">}</span><span class="s2">/anat/</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">ses</span><span class="si">}</span><span class="s2">*_</span><span class="si">{</span><span class="n">suffix</span><span class="si">}{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        &quot;Check that for a given path, all subjects have a file with the provided suffix</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -369,10 +365,10 @@
 
         <span class="k">return</span> <span class="n">files_paths</span>
 
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subjects</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;This method should be implemented in the child class.&quot;</span>
         <span class="p">)</span>
@@ -416,7 +412,7 @@
         <ul class="first simple">
             <li>
               <b><code>bids_path</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Path to the bids folder with the data.</p>
@@ -424,7 +420,7 @@
             </li>
             <li>
               <b><code>sub_list</code></b>
-                  (<code>list[str] | None</code>)
+                  (<code><span title="list">list</span>[<span title="str">str</span>] | None</code>)
               –
               <div class="doc-md-description">
                 <p>List of the subjects to use. If None, all subjects are used.</p>
@@ -464,9 +460,7 @@
 <span class="normal">44</span>
 <span class="normal">45</span>
 <span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">47</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">bids_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">sub_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
@@ -485,9 +479,7 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;sub-*&quot;</span><span class="p">)]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span>
-        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subjects</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">SimpleITKReader</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span> <span class="o">=</span> <span class="n">ScaleIntensity</span><span class="p">(</span><span class="n">minv</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxv</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -496,6 +488,144 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">img_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="s2">&quot;T2w&quot;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">segm_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bids_path</span><span class="p">,</span> <span class="s2">&quot;dseg&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalDataset._get_ses" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_get_ses</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get the session names for the subject.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_ses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bids_path</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the session names for the subject.&quot;&quot;&quot;</span>
+    <span class="n">sub_path</span> <span class="o">=</span> <span class="n">bids_path</span> <span class="o">/</span> <span class="n">sub</span>
+    <span class="n">ses_dir</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sub_path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]</span>
+    <span class="n">ses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ses_dir</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;anat&quot;</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">ses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ses</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalDataset._get_pattern" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_get_pattern</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;.nii.gz&#39;</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get the pattern for the file name.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;.nii.gz&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the pattern for the file name.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">/anat/</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">*_</span><span class="si">{</span><span class="n">suffix</span><span class="si">}{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ses</span><span class="si">}</span><span class="s2">/anat/</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">ses</span><span class="si">}</span><span class="s2">*_</span><span class="si">{</span><span class="n">suffix</span><span class="si">}{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalDataset._load_bids_path" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_load_bids_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>"Check that for a given path, all subjects have a file with the provided suffix</p>
+
+            <details class="quote">
+              <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_load_bids_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;Check that for a given path, all subjects have a file with the provided suffix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">files_paths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ses</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span><span class="p">:</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pattern</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No files found for requested subject </span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2"> returned nothing)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Multiple files found for requested subject </span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2"> returned </span><span class="si">{</span><span class="n">files</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="n">files_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">files_paths</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -523,7 +653,7 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="fetalsyngen.data.datasets.FetalDataset" href="#fetalsyngen.data.datasets.FetalDataset">FetalDataset</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="FetalDataset (fetalsyngen.data.datasets.FetalDataset)" href="#fetalsyngen.data.datasets.FetalDataset">FetalDataset</a></code></p>
 
 
         <p>Dataset class for loading fetal images offline.
@@ -538,7 +668,13 @@ Used to load test/validation data.</p>
 
               <details class="quote">
                 <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">117</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
 <span class="normal">118</span>
 <span class="normal">119</span>
 <span class="normal">120</span>
@@ -612,15 +748,7 @@ Used to load test/validation data.</p>
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FetalTestDataset</span><span class="p">(</span><span class="n">FetalDataset</span><span class="p">):</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FetalTestDataset</span><span class="p">(</span><span class="n">FetalDataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset class for loading fetal images offline.</span>
 <span class="sd">    Used to load test/validation data.</span>
 
@@ -628,7 +756,7 @@ Used to load test/validation data.</p>
 <span class="sd">    (scaling, resampling, cropping, etc.).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">bids_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sub_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
@@ -651,7 +779,7 @@ Used to load test/validation data.</p>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="n">transforms</span>
 
-    <span class="k">def</span> <span class="nf">_load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="c1"># load the image and segmentation</span>
         <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_paths</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
         <span class="n">segm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segm_paths</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
@@ -660,9 +788,7 @@ Used to load test/validation data.</p>
             <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">segm</span> <span class="o">=</span> <span class="n">segm</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Expected 3D or 4D image, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">D image.&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected 3D or 4D image, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">D image.&quot;</span><span class="p">)</span>
 
         <span class="c1"># transform name into a single string otherwise collate fails</span>
         <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
@@ -670,7 +796,7 @@ Used to load test/validation data.</p>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">segm</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            Dictionary with the `image` , `label` and the `name`</span>
@@ -686,10 +812,10 @@ Used to load test/validation data.</p>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="nf">reverse_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reverse_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reverse the transformations applied to the data.</span>
 
 <span class="sd">        Args:</span>
@@ -743,7 +869,7 @@ Used to load test/validation data.</p>
         <ul class="first simple">
             <li>
               <b><code>bids_path</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Path to the bids folder with the data.</p>
@@ -751,7 +877,7 @@ Used to load test/validation data.</p>
             </li>
             <li>
               <b><code>sub_list</code></b>
-                  (<code>list[str] | None</code>)
+                  (<code><span title="list">list</span>[<span title="str">str</span>] | None</code>)
               –
               <div class="doc-md-description">
                 <p>List of the subjects to use. If None, all subjects are used.</p>
@@ -782,7 +908,13 @@ to <code>[0, 1]</code> to ensure the data consistency.</p>
 
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">125</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
 <span class="normal">126</span>
 <span class="normal">127</span>
 <span class="normal">128</span>
@@ -797,13 +929,7 @@ to <code>[0, 1]</code> to ensure the data consistency.</p>
 <span class="normal">137</span>
 <span class="normal">138</span>
 <span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">140</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">bids_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">sub_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
@@ -855,7 +981,7 @@ to <code>[0, 1]</code> to ensure the data consistency.</p>
       <td class="field-body">
         <ul class="first simple">
             <li>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
               –
               <div class="doc-md-description">
                 <p>Dictionary with the <code>image</code> , <code>label</code> and the <code>name</code>
@@ -873,7 +999,15 @@ and <code>ses</code> is the session name.</p>
 </table>
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">167</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
 <span class="normal">168</span>
 <span class="normal">169</span>
 <span class="normal">170</span>
@@ -882,15 +1016,7 @@ and <code>ses</code> is the session name.</p>
 <span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        Dictionary with the `image` , `label` and the `name`</span>
@@ -906,7 +1032,7 @@ and <code>ses</code> is the session name.</p>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">:</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">data</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -940,7 +1066,7 @@ and <code>ses</code> is the session name.</p>
         <ul class="first simple">
             <li>
               <b><code>data</code></b>
-                  (<code>dict</code>)
+                  (<code><span title="dict">dict</span></code>)
               –
               <div class="doc-md-description">
                 <p>Dictionary with the <code>image</code> and <code>label</code> keys,
@@ -964,7 +1090,7 @@ like the one returned by the <code>__getitem__</code> method.</p>
       <td class="field-body">
         <ul class="first simple">
             <li>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
               –
               <div class="doc-md-description">
                 <p>Dictionary with the <code>image</code> and <code>label</code> keys where
@@ -978,20 +1104,20 @@ the transformations are reversed.</p>
 </table>
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">186</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
 <span class="normal">187</span>
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">reverse_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">reverse_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Reverse the transformations applied to the data.</span>
 
 <span class="sd">    Args:</span>
@@ -1032,7 +1158,7 @@ the transformations are reversed.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="fetalsyngen.data.datasets.FetalDataset" href="#fetalsyngen.data.datasets.FetalDataset">FetalDataset</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="FetalDataset (fetalsyngen.data.datasets.FetalDataset)" href="#fetalsyngen.data.datasets.FetalDataset">FetalDataset</a></code></p>
 
 
         <p>Dataset class for generating/augmenting on-the-fly fetal images"</p>
@@ -1044,7 +1170,15 @@ the transformations are reversed.</p>
 
               <details class="quote">
                 <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">202</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
 <span class="normal">203</span>
 <span class="normal">204</span>
 <span class="normal">205</span>
@@ -1225,24 +1359,10 @@ the transformations are reversed.</p>
 <span class="normal">380</span>
 <span class="normal">381</span>
 <span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FetalSynthDataset</span><span class="p">(</span><span class="n">FetalDataset</span><span class="p">):</span>
+<span class="normal">383</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FetalSynthDataset</span><span class="p">(</span><span class="n">FetalDataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset class for generating/augmenting on-the-fly fetal images&quot; &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">bids_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">generator</span><span class="p">:</span> <span class="n">FetalSynthGen</span><span class="p">,</span>
@@ -1270,9 +1390,7 @@ the transformations are reversed.</p>
 <span class="sd">                instead of sampling the intensities from the seeds. Default is **False**.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">seed_path</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">Path</span><span class="p">(</span><span class="n">seed_path</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">seed_path</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span> <span class="o">=</span> <span class="n">load_image</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">generator</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">image_as_intensity</span> <span class="o">=</span> <span class="n">image_as_intensity</span>
@@ -1286,7 +1404,7 @@ the transformations are reversed.</p>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_load_seed_path</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_load_seed_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_seed_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the seeds for the subjects.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">seed_paths</span> <span class="o">=</span> <span class="p">{</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_sub_ses_string</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">):</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
@@ -1314,7 +1432,7 @@ the transformations are reversed.</p>
                     <span class="n">sub_ses_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sub_ses_string</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">seed_paths</span><span class="p">[</span><span class="n">sub_ses_str</span><span class="p">][</span><span class="n">n_sub</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
 
-    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve a single item from the dataset at the specified index.</span>
 
@@ -1342,9 +1460,7 @@ the transformations are reversed.</p>
 
         <span class="c1"># orient to RAS for consistency</span>
         <span class="n">image</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span>
-            <span class="k">else</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
         <span class="n">segm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">(</span><span class="n">segm</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
@@ -1382,9 +1498,7 @@ the transformations are reversed.</p>
         <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
         <span class="n">generation_params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">generation_params</span><span class="p">,</span> <span class="o">**</span><span class="n">synth_params</span><span class="p">}</span>
-        <span class="n">generation_params</span><span class="p">[</span><span class="s2">&quot;generation_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">generation_time_start</span>
-        <span class="p">)</span>
+        <span class="n">generation_params</span><span class="p">[</span><span class="s2">&quot;generation_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">generation_time_start</span>
         <span class="n">data_out</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">gen_output</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
             <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">segmentation</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span>
@@ -1393,7 +1507,7 @@ the transformations are reversed.</p>
 
         <span class="k">return</span> <span class="n">data_out</span><span class="p">,</span> <span class="n">generation_params</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve a single item from the dataset at the specified index.</span>
 
@@ -1415,7 +1529,7 @@ the transformations are reversed.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">generation_params</span> <span class="o">=</span> <span class="n">generation_params</span>
         <span class="k">return</span> <span class="n">data_out</span>
 
-    <span class="k">def</span> <span class="nf">sample_with_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_with_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve a sample along with its generation parameters</span>
 <span class="sd">        and store them in the same dictionary.</span>
@@ -1475,7 +1589,7 @@ the transformations are reversed.</p>
         <ul class="first simple">
             <li>
               <b><code>bids_path</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Path to the bids-formatted folder with the data.</p>
@@ -1483,7 +1597,7 @@ the transformations are reversed.</p>
             </li>
             <li>
               <b><code>seed_path</code></b>
-                  (<code>str | None</code>)
+                  (<code><span title="str">str</span> | None</code>)
               –
               <div class="doc-md-description">
                 <p>Path to the folder with the seeds to use for
@@ -1495,7 +1609,7 @@ intensities will be based on the input image.</p>
             </li>
             <li>
               <b><code>generator</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.model.FetalSynthGen" href="../generation/#fetalsyngen.generator.model.FetalSynthGen">FetalSynthGen</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="FetalSynthGen (fetalsyngen.generator.model.FetalSynthGen)" href="../generation/#fetalsyngen.generator.model.FetalSynthGen">FetalSynthGen</a></code>)
               –
               <div class="doc-md-description">
                 <p>a class object defining a generator to use.</p>
@@ -1503,7 +1617,7 @@ intensities will be based on the input image.</p>
             </li>
             <li>
               <b><code>sub_list</code></b>
-                  (<code>list[str] | None</code>)
+                  (<code><span title="list">list</span>[<span title="str">str</span>] | None</code>)
               –
               <div class="doc-md-description">
                 <p>List of the subjects to use. If None, all subjects are used.</p>
@@ -1511,7 +1625,7 @@ intensities will be based on the input image.</p>
             </li>
             <li>
               <b><code>load_image</code></b>
-                  (<code>bool</code>, default:
+                  (<code><span title="bool">bool</span></code>, default:
                       <code>False</code>
 )
               –
@@ -1524,7 +1638,7 @@ field as segmentation and the syntehtic image. Default is <strong>False</strong>
             </li>
             <li>
               <b><code>image_as_intensity</code></b>
-                  (<code>bool</code>, default:
+                  (<code><span title="bool">bool</span></code>, default:
                       <code>False</code>
 )
               –
@@ -1540,7 +1654,15 @@ instead of sampling the intensities from the seeds. Default is <strong>False</st
 </table>
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">205</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
@@ -1572,17 +1694,7 @@ instead of sampling the intensities from the seeds. Default is <strong>False</st
 <span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">bids_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">generator</span><span class="p">:</span> <span class="n">FetalSynthGen</span><span class="p">,</span>
@@ -1610,9 +1722,7 @@ instead of sampling the intensities from the seeds. Default is <strong>False</st
 <span class="sd">            instead of sampling the intensities from the seeds. Default is **False**.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">bids_path</span><span class="p">,</span> <span class="n">sub_list</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">seed_path</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">Path</span><span class="p">(</span><span class="n">seed_path</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">seed_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">seed_path</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span> <span class="o">=</span> <span class="n">load_image</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">generator</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">image_as_intensity</span> <span class="o">=</span> <span class="n">image_as_intensity</span>
@@ -1625,6 +1735,80 @@ instead of sampling the intensities from the seeds. Default is <strong>False</st
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_load_seed_path</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fetalsyngen.data.datasets.FetalSynthDataset._load_seed_path" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_load_seed_path</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Load the seeds for the subjects.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_load_seed_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the seeds for the subjects.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">seed_paths</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sub_ses_string</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">):</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span>
+    <span class="p">}</span>
+    <span class="n">avail_seeds</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;subclasses_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;subclasses_*&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">min_seeds_available</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">avail_seeds</span><span class="p">)</span>
+    <span class="n">max_seeds_available</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">avail_seeds</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n_sub</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+        <span class="n">min_seeds_available</span><span class="p">,</span>
+        <span class="n">max_seeds_available</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">seed_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;subclasses_</span><span class="si">{</span><span class="n">n_sub</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">seed_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Provided seed path </span><span class="si">{</span><span class="n">seed_path</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># load the seeds for the subjects for each meta label 1-4</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_bids_path</span><span class="p">(</span><span class="n">seed_path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mlabel_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">),</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_ses</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+                <span class="n">sub_ses_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sub_ses_string</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">ses</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">seed_paths</span><span class="p">[</span><span class="n">sub_ses_str</span><span class="p">][</span><span class="n">n_sub</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1657,7 +1841,7 @@ instead of sampling the intensities from the seeds. Default is <strong>False</st
         <ul class="first simple">
             <li>
               <b><code>idx</code></b>
-                  (<code>int</code>)
+                  (<code><span title="int">int</span></code>)
               –
               <div class="doc-md-description">
                 <p>The index of the item to retrieve.</p>
@@ -1665,7 +1849,7 @@ instead of sampling the intensities from the seeds. Default is <strong>False</st
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -1693,7 +1877,17 @@ and returned on the device  specified in the <code>generator</code> initializati
 
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">277</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
 <span class="normal">278</span>
 <span class="normal">279</span>
 <span class="normal">280</span>
@@ -1756,21 +1950,7 @@ and returned on the device  specified in the <code>generator</code> initializati
 <span class="normal">337</span>
 <span class="normal">338</span>
 <span class="normal">339</span>
-<span class="normal">340</span>
-<span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
-<span class="normal">347</span>
-<span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="normal">340</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Retrieve a single item from the dataset at the specified index.</span>
 
@@ -1798,9 +1978,7 @@ and returned on the device  specified in the <code>generator</code> initializati
 
     <span class="c1"># orient to RAS for consistency</span>
     <span class="n">image</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span>
-        <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="p">)</span>
     <span class="n">segm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">(</span><span class="n">segm</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
@@ -1838,9 +2016,7 @@ and returned on the device  specified in the <code>generator</code> initializati
     <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
     <span class="n">generation_params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">generation_params</span><span class="p">,</span> <span class="o">**</span><span class="n">synth_params</span><span class="p">}</span>
-    <span class="n">generation_params</span><span class="p">[</span><span class="s2">&quot;generation_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">generation_time_start</span>
-    <span class="p">)</span>
+    <span class="n">generation_params</span><span class="p">[</span><span class="s2">&quot;generation_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">generation_time_start</span>
     <span class="n">data_out</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">gen_output</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
         <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">segmentation</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span>
@@ -1880,7 +2056,7 @@ and returned on the device  specified in the <code>generator</code> initializati
         <ul class="first simple">
             <li>
               <b><code>idx</code></b>
-                  (<code>int</code>)
+                  (<code><span title="int">int</span></code>)
               –
               <div class="doc-md-description">
                 <p>The index of the item to retrieve.</p>
@@ -1903,7 +2079,7 @@ and returned on the device  specified in the <code>generator</code> initializati
       <td class="field-body">
         <ul class="first simple">
             <li>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
               –
               <div class="doc-md-description">
                 <p>Dictionary with the <code>image</code>, <code>label</code> and the <code>name</code> keys.
@@ -1925,27 +2101,27 @@ specified in the <code>generator</code> initialization.</p>
 
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">356</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span>
+<span class="normal">350</span>
+<span class="normal">351</span>
+<span class="normal">352</span>
+<span class="normal">353</span>
+<span class="normal">354</span>
+<span class="normal">355</span>
+<span class="normal">356</span>
 <span class="normal">357</span>
 <span class="normal">358</span>
 <span class="normal">359</span>
 <span class="normal">360</span>
 <span class="normal">361</span>
-<span class="normal">362</span>
-<span class="normal">363</span>
-<span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
-<span class="normal">369</span>
-<span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">362</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Retrieve a single item from the dataset at the specified index.</span>
 
@@ -1999,7 +2175,7 @@ and store them in the same dictionary.</p>
         <ul class="first simple">
             <li>
               <b><code>idx</code></b>
-                  (<code>int</code>)
+                  (<code><span title="int">int</span></code>)
               –
               <div class="doc-md-description">
                 <p>The index of the sample to retrieve.</p>
@@ -2007,7 +2183,7 @@ and store them in the same dictionary.</p>
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -2036,7 +2212,7 @@ used for the generation of a specific sample.</p>
       <td class="field-body">
         <ul class="first simple">
             <li>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
               –
               <div class="doc-md-description">
                 <p>A dictionary with <code>image</code>, <code>label</code>, <code>name</code> and <code>generation_params</code> keys.</p>
@@ -2049,26 +2225,26 @@ used for the generation of a specific sample.</p>
 </table>
             <details class="quote">
               <summary>Source code in <code>fetalsyngen/data/datasets.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">378</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">364</span>
+<span class="normal">365</span>
+<span class="normal">366</span>
+<span class="normal">367</span>
+<span class="normal">368</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
 <span class="normal">379</span>
 <span class="normal">380</span>
 <span class="normal">381</span>
 <span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">sample_with_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">383</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sample_with_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Retrieve a sample along with its generation parameters</span>
 <span class="sd">    and store them in the same dictionary.</span>

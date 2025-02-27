@@ -71,6 +71,8 @@
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.model.FetalSynthGen.__init__">__init__</a>
     </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.model.FetalSynthGen._validated_genparams">_validated_genparams</a>
+    </li>
     <li class="toctree-l3"><a class="reference internal" href="#fetalsyngen.generator.model.FetalSynthGen.sample">sample</a>
     </li>
         </ul>
@@ -391,8 +393,8 @@
 <span class="normal">205</span>
 <span class="normal">206</span>
 <span class="normal">207</span>
-<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FetalSynthGen</span><span class="p">:</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FetalSynthGen</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">shape</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">resolution</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -449,7 +451,7 @@
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
 
-    <span class="k">def</span> <span class="nf">_validated_genparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validated_genparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Recursively removes all the keys with None values as they are not fixed in the generation.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">d</span>  <span class="c1"># Return non-dictionaries as-is</span>
@@ -460,7 +462,7 @@
             <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">segmentation</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -619,7 +621,7 @@ if not needed.</p>
         <ul class="first simple">
             <li>
               <b><code>shape</code></b>
-                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+                  (<code><span title="typing.Iterable">Iterable</span>[<span title="int">int</span>]</code>)
               –
               <div class="doc-md-description">
                 <p>Shape of the output image.</p>
@@ -627,7 +629,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>resolution</code></b>
-                  (<code><span title="typing.Iterable">Iterable</span>[float]</code>)
+                  (<code><span title="typing.Iterable">Iterable</span>[<span title="float">float</span>]</code>)
               –
               <div class="doc-md-description">
                 <p>Resolution of the output image.</p>
@@ -635,7 +637,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use for computation.</p>
@@ -643,7 +645,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>intensity_generator</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds">ImageFromSeeds</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="ImageFromSeeds (fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds)" href="#fetalsyngen.generator.intensity.rand_gmm.ImageFromSeeds">ImageFromSeeds</a></code>)
               –
               <div class="doc-md-description">
                 <p>Intensity generator.</p>
@@ -651,7 +653,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>spatial_deform</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation" href="#fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation">SpatialDeformation</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="SpatialDeformation (fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation)" href="#fetalsyngen.generator.deformation.affine_nonrigid.SpatialDeformation">SpatialDeformation</a></code>)
               –
               <div class="doc-md-description">
                 <p>Spatial deformation generator.</p>
@@ -659,7 +661,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>resampler</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandResample" href="#fetalsyngen.generator.augmentation.synthseg.RandResample">RandResample</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="RandResample (fetalsyngen.generator.augmentation.synthseg.RandResample)" href="#fetalsyngen.generator.augmentation.synthseg.RandResample">RandResample</a></code>)
               –
               <div class="doc-md-description">
                 <p>Resampler.</p>
@@ -667,7 +669,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>bias_field</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandBiasField" href="#fetalsyngen.generator.augmentation.synthseg.RandBiasField">RandBiasField</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="RandBiasField (fetalsyngen.generator.augmentation.synthseg.RandBiasField)" href="#fetalsyngen.generator.augmentation.synthseg.RandBiasField">RandBiasField</a></code>)
               –
               <div class="doc-md-description">
                 <p>Bias field generator.</p>
@@ -675,7 +677,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>noise</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandNoise" href="#fetalsyngen.generator.augmentation.synthseg.RandNoise">RandNoise</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="RandNoise (fetalsyngen.generator.augmentation.synthseg.RandNoise)" href="#fetalsyngen.generator.augmentation.synthseg.RandNoise">RandNoise</a></code>)
               –
               <div class="doc-md-description">
                 <p>Noise generator.</p>
@@ -683,7 +685,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>gamma</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.synthseg.RandGamma" href="#fetalsyngen.generator.augmentation.synthseg.RandGamma">RandGamma</a></code>)
+                  (<code><a class="autorefs autorefs-internal" title="RandGamma (fetalsyngen.generator.augmentation.synthseg.RandGamma)" href="#fetalsyngen.generator.augmentation.synthseg.RandGamma">RandGamma</a></code>)
               –
               <div class="doc-md-description">
                 <p>Gamma correction generator.</p>
@@ -691,7 +693,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>blur_cortex</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.artifacts.BlurCortex" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.BlurCortex">BlurCortex</a> | None</code>, default:
+                  (<code><a class="autorefs autorefs-internal" title="BlurCortex (fetalsyngen.generator.augmentation.artifacts.BlurCortex)" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.BlurCortex">BlurCortex</a> | None</code>, default:
                       <code>None</code>
 )
               –
@@ -701,7 +703,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>struct_noise</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.artifacts.StructNoise" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.StructNoise">StructNoise</a> | None</code>, default:
+                  (<code><a class="autorefs autorefs-internal" title="StructNoise (fetalsyngen.generator.augmentation.artifacts.StructNoise)" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.StructNoise">StructNoise</a> | None</code>, default:
                       <code>None</code>
 )
               –
@@ -711,7 +713,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>simulate_motion</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.artifacts.SimulateMotion" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.SimulateMotion">SimulateMotion</a> | None</code>, default:
+                  (<code><a class="autorefs autorefs-internal" title="SimulateMotion (fetalsyngen.generator.augmentation.artifacts.SimulateMotion)" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.SimulateMotion">SimulateMotion</a> | None</code>, default:
                       <code>None</code>
 )
               –
@@ -721,7 +723,7 @@ if not needed.</p>
             </li>
             <li>
               <b><code>boundaries</code></b>
-                  (<code><a class="autorefs autorefs-internal" title="fetalsyngen.generator.augmentation.artifacts.SimulatedBoundaries" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.SimulatedBoundaries">SimulatedBoundaries</a> | None</code>, default:
+                  (<code><a class="autorefs autorefs-internal" title="SimulatedBoundaries (fetalsyngen.generator.augmentation.artifacts.SimulatedBoundaries)" href="../sr_artif_api/#fetalsyngen.generator.augmentation.artifacts.SimulatedBoundaries">SimulatedBoundaries</a> | None</code>, default:
                       <code>None</code>
 )
               –
@@ -791,7 +793,7 @@ if not needed.</p>
 <span class="normal">80</span>
 <span class="normal">81</span>
 <span class="normal">82</span>
-<span class="normal">83</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">83</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">shape</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">resolution</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -856,6 +858,46 @@ if not needed.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="fetalsyngen.generator.model.FetalSynthGen._validated_genparams" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_validated_genparams</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Recursively removes all the keys with None values as they are not fixed in the generation.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>fetalsyngen/generator/model.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_validated_genparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Recursively removes all the keys with None values as they are not fixed in the generation.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">d</span>  <span class="c1"># Return non-dictionaries as-is</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">key</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validated_genparams</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="fetalsyngen.generator.model.FetalSynthGen.sample" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">sample</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">segmentation</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{})</span></code>
 
@@ -904,7 +946,7 @@ Supports both random generation and from a fixed genparams dictionary.</p>
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -932,7 +974,7 @@ the returned generation parameters.</p>
       <td class="field-body">
         <ul class="first simple">
             <li>
-                  <code>tuple[<span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, dict]</code>
+                  <code><span title="tuple">tuple</span>[<span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="dict">dict</span>]</code>
               –
               <div class="doc-md-description">
                 <p>The synthetic image, the segmentation, the original image, and the generation parameters.</p>
@@ -1057,7 +1099,7 @@ the returned generation parameters.</p>
 <span class="normal">205</span>
 <span class="normal">206</span>
 <span class="normal">207</span>
-<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">segmentation</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -1384,9 +1426,9 @@ the returned generation parameters.</p>
 <span class="normal">153</span>
 <span class="normal">154</span>
 <span class="normal">155</span>
-<span class="normal">156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ImageFromSeeds</span><span class="p">:</span>
+<span class="normal">156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ImageFromSeeds</span><span class="p">:</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">min_subclusters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_subclusters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1426,7 +1468,7 @@ the returned generation parameters.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">SimpleITKReader</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">=</span> <span class="n">Orientation</span><span class="p">(</span><span class="n">axcodes</span><span class="o">=</span><span class="s2">&quot;RAS&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">load_seeds</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_seeds</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">seeds</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span> <span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">:</span><span class="n">Path</span><span class="p">]],</span>
         <span class="n">mlabel2subclusters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">:</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1478,7 +1520,7 @@ the returned generation parameters.</p>
 
         <span class="k">return</span> <span class="n">seed</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;mlabel2subclusters&quot;</span><span class="p">:</span> <span class="n">mlabel2subclusters</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">sample_intensities</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_intensities</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">seeds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Sample the intensities from the seeds.</span>
@@ -1572,7 +1614,7 @@ the returned generation parameters.</p>
         <ul class="first simple">
             <li>
               <b><code>min_subclusters</code></b>
-                  (<code>int</code>)
+                  (<code><span title="int">int</span></code>)
               –
               <div class="doc-md-description">
                 <p>Minimum number of subclusters to use.</p>
@@ -1580,7 +1622,7 @@ the returned generation parameters.</p>
             </li>
             <li>
               <b><code>max_subclusters</code></b>
-                  (<code>int</code>)
+                  (<code><span title="int">int</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum number of subclusters to use.</p>
@@ -1588,7 +1630,7 @@ the returned generation parameters.</p>
             </li>
             <li>
               <b><code>seed_labels</code></b>
-                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+                  (<code><span title="typing.Iterable">Iterable</span>[<span title="int">int</span>]</code>)
               –
               <div class="doc-md-description">
                 <p>Iterable with all possible labels
@@ -1599,7 +1641,7 @@ that will not have any intensity generated.</p>
             </li>
             <li>
               <b><code>generation_classes</code></b>
-                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+                  (<code><span title="typing.Iterable">Iterable</span>[<span title="int">int</span>]</code>)
               –
               <div class="doc-md-description">
                 <p>Classes to use for generation.
@@ -1609,7 +1651,7 @@ the same GMM. Should be the same length as seed_labels.</p>
             </li>
             <li>
               <b><code>meta_labels</code></b>
-                  (<code>int</code>, default:
+                  (<code><span title="int">int</span></code>, default:
                       <code>4</code>
 )
               –
@@ -1662,7 +1704,7 @@ the same GMM. Should be the same length as seed_labels.</p>
 <span class="normal">46</span>
 <span class="normal">47</span>
 <span class="normal">48</span>
-<span class="normal">49</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">49</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">min_subclusters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_subclusters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1810,7 +1852,7 @@ correspond to the subclusters, and are grouped by meta-label.
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
 <span class="normal">100</span>
-<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_seeds</span><span class="p">(</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_seeds</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">seeds</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span> <span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">:</span><span class="n">Path</span><span class="p">]],</span>
     <span class="n">mlabel2subclusters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">:</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1901,7 +1943,7 @@ correspond to the subclusters, and are grouped by meta-label.
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use. Should be "cuda" or "cpu".</p>
@@ -1909,7 +1951,7 @@ correspond to the subclusters, and are grouped by meta-label.
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -2002,7 +2044,7 @@ the GMM parameters are to be fixed.</p>
 <span class="normal">153</span>
 <span class="normal">154</span>
 <span class="normal">155</span>
-<span class="normal">156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">sample_intensities</span><span class="p">(</span>
+<span class="normal">156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sample_intensities</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">seeds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Sample the intensities from the seeds.</span>
@@ -2424,13 +2466,13 @@ Combines both random affine and nonlinear transformations to deform the image.</
 <span class="normal">307</span>
 <span class="normal">308</span>
 <span class="normal">309</span>
-<span class="normal">310</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SpatialDeformation</span><span class="p">:</span>
+<span class="normal">310</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpatialDeformation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class defining the spatial deformation of the image.</span>
 <span class="sd">    Combines both random affine and nonlinear transformations to deform the image.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">max_rotation</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">max_shear</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -2478,7 +2520,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_grid</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">zz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
             <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
@@ -2499,7 +2541,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
         <span class="bp">self</span><span class="o">.</span><span class="n">yc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yy</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zz</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">deform</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deform</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">segmentation</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Deform the image, segmentation and output.</span>
@@ -2548,7 +2590,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
         <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">segmentation</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">deform_params</span>
 
-    <span class="k">def</span> <span class="nf">generate_deformation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_shape</span><span class="p">,</span> <span class="n">random_shift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{}):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_deformation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_shape</span><span class="p">,</span> <span class="n">random_shift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{}):</span>
 
         <span class="c1"># sample affine deformation</span>
         <span class="n">A</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">aff_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_affine_transform</span><span class="p">(</span>
@@ -2591,7 +2633,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             <span class="p">},</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">random_affine_transform</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">random_affine_transform</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">shp</span><span class="p">,</span>
         <span class="n">max_rotation</span><span class="p">,</span>
@@ -2654,7 +2696,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
 
         <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">affine_params</span>
 
-    <span class="k">def</span> <span class="nf">random_nonlinear_transform</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">random_nonlinear_transform</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">nonlin_scale_min</span><span class="p">,</span> <span class="n">nonlin_scale_max</span><span class="p">,</span> <span class="n">nonlin_std_max</span><span class="p">,</span> <span class="n">genparams</span><span class="o">=</span><span class="p">{}</span>
     <span class="p">):</span>
 
@@ -2684,7 +2726,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             <span class="s2">&quot;size_F_small&quot;</span><span class="p">:</span> <span class="n">size_F_small</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">deform_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shp</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">F</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deform_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shp</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">F</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">F</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># deform the images (we do nonlinear &quot;first&quot; ie after so we can do heavy coronal deformations in photo mode)</span>
             <span class="n">xx1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xc</span> <span class="o">+</span> <span class="n">F</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
@@ -2764,7 +2806,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
         <ul class="first simple">
             <li>
               <b><code>max_rotation</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum rotation in degrees.</p>
@@ -2772,7 +2814,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>max_shear</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum shear.</p>
@@ -2780,7 +2822,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>max_scaling</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum scaling.</p>
@@ -2788,7 +2830,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>size</code></b>
-                  (<code><span title="typing.Iterable">Iterable</span>[int]</code>)
+                  (<code><span title="typing.Iterable">Iterable</span>[<span title="int">int</span>]</code>)
               –
               <div class="doc-md-description">
                 <p>Size of the output image.</p>
@@ -2796,7 +2838,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>prob</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Probability of applying the deformation.</p>
@@ -2804,7 +2846,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>nonlinear_transform</code></b>
-                  (<code>bool</code>)
+                  (<code><span title="bool">bool</span></code>)
               –
               <div class="doc-md-description">
                 <p>Whether to apply nonlinear transformation.</p>
@@ -2812,7 +2854,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>nonlin_scale_min</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Minimum scale for the nonlinear transformation.</p>
@@ -2820,7 +2862,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>nonlin_scale_max</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum scale for the nonlinear transformation.</p>
@@ -2828,7 +2870,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>nonlin_std_max</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum standard deviation for the nonlinear transformation.</p>
@@ -2836,7 +2878,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>flip_prb</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Probability of flipping the image.</p>
@@ -2844,7 +2886,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use for computation. Either "cuda" or "cpu".</p>
@@ -2903,7 +2945,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">max_rotation</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">max_shear</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -3006,7 +3048,7 @@ Combines both random affine and nonlinear transformations to deform the image.</
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -3034,7 +3076,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
       <td class="field-body">
         <ul class="first simple">
             <li>
-                  <code>tuple[<span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, dict]</code>
+                  <code><span title="tuple">tuple</span>[<span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="torch.Tensor">Tensor</span>, <span title="dict">dict</span>]</code>
               –
               <div class="doc-md-description">
                 <p>Deformed image, segmentation, output and deformation parameters.</p>
@@ -3094,7 +3136,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
 <span class="normal">131</span>
 <span class="normal">132</span>
 <span class="normal">133</span>
-<span class="normal">134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">deform</span><span class="p">(</span>
+<span class="normal">134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deform</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">segmentation</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Deform the image, segmentation and output.</span>
@@ -3312,14 +3354,14 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
 <span class="normal">119</span>
 <span class="normal">120</span>
 <span class="normal">121</span>
-<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">RandResample</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
+<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RandResample</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Resample the input image to a random resolution sampled uniformly between</span>
 <span class="sd">    `min_resolution` and `max_resolution` with a probability of `prob`.</span>
 
 <span class="sd">    If the resolution is smaller than the input resolution, no resampling is performed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">min_resolution</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -3337,7 +3379,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
         <span class="bp">self</span><span class="o">.</span><span class="n">min_resolution</span> <span class="o">=</span> <span class="n">min_resolution</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_resolution</span> <span class="o">=</span> <span class="n">max_resolution</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">input_resolution</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the resampling to the input image.</span>
@@ -3404,7 +3446,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;spacing&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">resize_back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_resized</span><span class="p">,</span> <span class="n">factors</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resize_back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_resized</span><span class="p">,</span> <span class="n">factors</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">factors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">output_resized</span> <span class="o">=</span> <span class="n">myzoom_torch</span><span class="p">(</span><span class="n">output_resized</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">factors</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">output_resized</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">output_resized</span><span class="p">)</span>
@@ -3451,7 +3493,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
         <ul class="first simple">
             <li>
               <b><code>prob</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Probability of applying the augmentation.</p>
@@ -3459,7 +3501,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
             </li>
             <li>
               <b><code>min_resolution</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Minimum resolution for the augmentation (in mm).</p>
@@ -3467,7 +3509,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
             </li>
             <li>
               <b><code>max_resolution</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum resolution for the augmentation.</p>
@@ -3496,7 +3538,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
 <span class="normal">45</span>
 <span class="normal">46</span>
 <span class="normal">47</span>
-<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">min_resolution</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -3561,7 +3603,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use for computation.</p>
@@ -3569,7 +3611,7 @@ Non-rigid parameters should contain the keys "nonlin_scale", "nonlin_std" and "s
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -3673,7 +3715,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
 <span class="normal">112</span>
 <span class="normal">113</span>
 <span class="normal">114</span>
-<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">input_resolution</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the resampling to the input image.</span>
@@ -3846,10 +3888,10 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
 <span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
-<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">RandBiasField</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
+<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RandBiasField</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add a random bias field to the input image with a probability of `prob`.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">scale_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -3873,7 +3915,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">std_min</span> <span class="o">=</span> <span class="n">std_min</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">std_max</span> <span class="o">=</span> <span class="n">std_max</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the bias field to the input image.</span>
 
 <span class="sd">        Args:</span>
@@ -3955,7 +3997,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
         <ul class="first simple">
             <li>
               <b><code>prob</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Probability of applying the augmentation.</p>
@@ -3963,7 +4005,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
             </li>
             <li>
               <b><code>scale_min</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Minimum scale of the bias field.</p>
@@ -3971,7 +4013,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
             </li>
             <li>
               <b><code>scale_max</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum scale of the bias field.</p>
@@ -3979,7 +4021,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
             </li>
             <li>
               <b><code>std_min</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Minimum standard deviation of the bias field.</p>
@@ -3987,7 +4029,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
             </li>
             <li>
               <b><code>std_max</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Maximum standard deviation of the bias.</p>
@@ -4022,7 +4064,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
 <span class="normal">147</span>
 <span class="normal">148</span>
 <span class="normal">149</span>
-<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">scale_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -4085,7 +4127,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use for computation.</p>
@@ -4093,7 +4135,7 @@ Default: {}. Should contain the key "spacing" if the spacing is fixed.</p>
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -4174,7 +4216,7 @@ the bias field parameters are fixed.</p>
 <span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
-<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the bias field to the input image.</span>
 
 <span class="sd">    Args:</span>
@@ -4299,10 +4341,10 @@ the bias field parameters are fixed.</p>
 <span class="normal">237</span>
 <span class="normal">238</span>
 <span class="normal">239</span>
-<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">RandNoise</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
+<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RandNoise</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add random Gaussian noise to the input image with a probability of `prob`.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The image scale is 0-255 so the noise is added in the same scale.</span>
 <span class="sd">        Args:</span>
@@ -4314,7 +4356,7 @@ the bias field parameters are fixed.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">std_min</span> <span class="o">=</span> <span class="n">std_min</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">std_max</span> <span class="o">=</span> <span class="n">std_max</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the noise to the input image.</span>
 
 <span class="sd">        Args:</span>
@@ -4388,7 +4430,7 @@ Args:
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
-<span class="normal">209</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="normal">209</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">std_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The image scale is 0-255 so the noise is added in the same scale.</span>
 <span class="sd">    Args:</span>
@@ -4439,7 +4481,7 @@ Args:
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use for computation.</p>
@@ -4447,7 +4489,7 @@ Args:
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -4515,7 +4557,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
 <span class="normal">237</span>
 <span class="normal">238</span>
 <span class="normal">239</span>
-<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the noise to the input image.</span>
 
 <span class="sd">    Args:</span>
@@ -4621,10 +4663,10 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
 <span class="normal">277</span>
 <span class="normal">278</span>
 <span class="normal">279</span>
-<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">RandGamma</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
+<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RandGamma</span><span class="p">(</span><span class="n">RandTransform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply gamma correction to the input image with a probability of `prob`.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">gamma_std</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">gamma_std</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            prob: Probability of applying the augmentation.</span>
@@ -4633,7 +4675,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
         <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma_std</span> <span class="o">=</span> <span class="n">gamma_std</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the gamma correction to the input image.</span>
 
 <span class="sd">        Args:</span>
@@ -4699,7 +4741,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
         <ul class="first simple">
             <li>
               <b><code>prob</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Probability of applying the augmentation.</p>
@@ -4707,7 +4749,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
             </li>
             <li>
               <b><code>gamma_std</code></b>
-                  (<code>float</code>)
+                  (<code><span title="float">float</span></code>)
               –
               <div class="doc-md-description">
                 <p>Standard deviation of the gamma correction.</p>
@@ -4727,7 +4769,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
 <span class="normal">250</span>
 <span class="normal">251</span>
 <span class="normal">252</span>
-<span class="normal">253</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">gamma_std</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="normal">253</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">gamma_std</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Args:</span>
 <span class="sd">        prob: Probability of applying the augmentation.</span>
@@ -4775,7 +4817,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
             </li>
             <li>
               <b><code>device</code></b>
-                  (<code>str</code>)
+                  (<code><span title="str">str</span></code>)
               –
               <div class="doc-md-description">
                 <p>Device to use for computation.</p>
@@ -4783,7 +4825,7 @@ Default: {}. Should contain the key "noise_std" if the noise standard deviation 
             </li>
             <li>
               <b><code>genparams</code></b>
-                  (<code>dict</code>, default:
+                  (<code><span title="dict">dict</span></code>, default:
                       <code>{}</code>
 )
               –
@@ -4847,7 +4889,7 @@ Default: {}. Should contain the key "gamma" if the gamma correction is fixed.</p
 <span class="normal">277</span>
 <span class="normal">278</span>
 <span class="normal">279</span>
-<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">genparams</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the gamma correction to the input image.</span>
 
 <span class="sd">    Args:</span>

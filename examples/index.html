@@ -117,7 +117,7 @@
 
 Using the Imperative API
 
-<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">hydra</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hydra</span>
 
 <span class="k">with</span> <span class="n">hydra</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">config_path</span><span class="o">=</span><span class="n">cfg_path</span><span class="p">,</span> <span class="n">version_base</span><span class="o">=</span><span class="s2">&quot;1.2&quot;</span><span class="p">):</span>
     <span class="n">cfg</span> <span class="o">=</span> <span class="n">hydra</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">config_name</span><span class="o">=</span><span class="n">cfg_name</span><span class="p">)</span>
@@ -127,11 +127,11 @@ Using the Imperative API
 
 Using the Declarative API
 
-<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">hydra</span>
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hydra</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span>
 
 <span class="nd">@hydra</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="n">config_path</span><span class="o">=</span><span class="n">cfg_path</span><span class="p">,</span> <span class="n">config_name</span><span class="o">=</span><span class="n">cfg_name</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">my_app</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_app</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 </code></pre></div>
 </details>
@@ -145,17 +145,17 @@ Using the Declarative API
 <details close>
 
 <div class="highlight"><pre><span></span><code><span class="c1"># Import necessary classes</span>
-<span class="kn">from</span> <span class="nn">fetalsyngen.data.datasets</span> <span class="kn">import</span> <span class="n">FetalSynthDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fetalsyngen.data.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">FetalSynthDataset</span>
 
-<span class="kn">from</span> <span class="nn">fetalsyngen.generator.model</span> <span class="kn">import</span> <span class="n">FetalSynthGen</span>
-<span class="kn">from</span> <span class="nn">fetalsyngen.generator.augmentation.synthseg</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fetalsyngen.generator.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FetalSynthGen</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fetalsyngen.generator.augmentation.synthseg</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">RandBiasField</span><span class="p">,</span>
     <span class="n">RandGamma</span><span class="p">,</span>
     <span class="n">RandNoise</span><span class="p">,</span>
     <span class="n">RandResample</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">fetalsyngen.generator.deformation.affine_nonrigid</span> <span class="kn">import</span> <span class="n">SpatialDeformation</span>
-<span class="kn">from</span> <span class="nn">fetalsyngen.generator.intensity.rand_gmm</span> <span class="kn">import</span> <span class="n">ImageFromSeeds</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fetalsyngen.generator.deformation.affine_nonrigid</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpatialDeformation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fetalsyngen.generator.intensity.rand_gmm</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageFromSeeds</span>
 
 <span class="c1"># Instantiate the generator components</span>
 <span class="n">intensity_generator</span> <span class="o">=</span> <span class="n">ImageFromSeeds</span><span class="p">(</span>
