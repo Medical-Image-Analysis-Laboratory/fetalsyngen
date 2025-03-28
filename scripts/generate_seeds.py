@@ -1,13 +1,22 @@
 """Run this scripts to generate seeds used for FetalSynthGen.
 
 Uses segmentation label -> meta-label mapping defined at `tissue_map` to fuse
-similar classes into the same label. 
+similar classes into the same label.
 
 Then splits it into N clusters using EM clustering.
 
 All non-zero voxels from the image that are background in the segmentation
 are clustered into 4th clusters (MAX_BACK_SUBCLUST) also defines how mby subclasses
 to simulate for the background tissue).
+
+
+If adding custom meta-label mapping, or own annotation scheme, please update the
+`feta2meta` dictionary and `tissue_map` dictionary as well as data parsing if needed.
+```python
+            imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
+            label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
+```
+
 """
 
 from pathlib import Path
@@ -18,7 +27,7 @@ import torch
 import argparse
 import numpy as np
 from multiprocessing import Pool
-
+import multiprocessing as mp
 
 parser = argparse.ArgumentParser(
     description="Generate seeds for FetalSynthGen",
@@ -53,18 +62,24 @@ args = parser.parse_args()
 def main(args):
     # mapping fetal labels to meta labels
     if args.annotation == "feta":
+        # tissue maps is used purely for logging and debugging
+        # the actual mapping is done in feta2meta
         tissue_map = {
             "CSF": [1, 4],  # meta-label 1
             "GM": [2, 6],  # meta-label 2
             "WM": [3, 5, 7],  # meta-label 3
         }
+        # feta2meta is used to map the fetal labels to meta labels
         feta2meta = {1: 1, 4: 1, 2: 2, 6: 2, 5: 3, 7: 3, 3: 3}
     elif args.annotation == "dhcp":
+        # tissue maps is used purely for logging and debugging
+        # the actual mapping is done in feta2meta
         tissue_map = {
             "CSF": [1, 5],  # meta-label 1
             "GM": [2, 7, 9],  # meta-label 2
             "WM": [3, 6, 8],  # meta-label 3
         }
+        # feta2meta is used to map the fetal labels to meta labels
         feta2meta = {1: 1, 5: 1, 2: 2, 7: 2, 9: 2, 3: 3, 6: 3, 8: 3}
     else:
         raise ValueError("Unknown annotation type. Should be either 'feta' or 'dhcp'")
@@ -90,7 +105,17 @@ def main(args):
             imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
             label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
             tasks.append(
-                (imgs, label, subclasses, feta2meta, out_path, sub, "", loader)
+                (
+                    imgs,
+                    label,
+                    subclasses,
+                    feta2meta,
+                    out_path,
+                    sub,
+                    "",
+                    loader,
+                    args.annotation,
+                )
             )
 
     # Use multiprocessing Pool for parallel processing
@@ -103,12 +128,20 @@ def worker_process_subject(args):
     process_subject(*args)
 
 
-def process_subject(imgs, label, subclasses, feta2meta, out_path, sub, session, loader):
+def process_subject(
+    imgs, label, subclasses, feta2meta, out_path, sub, session, loader, annotation
+):
     data = loader({"image": str(imgs), "label": str(label)})
     data["image"] = data["image"].unsqueeze(0)
     data["label"] = data["label"].unsqueeze(0)
+
+    # replace NaNs with 0 otherwise clustering will fail
+    data["image"][torch.isnan(data["image"])] = 0
+    data["label"][torch.isnan(data["label"])] = 0
+
     # set skull as class 4
-    data["label"][data["label"] == 4] = 0
+    if annotation == "dhcp":
+        data["label"][data["label"] == 4] = 0
 
     subclasses_splits = split_lables(
         image=data["image"],

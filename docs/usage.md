@@ -10,7 +10,12 @@ Ensure your dataset is formatted according to the [BIDS format](https://bids.neu
 
 - **T2w image**: Files should have the naming pattern `*_T2w.nii.gz`.
 - **Segmentation mask**: Files should have the naming pattern `*_dseg.nii.gz`.
-- **Seeds**: Seeds must be generated from a BIDS-formatted directory using the `fetalsyngen/scripts/generate_seeds.py` script. For additional details on seed generation, refer to the [Seed Generation](seed_generation.md) page.
+- **Seeds**: Seeds used for subclass generation. It is recommended to store them in a separate folder within the BIDS dataset, such as `derivatives/seeds`.
+
+!!! Note
+    > **📝 Seeds**: The **seeds must be generated** using the `generate_seeds.py` script provided in the package. See the [seed generation page](seed_generation.md) for more details.
+    
+    > **📝 Resampling**: For the correct work of the generator, all input data needs to be resampled to the same spatial size and resolution. Please perform this step before seed generation.
 
 ## 3. Copy Dataset Configurations
 
