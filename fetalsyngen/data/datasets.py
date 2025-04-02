@@ -41,8 +41,6 @@ class FetalDataset:
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
 
-        self.orientation = Orientation(axcodes="RAS")
-
         self.img_paths = self._load_bids_path(self.bids_path, "T2w")
         self.segm_paths = self._load_bids_path(self.bids_path, "dseg")
 
@@ -141,8 +139,12 @@ class FetalTestDataset(FetalDataset):
 
     def _load_data(self, idx):
         # load the image and segmentation
-        image = self.loader(self.img_paths[idx])
-        segm = self.loader(self.segm_paths[idx])
+        image = self.loader(
+            self.img_paths[idx], interp="linear", spatial_size=192, resolution=1.0
+        )
+        segm = self.loader(
+            self.segm_paths[idx], interp="nearest", spatial_size=192, resolution=1.0
+        )
         if len(image.shape) == 3:
             # add channel dimension
             image = image.unsqueeze(0)
@@ -288,14 +290,27 @@ class FetalSynthDataset(FetalDataset):
         # use generation_params to track the parameters used for the generation
         generation_params = {}
 
-        image = self.loader(self.img_paths[idx]) if self.load_image else None
-        segm = self.loader(self.segm_paths[idx])
-
-        # orient to RAS for consistency
         image = (
-            self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
+            self.loader(
+                self.img_paths[idx], interp="linear", spatial_size=192, resolution=1.0
+            )
+            if self.load_image
+            else None
         )
-        segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
+        segm = self.loader(
+            self.segm_paths[idx], interp="nearest", spatial_size=192, resolution=1.0
+        )
+
+        # RANDOM re-orient TODO: MAKE SWTICHABLE!
+        LR = "L" if torch.rand(1) > 0.5 else "R"
+        AP = "A" if torch.rand(1) > 0.5 else "P"
+        IS = "I" if torch.rand(1) > 0.5 else "S"
+        orient = np.array([LR, AP, IS])
+        rand_orient_oreder = torch.randperm(3)
+        axcodes = orient[rand_orient_oreder]  # "RAS"  #
+        orientation = Orientation(axcodes=axcodes)
+        image = orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
+        segm = orientation(segm.unsqueeze(0)).squeeze(0)
 
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
@@ -318,7 +333,11 @@ class FetalSynthDataset(FetalDataset):
 
         # generate the synthetic data
         gen_output, segmentation, image, synth_params = self.generator.sample(
-            image=image, segmentation=segm, seeds=seeds, genparams=genparams
+            image=image,
+            segmentation=segm,
+            seeds=seeds,
+            genparams=genparams,
+            orientation=orientation,
         )
 
         # scale the images to [0, 1]

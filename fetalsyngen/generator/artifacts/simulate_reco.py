@@ -313,6 +313,15 @@ class Scanner:
         s_thick = data["slice_thickness"]
         gap = data["gap"]
         device = data["volume"].device
+        # compute stack affine matrix
+        stack_affine = torch.eye(4, device=device)
+        stack_affine[0, 0] = res_s
+        stack_affine[1, 1] = res_s
+        stack_affine[2, 2] = s_thick
+        stack_affine[0, 3] = -res_s / 2
+        stack_affine[1, 3] = -res_s / 2
+        stack_affine[2, 3] = -s_thick / 2
+        data["stack_affine"] = stack_affine
 
         ## resample the ground truth if needed.
         if res_r != res:
@@ -363,7 +372,7 @@ class Scanner:
             ss = self.slice_size
         ns = int(max(vs) * res / gap) + 2
 
-        ## Define the stacks and do the transformations.
+        # Define the stacks and do the transformations.
         stacks = []
         segmentations = []
         stacks_no_psf = []
@@ -420,8 +429,12 @@ class Scanner:
                 False,
                 False,
             )
+
             if scansegm:
-                labs = torch.unique(data["seg"])
+                labs = torch.unique(data["seg"])  # [0 1 3 4]
+                labs2indx = {
+                    l: i for i, l in enumerate(labs)
+                }  # {0: 0, 1: 1, 3: 2, 4: 3}
                 seg1h = torch.stack([data["seg"] == l for l in labs], 0).float()
                 stacks_segm = []
                 for lab1h in range(len(labs)):
@@ -439,9 +452,15 @@ class Scanner:
                     stacks_segm.append(seg)
                 stacks_segm = torch.stack(tensors=stacks_segm, dim=0)
                 stacks_segm = torch.argmax(stacks_segm, 0)
+
+                # remap idx back to original labels
+                stacks_segm_corr = torch.zeros_like(stacks_segm, device=device)
+                for lab, idx in labs2indx.items():
+                    stacks_segm_corr[stacks_segm == idx] = lab.long()
+                stacks_segm = stacks_segm_corr
+
             else:
                 stacks_segm = torch.zeros_like(slices_no_psf)
-
             # remove zeros
             nnz = slices_no_psf.sum((1, 2, 3))
             idx = nnz > (nnz.max() * np.random.uniform(0.1, 0.3))
@@ -503,7 +522,6 @@ class Scanner:
         data["transforms_angle"] = transforms
         data["transforms_gt"] = transforms_gt.matrix()
         data["transforms_gt_angle"] = transforms_gt
-
         data.pop("volume")
         return data
 

@@ -23,6 +23,8 @@ from fetalsyngen.generator.augmentation.artifacts import (
     StackSampler,
 )
 from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
+from monai.transforms import Orientation
+import nibabel as nib
 
 
 class FetalSynthGen:
@@ -101,6 +103,7 @@ class FetalSynthGen:
 
     def sample(
         self,
+        orientation,
         image: torch.Tensor | None,
         segmentation: torch.Tensor,
         seeds: torch.Tensor | None,
@@ -129,7 +132,9 @@ class FetalSynthGen:
         # 1. Generate intensity output.
         if seeds is not None:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
-                seeds=seeds, genparams=genparams.get("selected_seeds", {})
+                seeds=seeds,
+                genparams=genparams.get("selected_seeds", {}),
+                orientation=orientation,
             )
             output, seed_intensities = self.intensity_generator.sample_intensities(
                 seeds=seeds,
@@ -199,15 +204,24 @@ class FetalSynthGen:
                 )
                 artifacts[name] = metadata
 
-        # 9. Apply stack sampler if available
-        if self.stack_sampler is not None:
-            output, segmentation, meta = self.stack_sampler(
-                output, segmentation, device=self.device
-            )
+        # 8.1 Apply random translation
+        if False:  # torch.rand(1).item() < 0.5:
+            translation = RandomTranslation3D(min_voxel=-20, max_voxel=20)
+            output = translation(output)
+            if image is not None:
+                image = translation(image)
+            if segmentation is not None:
+                segmentation = translation(segmentation)
 
-            # unsqueeze the image to match the expected shape
-            output = output.squeeze(0)
-            segmentation = segmentation.squeeze(0)
+            # 9. Apply stack sampler if available
+            if self.stack_sampler is not None:
+                output, segmentation, meta = self.stack_sampler(
+                    output, segmentation, device=self.device
+                )
+
+                # unsqueeze the image to match the expected shape
+                output = output.squeeze(0)
+                segmentation = segmentation.squeeze(0)
 
         # 10. Aggregete the synth params
         synth_params = {
@@ -223,3 +237,63 @@ class FetalSynthGen:
         }
 
         return output, segmentation, image, synth_params
+
+
+import torch
+import random
+
+
+class RandomTranslation3D:
+    """
+    Randomly translates a 3D image tensor.
+
+    The class accepts minimum and maximum voxel values and randomly
+    selects an integer shift for each spatial dimension (depth, height, width)
+    between these limits. For 3D tensors, the translation is applied along the
+    dimensions (0, 1, 2). For 4D tensors (e.g., with a channel dimension), the
+    translation is applied along dimensions (1, 2, 3).
+
+    Parameters:
+        min_voxel (int): Minimum translation (in voxels). Can be negative.
+        max_voxel (int): Maximum translation (in voxels).
+
+    Example:
+        translator = RandomTranslation3D(min_voxel=-5, max_voxel=5)
+        translated_image = translator(image_tensor)
+    """
+
+    def __init__(self, min_voxel: int, max_voxel: int):
+        if min_voxel > max_voxel:
+            raise ValueError("min_voxel should not be greater than max_voxel")
+        self.min_voxel = min_voxel
+        self.max_voxel = max_voxel
+
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        """
+        Apply a random translation to the given image tensor.
+
+        Args:
+            image (torch.Tensor): A 3D image tensor of shape (D, H, W) or a 4D tensor of shape (C, D, H, W).
+
+        Returns:
+            torch.Tensor: The randomly translated image.
+        """
+        # Generate random shifts for each spatial dimension.
+        shift_d = random.randint(self.min_voxel, self.max_voxel)
+        shift_h = random.randint(self.min_voxel, self.max_voxel)
+        shift_w = random.randint(self.min_voxel, self.max_voxel)
+
+        if image.dim() == 3:
+            # For image tensor with shape [D, H, W]
+            shifted_image = torch.roll(
+                image, shifts=(shift_d, shift_h, shift_w), dims=(0, 1, 2)
+            )
+        elif image.dim() == 4:
+            # For image tensor with shape [C, D, H, W]
+            shifted_image = torch.roll(
+                image, shifts=(shift_d, shift_h, shift_w), dims=(1, 2, 3)
+            )
+        else:
+            raise ValueError("Input image tensor must be either 3D or 4D.")
+
+        return shifted_image

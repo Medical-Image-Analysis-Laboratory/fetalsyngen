@@ -326,14 +326,6 @@ def _construct_coef(
     psf,
     res_slice,
 ):
-    # if not check_cache(transforms, vol_shape, slice_shape, psf, res_slice):
-    #    clean_cache(transforms, vol_shape, slice_shape, psf, res_slice)
-    #    print("clean cache")
-    # if False and idxs[0] in _cache:
-    #     # print("cache")
-    #     return _cache[idxs[0]].to(transforms.device)
-    # else:
-
     slice_ids = []
     volume_ids = []
     psf_vs = []

@@ -1,10 +1,5 @@
 _target_: monai.transforms.Compose
 transforms:
-
-  - _target_: monai.transforms.Orientationd
-    keys: ["image", "label"]
-    axcodes: "RAS"
-
   - _target_: monai.transforms.SignalFillEmptyd
     keys: ["image", "label"]
     replacement: 0

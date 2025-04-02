@@ -17,6 +17,7 @@ from fetalsyngen.generator.artifacts.utils import (
 )
 from skimage.morphology import ball
 from dataclasses import asdict
+from monai.data import MetaTensor
 
 
 class BlurCortex(RandTransform):
@@ -613,11 +614,13 @@ class StackSampler(RandTransform):
             d_scan = self.scanner.scan(d, genparams={"num_stacks": 1}, scansegm=True)
 
             # reshape the outputs so that slicing axis is always the last
-            output = d_scan["stacks"]
+            output = MetaTensor(d_scan["stacks"])
             output = output.permute(1, 2, 3, 0)
+            output.meta["affine"] = d_scan["stack_affine"]
 
-            seg = d_scan["stacks_segm"]
+            seg = MetaTensor(d_scan["stacks_segm"])
             seg = seg.permute(1, 2, 3, 0)
+            seg.meta["affine"] = d_scan["stack_affine"]
 
             metadata.update(
                 {
