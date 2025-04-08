@@ -10,7 +10,7 @@ res = 0.5
 
 # INPUT PATH (BIDS)
 bids_path = Path(
-    "/media/vzalevskyi/data/atlasses/CHN-fetal-brain-atlas/chn_bids/derivatives"
+    "/home/marinagrifell/Desktop/TFG/Data/pathsim"
 )
 
 # INPUT TARGET SIZE
@@ -65,18 +65,21 @@ for sub in tqdm(subjects):
             imgs = list(sub.glob(f"{sesion}/anat/*_T2w.nii.gz"))[
                 0
             ]  # CHANGE THE PATTERN TO MATCH YOUR IMAGES
-            label = list(sub.glob(f"{sesion}/anat/*drawem9_dseg.nii.gz"))[
-                0
-            ]  # CHANGE THE PATTERN TO MATCH YOUR LABELS
-            data = loader({"image": str(imgs), "label": str(label)})
-            data["image"] = data["image"].unsqueeze(0)
-            data["label"] = data["label"].unsqueeze(0)
-            data["label"] = data["label"].squeeze(-1)
-            data = resampe_transform(data)
-            data = orientation(data)
-            data = cropper(data)
-            data = padder(data)
-            saver(data)
+            labels = list(sub.glob(f"{sesion}/anat/*dseg*.nii.gz"))  # CHANGE THE PATTERN TO MATCH YOUR LABELS
+            for label in labels:
+                try:
+                    data = loader({"image": str(imgs), "label": str(label)})
+                    data["image"] = data["image"].unsqueeze(0)
+                    data["label"] = data["label"].unsqueeze(0)
+                    data["label"] = data["label"].squeeze(-1)
+                    data = resampe_transform(data)
+                    data = orientation(data)
+                    data = cropper(data)
+                    data = padder(data)
+                    saver(data)
+                except Exception as e:
+                    print(f"Error processing {sub} - {label} due to {e}")
+                    continue
         except Exception as e:
             print(f"Error processing {sub} due to {e}")
             continue

@@ -12,6 +12,8 @@ import time
 import torch
 import numpy as np
 from monai.data import MetaTensor
+import nibabel as nib
+import numpy as np
 
 
 class FetalDataset:
@@ -44,7 +46,7 @@ class FetalDataset:
         self.orientation = Orientation(axcodes="RAS")
 
         self.img_paths = self._load_bids_path(self.bids_path, "T2w")
-        self.segm_paths = self._load_bids_path(self.bids_path, "dseg")
+        self.segm_paths = self._load_bids_path(self.bids_path, "dseg_CC")
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
@@ -75,7 +77,7 @@ class FetalDataset:
         if ses is None:
             return f"{sub}/anat/{sub}*_{suffix}{extension}"
         else:
-            return f"{sub}/{ses}/anat/{sub}_{ses}*_{suffix}{extension}"
+            return f"{sub}/{ses}/anat/{sub}*_{suffix}{extension}"
 
     def _load_bids_path(self, path, suffix):
         """
@@ -286,7 +288,6 @@ class FetalSynthDataset(FetalDataset):
         """
         # use generation_params to track the parameters used for the generation
         generation_params = {}
-
         image = self.loader(self.img_paths[idx]) if self.load_image else None
         segm = self.loader(self.segm_paths[idx])
 
