@@ -23,6 +23,7 @@ class FetalDataset:
         self,
         bids_path: str,
         sub_list: list[str] | None,
+        bids_path_ending: str,
     ) -> dict:
         """
         Args:
@@ -40,13 +41,15 @@ class FetalDataset:
         self.sub_ses = [
             (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
+
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
 
         self.orientation = Orientation(axcodes="RAS")
 
         self.img_paths = self._load_bids_path(self.bids_path, "T2w")
-        self.segm_paths = self._load_bids_path(self.bids_path, "dseg_CC")
+        self.segm_paths = self._load_bids_path(self.bids_path, self.bids_path_ending)
+
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
@@ -88,16 +91,16 @@ class FetalDataset:
             pattern = self._get_pattern(sub, ses, suffix)
             files = list(path.glob(pattern))
             if len(files) == 0:
-                raise FileNotFoundError(
+                print(
                     f"No files found for requested subject {sub} in {path} "
                     f"({pattern} returned nothing)"
                 )
             elif len(files) > 1:
-                raise RuntimeError(
+                print(
                     f"Multiple files found for requested subject {sub} in {path} "
                     f"({pattern} returned {files})"
                 )
-            files_paths.append(files[0])
+            else: files_paths.append(files[0])
 
         return files_paths
 
@@ -122,6 +125,7 @@ class FetalTestDataset(FetalDataset):
         self,
         bids_path: str,
         sub_list: list[str] | None,
+        bids_path_ending: str,
         transforms: Compose | None = None,
     ):
         """
@@ -138,7 +142,8 @@ class FetalTestDataset(FetalDataset):
 
             See [inference.yaml](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/dev/configs/dataset/transforms/inference.yaml) for an example of the transforms configuration.
         """
-        super().__init__(bids_path, sub_list)
+        self.bids_path_ending = bids_path_ending
+        super().__init__(bids_path, sub_list, bids_path_ending)
         self.transforms = transforms
 
     def _load_data(self, idx):
@@ -202,6 +207,7 @@ class FetalSynthDataset(FetalDataset):
         generator: FetalSynthGen,
         seed_path: str | None,
         sub_list: list[str] | None,
+        bids_path_ending: str,
         load_image: bool = False,
         image_as_intensity: bool = False,
     ):
@@ -223,7 +229,8 @@ class FetalSynthDataset(FetalDataset):
             image_as_intensity: If **True**, the image is used as the intensity prior,
                 instead of sampling the intensities from the seeds. Default is **False**.
         """
-        super().__init__(bids_path, sub_list)
+        self.bids_path_ending = bids_path_ending
+        super().__init__(bids_path, sub_list, bids_path_ending)
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
         self.load_image = load_image
         self.generator = generator
