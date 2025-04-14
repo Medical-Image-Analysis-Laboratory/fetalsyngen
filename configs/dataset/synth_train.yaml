@@ -7,4 +7,5 @@ seed_path: /media/vzalevskyi/data/fetal_dHCP/derivatives/derivatives/seeds #./da
 sub_list: null
 load_image: False
 image_as_intensity: False
+bids_path_segm_ending: "dseg_CC"
 

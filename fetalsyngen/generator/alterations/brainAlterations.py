@@ -268,7 +268,7 @@ class brain_Alterations:
             return transformed_segmentation, transformed_seed, genparams
             
         else:
-            return segmentation, seed, {}
+            return segmentation, seed, genparams
 
 
     def smoother_cortex(self, cortex_mask, segm, seed, genparams):

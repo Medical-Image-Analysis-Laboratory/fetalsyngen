@@ -7,3 +7,4 @@ seed_path: null
 sub_list: null
 load_image: True
 image_as_intensity: True
+bids_path_segm_ending: "dseg_CC"
