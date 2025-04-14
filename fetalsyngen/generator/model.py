@@ -11,6 +11,8 @@ from fetalsyngen.generator.augmentation.synthseg import (
 )
 from typing import Iterable
 import numpy as np
+
+
 from fetalsyngen.generator.artifacts.simulate_reco import (
     Scanner,
     PSFReconstructor,

@@ -6,6 +6,7 @@ import os
 from typing import Optional, cast, Sequence
 import torch.nn.functional as F
 
+
 BATCH_SIZE = 64
 dirname = os.path.dirname(__file__)
 
@@ -15,7 +16,9 @@ slice_acq_cuda = load(
         os.path.join(dirname, "slice_acq_cuda.cpp"),
         os.path.join(dirname, "slice_acq_cuda_kernel.cu"),
     ],
-    verbose=False,
+    verbose=True, 
+    extra_cflags=['-O3'],
+    extra_cuda_cflags=['-O3'],
 )
 
 
