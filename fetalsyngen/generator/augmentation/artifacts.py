@@ -4,6 +4,7 @@ import torch
 from fetalsyngen.generator.artifacts.simulate_reco import (
     Scanner,
     PSFReconstructor,
+    PSFReconstructor2,
 )
 import copy
 from fetalsyngen.generator.artifacts.utils import (
@@ -99,7 +100,9 @@ class BlurCortex(RandTransform):
                 if "nblur" not in genparams.keys()
                 else genparams["nblur"]
             )
-            std_blurs = np.random.gamma(self.std_blur_shape, self.std_blur_scale, 3)
+            std_blurs = np.random.gamma(
+                self.std_blur_shape, self.std_blur_scale, 3
+            )
 
             cortex = seg == self.cortex_label
             cortex_prob = self.blur_proba(output.shape, cortex, device)
@@ -109,7 +112,8 @@ class BlurCortex(RandTransform):
 
             idx_cortex = torch.where(cortex > 0)
             centers = [
-                [idx_cortex[i][id.item()].item() for i in range(3)] for id in idx
+                [idx_cortex[i][id.item()].item() for i in range(3)]
+                for id in idx
             ]
             # Spatial merging parameters.
             sigmas = np.random.gamma(
@@ -214,7 +218,9 @@ class StructNoise(RandTransform):
                 if "nstages" not in genparams
                 else genparams["nstages"]
             )
-            noise_std = self.std_min + (self.std_max - self.std_min) * np.random.rand()
+            noise_std = (
+                self.std_min + (self.std_max - self.std_min) * np.random.rand()
+            )
             nloc = (
                 np.random.randint(
                     self.nloc_min,
@@ -236,7 +242,9 @@ class StructNoise(RandTransform):
 
             for k in range(nstages):
                 shape = [i // 2 ** (nstages - k) for i in output.shape]
-                next_shape = [i // 2 ** (nstages - 1 - k) for i in output.shape]
+                next_shape = [
+                    i // 2 ** (nstages - 1 - k) for i in output.shape
+                ]
                 lr_gaussian_noise += torch.randn(shape).to(device)
                 lr_gaussian_noise = torch.nn.functional.interpolate(
                     lr_gaussian_noise.unsqueeze(0).unsqueeze(0),
@@ -245,7 +253,9 @@ class StructNoise(RandTransform):
                     align_corners=False,
                 ).squeeze()
 
-            lr_gaussian_noise = lr_gaussian_noise / torch.max(abs(lr_gaussian_noise))
+            lr_gaussian_noise = lr_gaussian_noise / torch.max(
+                abs(lr_gaussian_noise)
+            )
             output_noisy = torch.clamp(
                 output + noise_std * lr_gaussian_noise, 0, output.max() * 2
             )
@@ -285,6 +295,87 @@ class StructNoise(RandTransform):
 
             return output, args
         else:
+            return output, {}
+
+
+class SimulateMotion2(RandTransform):
+    """
+    Simulates motion in the image by simulating low-resolution slices (based
+    on the `scanner_params` and then doing a simple point-spread function based
+    on the low-resolution slices (using `recon_params`).
+    """
+
+    def __init__(
+        self,
+        prob: float,
+        scanner_params: ScannerParams,
+        recon_params: ReconParams,
+    ):
+        """
+        Initialize the augmentation parameters.
+
+        Args:
+            prob (float): Probability of applying the augmentation.
+            scanner_params (ScannerParams): Dataclass of parameters for the scanner.
+            recon_params (ReconParams): Dataclass of parameters for the reconstructor.
+
+        """
+        self.scanner_args = scanner_params
+        self.recon_args = recon_params
+        self.prob = prob
+
+    def __call__(
+        self, output, seg, device, genparams: dict = {}, **kwargs
+    ) -> tuple[torch.Tensor, dict]:
+        """
+        Apply the motion simulation to the input image.
+
+        Args:
+            output (torch.Tensor): Input image to resample.
+            seg (torch.Tensor): Input segmentation corresponding to the image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+
+        Returns:
+            Image with simulated motion and metadata containing the motion simulation parameters.
+        """
+        # def _artifact_simulate_motion(self, im, seg, generator_params, res):
+
+        if np.random.rand() < self.prob:
+            device = output.device
+            dshape = (1, 1, *output.shape[-3:])
+            res = kwargs["resolution"]
+            res_ = np.float64(res[0])
+            metadata = {}
+            d = {
+                "resolution": res_,
+                "volume": output.view(dshape).float().to(device),
+                "mask": (seg > 0).view(dshape).float().to(device),
+                "seg": seg.view(dshape).float().to(device),
+                "affine": torch.diag(torch.tensor(list(res) + [1])).to(device),
+                "threshold": 0.1,
+            }
+            self.scanner_args.resolution_recon = res_
+            scanner = Scanner(**asdict(self.scanner_args))
+            d_scan = scanner.scan(d)
+
+            recon = PSFReconstructor2(**asdict(self.recon_args))
+            output, _ = recon.recon_psf(d_scan)
+            print(recon.get_seeds())
+            metadata.update(
+                {
+                    "resolution_recon": d_scan["resolution_recon"],
+                    "resolution_slice": d_scan["resolution_slice"],
+                    "slice_thickness": d_scan["slice_thickness"],
+                    "gap": d_scan["gap"],
+                    "nstacks": len(torch.unique(d_scan["positions"][:, 1])),
+                }
+            )
+            metadata.update(recon.get_seeds())
+
+            return output.squeeze(), metadata
+        else:
+            print("hi")
             return output, {}
 
 
@@ -436,7 +527,13 @@ class SimulatedBoundaries(RandTransform):
             Mask with the halo.
         """
         device = mask.device
-        kernel = torch.tensor(ball(radius)).float().to(device).unsqueeze(0).unsqueeze(0)
+        kernel = (
+            torch.tensor(ball(radius))
+            .float()
+            .to(device)
+            .unsqueeze(0)
+            .unsqueeze(0)
+        )
         mask = mask.float().view(1, 1, *mask.shape[-3:])
         mask = torch.nn.functional.conv3d(mask, kernel, padding="same")
         return (mask > 0).int().view(*mask.shape[-3:])
@@ -511,7 +608,8 @@ class SimulatedBoundaries(RandTransform):
             idx = torch.randperm(surf[0].shape[0])[: self.n_centers]
             centers = [(surf[0][i], surf[1][i], surf[2][i]) for i in idx]
             sigmas = [
-                self.base_sigma + 10 * np.random.beta(2, 5) for _ in range(len(centers))
+                self.base_sigma + 10 * np.random.beta(2, 5)
+                for _ in range(len(centers))
             ]
             mog = mog_3d_tensor(
                 mask_modif.shape[-3:],
