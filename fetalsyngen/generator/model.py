@@ -230,7 +230,7 @@ class FetalSynthGen:
             "noise_params": noise_params,
             "artifacts": artifacts,
         }
-        return output, segmentation, synth_params
+        return output, synth_params
 
     def sample(
         self,
@@ -268,7 +268,7 @@ class FetalSynthGen:
         )
 
         # 2. Augment the deformed image
-        output, segmentation, synth_params_aug = self.augment(
+        output, synth_params_aug = self.augment(
             image=output,
             segmentation=segmentation,
             genparams=genparams,
