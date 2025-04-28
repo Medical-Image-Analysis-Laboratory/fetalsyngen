@@ -18,7 +18,7 @@ from fetalsyngen.generator.artifacts.simulate_reco import (
 from fetalsyngen.generator.augmentation.artifacts import (
     SimulatedBoundaries,
     StructNoise,
-    SimulateMotion,
+    SimulateMotion2,
     BlurCortex,
 )
 from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
@@ -39,7 +39,7 @@ class FetalSynthGen:
         # optional SR artifacts
         blur_cortex: BlurCortex | None = None,
         struct_noise: StructNoise | None = None,
-        simulate_motion: SimulateMotion | None = None,
+        simulate_motion: SimulateMotion2 | None = None,
         boundaries: SimulatedBoundaries | None = None,
     ):
         """

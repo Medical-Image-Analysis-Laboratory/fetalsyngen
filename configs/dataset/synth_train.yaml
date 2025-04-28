@@ -1,9 +1,9 @@
 defaults:
-  - generator/default
+  - generator/default2
 
 _target_: fetalsyngen.data.datasets.FetalSynthDataset
-bids_path: /media/vzalevskyi/data/fetal_dHCP/derivatives/derivatives/resampled05 #./data
-seed_path: /media/vzalevskyi/data/fetal_dHCP/derivatives/derivatives/seeds #./data/derivatives/seeds
+bids_path: /media/tsanchez/tsanchez_data/data/fetal_dHCP/derivatives/derivatives/resampled0p5
+seed_path: /media/tsanchez/tsanchez_data/data/fetal_dHCP/derivatives/derivatives/seeds0p5 #./data/derivatives/seeds
 sub_list: null
 load_image: False
 image_as_intensity: False

@@ -120,6 +120,30 @@ class SpatialDeformation:
                 output = torch.flip(output, [0])
                 image = torch.flip(image, [0]) if image is not None else None
 
+    def apply_deformation_and_flip(
+        self, image, segmentation, output, xx2, yy2, zz2, flip
+    ):
+        """Apply the deformation and flip to the image and segmentation.
+
+        Args:
+            image (torch.Tensor): Image to deform.
+            segmentation (torch.Tensor): Segmentation to deform.
+            output (torch.Tensor): Output to deform.
+            xx2 (torch.Tensor): Deformed x coordinates.
+            yy2 (torch.Tensor): Deformed y coordinates.
+            zz2 (torch.Tensor): Deformed z coordinates.
+            flip (bool): Whether to flip the image and segmentation.
+
+        Returns:
+            Deformed image, segmentation and output.
+        """
+        # flip the image if nessesary
+        if flip:
+            output = torch.flip(output, [0])
+            segmentation = torch.flip(segmentation, [0])
+            image = torch.flip(image, [0]) if image is not None else None
+
+        if xx2 is not None:
             output = fast_3D_interp_torch(output, xx2, yy2, zz2, "linear")
             segmentation = fast_3D_interp_torch(
                 segmentation.to(self.device), xx2, yy2, zz2, "nearest"
@@ -128,10 +152,7 @@ class SpatialDeformation:
                 image = fast_3D_interp_torch(
                     image.to(self.device), xx2, yy2, zz2, "linear"
                 )
-
-            deform_params["flip"] = flip
-
-        return image, segmentation, output, deform_params
+        return image, segmentation, output
 
     def generate_deformation(self, image_shape, random_shift=True, genparams={}):
 

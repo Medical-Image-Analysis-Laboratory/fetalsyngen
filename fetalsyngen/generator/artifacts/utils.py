@@ -2,8 +2,9 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 from torch.nn.functional import conv3d
-from dataclasses import dataclass, asdict
-
+from dataclasses import dataclass, field
+import os
+import time
 
 @dataclass
 class ScannerParams:
@@ -36,6 +37,31 @@ class ScannerParams:
     slice_noise_threshold: float = 0.1
 
 
+
+
+
+class MergeParams:
+    pass
+
+@dataclass
+class GaussianMergeParams(MergeParams):
+    merge_type: str = field(init=False)
+    ngaussians_min: int
+    ngaussians_max: int
+    def __post_init__(self):
+        self.merge_type = "gaussian"
+
+@dataclass
+class PerlinMergeParams(MergeParams):
+    merge_type: str = field(init=False)
+    res_list: list[int]
+    octaves_list: list[int]
+    persistence: float
+    lacunarity: float
+
+    def __post_init__(self):
+        self.merge_type = "perlin"
+
 @dataclass
 class ReconParams:
     prob_misreg_slice: float
@@ -47,9 +73,7 @@ class ReconParams:
     rm_slices_min: float
     rm_slices_max: float
     prob_merge: float
-    merge_ngaussians_min: int
-    merge_ngaussians_max: int
-
+    merge_params: MergeParams
 
 def make_gaussian_kernel(sigma, device):
     """Taken from https://github.com/peirong26/Brain-ID/blob/main/BrainID/datasets/utils.py
@@ -183,3 +207,168 @@ def dilate(mask, kernel_size=3):
     # Threshold the result to obtain the dilated mask
     dilated = (dilated > 0).int()
     return dilated.squeeze(0).squeeze(0)
+
+# ported from https://github.com/pvigier/perlin-numpy
+# https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/perlin-noise-part-2/perlin-noise-computing-derivatives.html
+# https://rtouti.github.io/graphics/perlin-noise-algorithm
+# https://github.com/peirong26/UNA/blob/main/FluidAnomaly/perlin3d.py
+
+
+def perlin_interpolant(t):
+    # Perlin interpolation: 6t^5 - 15t^4 + 10t^3
+    return t * t * t * (t * (t * 6 - 15) + 10)
+
+def generate_perlin_noise_3d(shape, res, tileable=(False, False, False), interpolant=perlin_interpolant, device=None):
+    """
+    Generate a 3D torch tensor of Perlin noise.
+
+    Args:
+        shape: The shape of the generated array (tuple of three ints).
+        res: The number of periods of noise to generate along each
+            axis (tuple of three ints).
+        tileable: If the noise should be tileable along each axis
+            (tuple of three bools). Defaults to (False, False, False).
+        interpolant: The interpolation function. Defaults to
+            t*t*t*(t*(t*6 - 15) + 10).
+        device: The device to use for the computation. Defaults to
+            'cuda' if available, otherwise 'cpu'.
+
+    Returns:
+        A 3D torch tensor of Perlin noise with the specified shape.
+
+    """
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    shape = torch.tensor(shape, device=device)
+    res = torch.tensor(res, device=device)
+
+    # Create 3D grid of coordinates
+    lin = [torch.linspace(0, res[i], shape[i], device=device) for i in range(3)]
+    grid = torch.stack(torch.meshgrid(*lin, indexing='ij'), dim=-1)  # shape (X,Y,Z,3)
+
+    # Integer lattice coordinates (which cell)
+    cell = grid.floor().to(torch.long)
+
+    # Local coordinates inside each cell (0..1)
+    local_xyz = grid - cell
+
+    # Generate random gradient vectors at lattice points
+    theta = 2 * torch.pi * torch.rand(res[0]+1, res[1]+1, res[2]+1, device=device)
+    phi = 2 * torch.pi * torch.rand(res[0]+1, res[1]+1, res[2]+1, device=device)
+    gradients = torch.stack((
+        torch.sin(phi) * torch.cos(theta),
+        torch.sin(phi) * torch.sin(theta),
+        torch.cos(phi)
+    ), dim=-1)  
+
+    # Make gradients tileable if needed
+    if tileable[0]:
+        gradients[-1,:,:] = gradients[0,:,:]
+    if tileable[1]:
+        gradients[:,-1,:] = gradients[:,0,:]
+    if tileable[2]:
+        gradients[:,:,-1] = gradients[:,:,0]
+
+    # Fetch gradient vectors at each corner of the cell
+    def get_grad(ix, iy, iz):
+        return gradients[
+            ix.clamp(max=res[0]),
+            iy.clamp(max=res[1]),
+            iz.clamp(max=res[2])
+        ]
+
+    g000 = get_grad(cell[...,0],     cell[...,1],     cell[...,2])
+    g100 = get_grad(cell[...,0] + 1, cell[...,1],     cell[...,2])
+    g010 = get_grad(cell[...,0],     cell[...,1] + 1, cell[...,2])
+    g110 = get_grad(cell[...,0] + 1, cell[...,1] + 1, cell[...,2])
+    g001 = get_grad(cell[...,0],     cell[...,1],     cell[...,2] + 1)
+    g101 = get_grad(cell[...,0] + 1, cell[...,1],     cell[...,2] + 1)
+    g011 = get_grad(cell[...,0],     cell[...,1] + 1, cell[...,2] + 1)
+    g111 = get_grad(cell[...,0] + 1, cell[...,1] + 1, cell[...,2] + 1)
+
+    # Compute vectors from each corner to current point
+    def dot_grid_gradient(grad, x_offset, y_offset, z_offset):
+        offset = torch.tensor([x_offset, y_offset, z_offset], device=device)
+        delta = local_xyz - offset
+        return (grad * delta).sum(dim=-1)
+
+    n000 = dot_grid_gradient(g000, 0.0, 0.0, 0.0)
+    n100 = dot_grid_gradient(g100, 1.0, 0.0, 0.0)
+    n010 = dot_grid_gradient(g010, 0.0, 1.0, 0.0)
+    n110 = dot_grid_gradient(g110, 1.0, 1.0, 0.0)
+    n001 = dot_grid_gradient(g001, 0.0, 0.0, 1.0)
+    n101 = dot_grid_gradient(g101, 1.0, 0.0, 1.0)
+    n011 = dot_grid_gradient(g011, 0.0, 1.0, 1.0)
+    n111 = dot_grid_gradient(g111, 1.0, 1.0, 1.0)
+
+    # Compute Perlin interpolation weights
+    t = interpolant(local_xyz)
+
+    # Interpolate
+    n00 = n000 * (1 - t[...,0]) + t[...,0] * n100
+    n10 = n010 * (1 - t[...,0]) + t[...,0] * n110
+    n01 = n001 * (1 - t[...,0]) + t[...,0] * n101
+    n11 = n011 * (1 - t[...,0]) + t[...,0] * n111
+
+    n0 = n00 * (1 - t[...,1]) + t[...,1] * n10
+    n1 = n01 * (1 - t[...,1]) + t[...,1] * n11
+
+    noise = n0 * (1 - t[...,2]) + t[...,2] * n1
+
+    return noise
+
+
+
+def generate_fractal_noise_3d(
+        shape, res, octaves=1, persistence=0.5, lacunarity=2,
+        tileable=(False, False, False), interpolant=perlin_interpolant, device=None
+):
+    """Generate a 3D numpy array of fractal noise.
+
+    Args:
+        shape: The shape of the generated array (tuple of three ints).
+            This must be a multiple of lacunarity**(octaves-1)*res.
+        res: The number of periods of noise to generate along each
+            axis (tuple of three ints). Note shape must be a multiple of
+            (lacunarity**(octaves-1)*res).
+        octaves: The number of octaves in the noise. Defaults to 1.
+        persistence: The scaling factor between two octaves.
+        lacunarity: The frequency factor between two octaves.
+        tileable: If the noise should be tileable along each axis
+            (tuple of three bools). Defaults to (False, False, False).
+        interpolant: The, interpolation function, defaults to
+            t*t*t*(t*(t*6 - 15) + 10).
+
+    Returns:
+        A numpy array of fractal noise and of shape generated by
+        combining several octaves of perlin noise.
+
+    Raises:
+        ValueError: If shape is not a multiple of
+            (lacunarity**(octaves-1)*res).
+    """
+    seed = int(time.time())
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed) 
+    
+    noise = torch.zeros(shape)
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    noise = noise.to(device)
+    frequency = 1
+    amplitude = 1
+    for _ in range(octaves):
+        noise += amplitude * generate_perlin_noise_3d(
+            shape,
+            (frequency*res[0], frequency*res[1], frequency*res[2]),
+            tileable,
+            interpolant,
+            device,
+        )
+        frequency *= lacunarity
+        amplitude *= persistence
+
+   
+    return noise
+    

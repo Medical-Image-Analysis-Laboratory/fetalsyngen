@@ -502,7 +502,7 @@ class Scanner:
         data.pop("volume")
         return data
 
-
+from fetalsyngen.generator.artifacts.utils import MergeParams, PerlinMergeParams, GaussianMergeParams, generate_fractal_noise_3d
 class PSFReconstructor2:
     """
     Class that reconstructs the volume from the acquired slices using the PSF and the transforms given.
@@ -519,8 +519,8 @@ class PSFReconstructor2:
         prob_misreg_stack: float,
         txy: float,
         prob_merge: float,
-        merge_ngaussians_min: int,
-        merge_ngaussians_max: int,
+        merge_params: MergeParams, 
+
         prob_smooth: float,
         prob_rm_slices: float,
         rm_slices_min: float,
@@ -548,8 +548,11 @@ class PSFReconstructor2:
         self.prob_misreg_stack = prob_misreg_stack
         self.txy_stack = txy
         self.prob_merge = prob_merge
-        self.merge_ngaussians_min = merge_ngaussians_min
-        self.merge_ngaussians_max = merge_ngaussians_max
+        self.merge_params = merge_params
+        assert merge_params.merge_type in ["gaussian", "perlin"], (
+                f"Merge type {merge_params.merge_type} not supported, "
+                "only gaussian and perlin are supported."
+                )
         self.prob_smooth = prob_smooth
         self.prob_rm_slices = prob_rm_slices
         self.rm_slices_min = rm_slices_min
@@ -576,12 +579,22 @@ class PSFReconstructor2:
             )
         self._misreg_stack_on = []
         self._merge_volume_on = np.random.rand() < self.prob_merge
-        if "ngaussians_merge" in genparams:
-            self._ngaussians_merge = genparams["ngaussians_merge"]
-        else:
-            self._ngaussians_merge = np.random.randint(
-                self.merge_ngaussians_min, self.merge_ngaussians_max
-            )
+        if isinstance(self.merge_params, GaussianMergeParams):
+            if "ngaussians_merge" in genparams:
+                self._ngaussians_merge = genparams["ngaussians_merge"]
+            else:
+                self._ngaussians_merge = np.random.randint(
+                    self.merge_ngaussians_min, self.merge_ngaussians_max
+                )
+        elif isinstance(self.merge_params, PerlinMergeParams):
+            if "res" in genparams:
+                self._res = genparams["res"]
+            else:
+                self._res = np.random.choice(self.merge_params.res_list)
+            if "octave" in genparams:
+                self._octave = genparams["octave"]
+            else:
+                self._octave = np.random.choice(self.merge_params.octave_list)
 
     def get_seeds(self):
         """
@@ -668,6 +681,49 @@ class PSFReconstructor2:
 
         return RigidTransform(trf2, trans_first=True)
 
+
+    def get_merging_weights(self, shape, vol_mask=None):
+        """
+        Get the merging weights for the volume.
+
+        Args:
+            shape: The shape of the volume.
+            vol_mask: The volume mask.
+
+        Returns:
+            torch.Tensor: The merging weights.
+        """
+
+        if vol_mask is not None and self.merge_type=="gaussian":
+            pos = torch.where(vol_mask.squeeze() > 0)
+            idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
+
+            centers = [(pos[0][i], pos[1][i], pos[2][i]) for i in idx]
+            # Tested for an image of size 256^3
+            sigmas = [
+                torch.clamp(20 + 10 * torch.randn(1), 5, 40).to(self.device)
+                for _ in range(len(centers))
+            ]
+            weight = mog_3d_tensor(
+                shape,
+                centers=centers,
+                sigmas=sigmas,
+                device=self.device,
+            ).view(1, 1, *shape)
+            return weight
+        elif self.merge_type == "perlin":
+            weight = generate_fractal_noise_3d(
+                shape,
+                res=(self._res, self._res, self._res),
+                octaves=self._octave,
+                persistence=self.merge_params.persistence,
+                lacunarity=self.merge_params.lacunarity,
+                device=self.device,
+            )
+            return weight
+        else:
+            raise RuntimeError
+
     def merge_volumes(self, vol_mask, volume, volume_gt):
         """
         Merge the reconstructed volume with the ground truth according to a 3D mixture of Gaussians.
@@ -679,22 +735,7 @@ class PSFReconstructor2:
             volume_gt: The ground truth volume.
         """
         if self._merge_volume_on:
-            device = volume.device
-            pos = torch.where(vol_mask.squeeze() > 0)
-            idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
-
-            centers = [(pos[0][i], pos[1][i], pos[2][i]) for i in idx]
-            # Tested for an image of size 256^3
-            sigmas = [
-                torch.clamp(20 + 10 * torch.randn(1), 5, 40).to(device)
-                for _ in range(len(centers))
-            ]
-            weight = mog_3d_tensor(
-                volume[0, 0].shape,
-                centers=centers,
-                sigmas=sigmas,
-                device=device,
-            ).view(1, 1, *volume.shape[2:])
+            weight = self.get_merging_weights(volume.shape, vol_mask)
             merged = weight * volume + (1 - weight) * volume_gt
             return merged, weight
         else:
