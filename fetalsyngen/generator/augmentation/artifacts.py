@@ -4,7 +4,6 @@ import torch
 from fetalsyngen.generator.artifacts.simulate_reco import (
     Scanner,
     PSFReconstructor,
-    PSFReconstructor2,
 )
 import copy
 from fetalsyngen.generator.artifacts.utils import (
@@ -15,6 +14,8 @@ from fetalsyngen.generator.artifacts.utils import (
     dilate,
     ScannerParams,
     ReconParams,
+    StructNoiseMergeParams,
+    generate_fractal_noise_3d,
 )
 from skimage.morphology import ball
 from dataclasses import asdict, fields
@@ -155,19 +156,15 @@ class StructNoise(RandTransform):
     `sigma_std`.
     """
 
-    ### TO REFACTOR: THIS IS PERLIN NOISE
     def __init__(
         self,
         prob: float,
         wm_label: int,
         std_min: float,
         std_max: float,
-        nloc_min: int,
-        nloc_max: int,
+        merge_params: StructNoiseMergeParams,
         nstages_min: int = 1,
         nstages_max: int = 5,
-        sigma_mu: int = 25,
-        sigma_std: int = 5,
     ):
         """
         Initialize the augmentation parameters.
@@ -191,10 +188,121 @@ class StructNoise(RandTransform):
         self.nstages_max = nstages_max
         self.std_min = std_min
         self.std_max = std_max
-        self.nloc_min = nloc_min
-        self.nloc_max = nloc_max
-        self.sigma_mu = sigma_mu
-        self.sigma_std = sigma_std
+
+        self.merge_params = merge_params
+
+    def get_merging_weights(self, shape, mask=None, device=None):
+        """
+        Get the merging weights for the volume.
+
+        Args:
+            shape: The shape of the volume.
+            vol_mask: The volume mask.
+
+        Returns:
+            torch.Tensor: The merging weights.
+        """
+
+        device = (
+            device
+            if device is not None
+            else "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        if mask is not None and self.merge_params.merge_type == "gaussian":
+            pos = torch.where(mask.squeeze() > 0)
+            idx = torch.randperm(pos[0].shape[0])[: self.gauss_nloc]
+
+            centers = [(pos[0][i], pos[1][i], pos[2][i]) for i in idx]
+            # Tested for an image of size 256^3
+            sigmas = (
+                (
+                    torch.clamp(
+                        self.merge_params.gauss_sigma_mu
+                        + self.merge_params.gauss_sigma_std
+                        * torch.randn(len(idx)),
+                        1,
+                        40,
+                    )
+                )
+                .cpu()
+                .numpy()
+            )
+            weight = mog_3d_tensor(
+                shape,
+                centers=centers,
+                sigmas=sigmas,
+                device=device,
+            ).view(*shape)
+            return weight
+        elif self.merge_params.merge_type == "perlin":
+
+            weight = generate_fractal_noise_3d(
+                shape,
+                res=(self._res, self._res, self._res),
+                octaves=self._octave,
+                persistence=self.merge_params.perlin_persistence,
+                lacunarity=self.merge_params.perlin_lacunarity,
+                device=device,
+            ).view(*shape)
+            # Perlin to 0-1
+            weight = (weight - weight.min()) / (weight.max() - weight.min())
+            return weight
+        else:
+            raise RuntimeError
+
+    def sample_seeds(self, genparams: dict = {}):
+        """
+        Sample the seeds for the randomization.
+
+        Args:
+            genparams: Dictionary containing the generation parameters.
+        """
+        self.nstages = (
+            np.random.randint(self.nstages_min, self.nstages_max)
+            if "nstages" not in genparams
+            else genparams["nstages"]
+        )
+        self.noise_std = (
+            self.std_min + (self.std_max - self.std_min) * np.random.rand()
+        )
+
+        if self.merge_params.merge_type == "gaussian":
+            self.gauss_nloc = (
+                np.random.randint(
+                    self.merge_params.gauss_nloc_min,
+                    self.merge_params.gauss_nloc_max,
+                )
+                if "nloc" not in genparams
+                else genparams["nloc"]
+            )
+        elif self.merge_params.merge_type == "perlin":
+            if "res" in genparams:
+                self._res = genparams["res"]
+            else:
+                self._res = np.random.choice(self.merge_params.perlin_res_list)
+            if "octave" in genparams:
+                self._octave = genparams["octave"]
+            else:
+                self._octave = np.random.choice(
+                    self.merge_params.perlin_octaves_list
+                )
+
+    def get_seeds(self):
+        """
+        Get the dictionary of the seeds used for randomization.
+        """
+
+        seeds = {
+            "nstages": self.nstages,
+            "noise_std": self.noise_std,
+        }
+
+        if self.merge_params.merge_type == "gaussian":
+            seeds["nloc"] = self.gauss_nloc
+        elif self.merge_params.merge_type == "perlin":
+            seeds["res"] = self._res
+            seeds["octave"] = self._octave
+        return seeds
 
     def __call__(
         self, output, seg, device, genparams: dict = {}, **kwargs
@@ -211,39 +319,20 @@ class StructNoise(RandTransform):
         Returns:
             Image with structured noise and metadata containing the structured noise parameters.
         """
-        if np.random.rand() < self.prob or "nloc" in genparams.keys():
-            ## Parameters
-            nstages = (
-                np.random.randint(self.nstages_min, self.nstages_max)
-                if "nstages" not in genparams
-                else genparams["nstages"]
-            )
-            noise_std = (
-                self.std_min + (self.std_max - self.std_min) * np.random.rand()
-            )
-            nloc = (
-                np.random.randint(
-                    self.nloc_min,
-                    self.nloc_max,
-                )
-                if "nloc" not in genparams
-                else genparams["nloc"]
-            )
-            ##
 
-            wm = seg == self.wm_label
-            idx_wm = torch.nonzero(wm, as_tuple=True)
-            idx = torch.randint(0, len(idx_wm[0]), (nloc,))
-            mask = (seg > 0).int()
+        if np.random.rand() < self.prob or "nloc" in genparams.keys():
+
+            self.sample_seeds()
+
             # Add multiscale noise. Start with a small tensor and add the noise to it.
             lr_gaussian_noise = torch.zeros(
-                [i // 2**nstages for i in output.shape]
+                [i // 2**self.nstages for i in output.shape]
             ).to(device)
 
-            for k in range(nstages):
-                shape = [i // 2 ** (nstages - k) for i in output.shape]
+            for k in range(self.nstages):
+                shape = [i // 2 ** (self.nstages - k) for i in output.shape]
                 next_shape = [
-                    i // 2 ** (nstages - 1 - k) for i in output.shape
+                    i // 2 ** (self.nstages - 1 - k) for i in output.shape
                 ]
                 lr_gaussian_noise += torch.randn(shape).to(device)
                 lr_gaussian_noise = torch.nn.functional.interpolate(
@@ -257,127 +346,26 @@ class StructNoise(RandTransform):
                 abs(lr_gaussian_noise)
             )
             output_noisy = torch.clamp(
-                output + noise_std * lr_gaussian_noise, 0, output.max() * 2
+                output + self.noise_std * lr_gaussian_noise,
+                0,
+                output.max() * 2,
             )
 
-            sigmas = (
-                (
-                    torch.clamp(
-                        self.sigma_mu + self.sigma_std * torch.randn(len(idx)),
-                        1,
-                        40,
-                    )
-                )
-                .cpu()
-                .numpy()
-            )
-            centers = [
-                (
-                    idx_wm[0][id].item(),
-                    idx_wm[1][id].item(),
-                    idx_wm[2][id].item(),
-                )
-                for id in idx
-            ]
-            gaussian = mog_3d_tensor(
-                output.shape, centers=centers, sigmas=sigmas, device=device
-            )
+            wm = seg == self.wm_label
 
-            output = output * (1 - mask) + mask * (
-                gaussian * output_noisy + (1 - gaussian) * output
+            gaussian = self.get_merging_weights(
+                output.shape[-3:],
+                mask=wm,
+                device=device,
             )
+            mask = (seg > 0).int()
+            output = (
+                1 - mask * gaussian
+            ) * output + mask * gaussian * output_noisy
 
-            args = {
-                "nstages": nstages,
-                "noise_std": noise_std,
-                "nloc": nloc,
-            }
+            return output, self.get_seeds()
 
-            return output, args
         else:
-            return output, {}
-
-
-class SimulateMotion2(RandTransform):
-    """
-    Simulates motion in the image by simulating low-resolution slices (based
-    on the `scanner_params` and then doing a simple point-spread function based
-    on the low-resolution slices (using `recon_params`).
-    """
-
-    def __init__(
-        self,
-        prob: float,
-        scanner_params: ScannerParams,
-        recon_params: ReconParams,
-    ):
-        """
-        Initialize the augmentation parameters.
-
-        Args:
-            prob (float): Probability of applying the augmentation.
-            scanner_params (ScannerParams): Dataclass of parameters for the scanner.
-            recon_params (ReconParams): Dataclass of parameters for the reconstructor.
-
-        """
-        self.scanner_args = scanner_params
-        self.recon_args = recon_params
-        self.prob = prob
-
-    def __call__(
-        self, output, seg, device, genparams: dict = {}, **kwargs
-    ) -> tuple[torch.Tensor, dict]:
-        """
-        Apply the motion simulation to the input image.
-
-        Args:
-            output (torch.Tensor): Input image to resample.
-            seg (torch.Tensor): Input segmentation corresponding to the image.
-            device (str): Device to use for computation.
-            genparams (dict): Generation parameters.
-
-        Returns:
-            Image with simulated motion and metadata containing the motion simulation parameters.
-        """
-        # def _artifact_simulate_motion(self, im, seg, generator_params, res):
-
-        if np.random.rand() < self.prob:
-            device = output.device
-            dshape = (1, 1, *output.shape[-3:])
-            res = kwargs["resolution"]
-            res_ = np.float64(res[0])
-            metadata = {}
-            d = {
-                "resolution": res_,
-                "volume": output.view(dshape).float().to(device),
-                "mask": (seg > 0).view(dshape).float().to(device),
-                "seg": seg.view(dshape).float().to(device),
-                "affine": torch.diag(torch.tensor(list(res) + [1])).to(device),
-                "threshold": 0.1,
-            }
-            self.scanner_args.resolution_recon = res_
-
-            scanner = Scanner(**asdict(self.scanner_args))
-            d_scan = scanner.scan(d)
-
-            print(asdict(self.recon_args))
-            recon = PSFReconstructor2(**{f.name: getattr(self.recon_args, f.name) for f in fields(self.recon_args)})
-            output, _ = recon.recon_psf(d_scan)
-            print(recon.get_seeds())
-            metadata.update(
-                {
-                    "resolution_recon": d_scan["resolution_recon"],
-                    "resolution_slice": d_scan["resolution_slice"],
-                    "slice_thickness": d_scan["slice_thickness"],
-                    "gap": d_scan["gap"],
-                    "nstacks": len(torch.unique(d_scan["positions"][:, 1])),
-                }
-            )
-            metadata.update(recon.get_seeds())
-
-            return output.squeeze(), metadata
-        else:
-            
             return output, {}
 
 
@@ -439,12 +427,17 @@ class SimulateMotion(RandTransform):
                 "threshold": 0.1,
             }
             self.scanner_args.resolution_recon = res_
+
             scanner = Scanner(**asdict(self.scanner_args))
             d_scan = scanner.scan(d)
 
-            recon = PSFReconstructor(**asdict(self.recon_args))
+            recon = PSFReconstructor(
+                **{
+                    f.name: getattr(self.recon_args, f.name)
+                    for f in fields(self.recon_args)
+                }
+            )
             output, _ = recon.recon_psf(d_scan)
-
             metadata.update(
                 {
                     "resolution_recon": d_scan["resolution_recon"],
@@ -455,9 +448,10 @@ class SimulateMotion(RandTransform):
                 }
             )
             metadata.update(recon.get_seeds())
-
             return output.squeeze(), metadata
+
         else:
+
             return output, {}
 
 
@@ -651,4 +645,5 @@ class SimulatedBoundaries(RandTransform):
             ).int()
             dilate_stack = dilate_stack.permute(1, 2, 3, 0).int()
             mask = (one_hot * dilate_stack).sum(-1)
+
         return output * mask, metadata

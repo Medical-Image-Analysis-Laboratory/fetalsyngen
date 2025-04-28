@@ -1,5 +1,5 @@
 defaults:
-  - generator/default2
+  - generator/default
 
 _target_: fetalsyngen.data.datasets.FetalSynthDataset
 bids_path: /media/tsanchez/tsanchez_data/data/fetal_dHCP/derivatives/derivatives/resampled0p5

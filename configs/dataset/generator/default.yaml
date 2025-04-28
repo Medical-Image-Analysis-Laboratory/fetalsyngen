@@ -70,10 +70,22 @@ struct_noise:
   _target_: fetalsyngen.generator.augmentation.artifacts.StructNoise
   prob: 0.4
   wm_label: 3
-  std_min: 0.2
-  std_max: 0.4
-  nloc_min: 5
-  nloc_max: 15
+  std_min: 0.3 # 0.2
+  std_max: 0.5 # 0.4
+  nstages_min: 1
+  nstages_max: 5
+  merge_params:
+    _target_: fetalsyngen.generator.artifacts.utils.StructNoiseMergeParams
+    merge_type: "perlin"
+    gauss_nloc_min: 5
+    gauss_nloc_max: 15
+    gauss_sigma_mu: 25
+    gauss_sigma_std: 5
+    perlin_res_list: [1, 2]
+    perlin_octaves_list: [1, 2, 4]
+    perlin_persistence: 0.5
+    perlin_lacunarity: 2
+    perlin_increase_size: 0.25
 
 simulate_motion:
   _target_: fetalsyngen.generator.augmentation.artifacts.SimulateMotion
@@ -107,9 +119,16 @@ simulate_motion:
     slices_misreg_ratio: 0.1
     prob_misreg_stack: 0.1
     txy: 3.0
-    prob_merge: 0.8
-    merge_ngaussians_min: 2
-    merge_ngaussians_max: 4
+    prob_merge: 1.0
+    merge_params:
+      _target_: fetalsyngen.generator.artifacts.utils.ReconMergeParams
+      merge_type: "perlin"
+      perlin_res_list: [1, 2]
+      perlin_octaves_list: [1, 2, 4]
+      perlin_persistence: 0.5
+      perlin_lacunarity: 2
+      gauss_ngaussians_min: 2
+      gauss_ngaussians_max: 4
     prob_smooth: 0.2
     prob_rm_slices: 0.3
     rm_slices_min: 0.1

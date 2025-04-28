@@ -28,7 +28,11 @@ from fetalsyngen.generator.artifacts.svort import (
     random_angle,
 )
 from functools import partial
-from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
+from fetalsyngen.generator.artifacts.utils import (
+    mog_3d_tensor,
+    ReconMergeParams,
+    generate_fractal_noise_3d,
+)
 
 
 def PSFreconstruction(transforms, slices, slices_mask, vol_mask, params):
@@ -391,7 +395,6 @@ class Scanner:
 
         rand_motion = True
         while True:
-            # print(f"Generating stack : {len(stacks)}")
             # stack transformation
             transform_init = random_init_stack_transforms(
                 ns, gap, self.restrict_transform, self.txy, device
@@ -502,8 +505,8 @@ class Scanner:
         data.pop("volume")
         return data
 
-from fetalsyngen.generator.artifacts.utils import MergeParams, PerlinMergeParams, GaussianMergeParams, generate_fractal_noise_3d
-class PSFReconstructor2:
+
+class PSFReconstructor:
     """
     Class that reconstructs the volume from the acquired slices using the PSF and the transforms given.
 
@@ -519,8 +522,7 @@ class PSFReconstructor2:
         prob_misreg_stack: float,
         txy: float,
         prob_merge: float,
-        merge_params: MergeParams, 
-
+        merge_params: ReconMergeParams,
         prob_smooth: float,
         prob_rm_slices: float,
         rm_slices_min: float,
@@ -550,9 +552,9 @@ class PSFReconstructor2:
         self.prob_merge = prob_merge
         self.merge_params = merge_params
         assert merge_params.merge_type in ["gaussian", "perlin"], (
-                f"Merge type {merge_params.merge_type} not supported, "
-                "only gaussian and perlin are supported."
-                )
+            f"Merge type {merge_params.merge_type} not supported, "
+            "only gaussian and perlin are supported."
+        )
         self.prob_smooth = prob_smooth
         self.prob_rm_slices = prob_rm_slices
         self.rm_slices_min = rm_slices_min
@@ -579,29 +581,31 @@ class PSFReconstructor2:
             )
         self._misreg_stack_on = []
         self._merge_volume_on = np.random.rand() < self.prob_merge
-        print("MERGEPARAMS", isinstance(self.merge_params, GaussianMergeParams), isinstance(self.merge_params, PerlinMergeParams))
         if self.merge_params.merge_type == "gaussian":
             if "ngaussians_merge" in genparams:
                 self._ngaussians_merge = genparams["ngaussians_merge"]
             else:
                 self._ngaussians_merge = np.random.randint(
-                    self.merge_params.ngaussians_min, self.merge_params.ngaussians_max
+                    self.merge_params.gauss_ngaussians_min,
+                    self.merge_params.gauss_ngaussians_max,
                 )
         elif self.merge_params.merge_type == "perlin":
             if "res" in genparams:
                 self._res = genparams["res"]
             else:
-                self._res = np.random.choice(self.merge_params.res_list)
+                self._res = np.random.choice(self.merge_params.perlin_res_list)
             if "octave" in genparams:
                 self._octave = genparams["octave"]
             else:
-                self._octave = np.random.choice(self.merge_params.octaves_list)
+                self._octave = np.random.choice(
+                    self.merge_params.perlin_octaves_list
+                )
 
     def get_seeds(self):
         """
         Get the dictionary of the seeds used for randomization.
         """
-        seeds =  {
+        seeds = {
             "smooth_volume_on": self._smooth_volume_on,
             "rm_slices_on": self._rm_slices_on,
             "rm_slices_ratio": self._rm_slices_ratio,
@@ -690,7 +694,6 @@ class PSFReconstructor2:
 
         return RigidTransform(trf2, trans_first=True)
 
-
     def get_merging_weights(self, shape, vol_mask=None):
         """
         Get the merging weights for the volume.
@@ -702,8 +705,7 @@ class PSFReconstructor2:
         Returns:
             torch.Tensor: The merging weights.
         """
-        print("Merging")
-        if vol_mask is not None and self.merge_params.merge_type=="gaussian":
+        if vol_mask is not None and self.merge_params.merge_type == "gaussian":
             pos = torch.where(vol_mask.squeeze() > 0)
             idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
 
@@ -718,17 +720,18 @@ class PSFReconstructor2:
                 centers=centers,
                 sigmas=sigmas,
                 device=self.device,
-            ).view(1, 1, *shape)
+            ).view(*shape)
             return weight
         elif self.merge_params.merge_type == "perlin":
             weight = generate_fractal_noise_3d(
                 shape,
                 res=(self._res, self._res, self._res),
                 octaves=self._octave,
-                persistence=self.merge_params.persistence,
-                lacunarity=self.merge_params.lacunarity,
+                persistence=self.merge_params.perlin_persistence,
+                lacunarity=self.merge_params.perlin_lacunarity,
                 device=self.device,
-            )
+            ).view(*shape)
+            weight = (weight - weight.min()) / (weight.max() - weight.min())
             return weight
         else:
             raise RuntimeError
@@ -745,276 +748,6 @@ class PSFReconstructor2:
         """
         if self._merge_volume_on:
             weight = self.get_merging_weights(volume.shape[-3:], vol_mask)
-            merged = weight * volume + (1 - weight) * volume_gt
-            torch.save(weight, "weight.pt")
-            return merged, weight
-        else:
-            merged = volume
-
-            return merged, torch.zeros_like(merged)
-
-    def kept_slices_idx(self, nslices):
-        """
-        Get the indices of the slices that will be kept when removing a portion of the slices
-        to be used for reconstruction.
-
-        Args:
-            nslices: The number of slices.
-
-        Returns:
-            torch.Tensor: The indices of the kept slices.
-        """
-        if self._rm_slices_on:
-            # number of slices that will be kept.
-            n = int(nslices * self._rm_slices_ratio)
-            idx = torch.randperm(nslices)[n:]
-            return idx
-        else:
-            return torch.arange(nslices)
-
-    def recon_psf(self, data):
-        """
-        Reconstruct the volume using the PSF.
-
-        Args:
-            data: Dictionary containing the data.
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor]: The reconstructed volume and the mixture of Gaussians.
-        """
-        params = {
-            "psf": data["psf_rec"],
-            "slice_shape": data["slice_shape"],
-            "interp_psf": True,
-            "res_s": data["resolution_slice"],
-            "res_r": data["resolution_recon"],
-            "s_thick": data["slice_thickness"],
-            "volume_shape": data["volume_shape"],
-        }
-        rec = partial(
-            PSFreconstruction, slices_mask=None, vol_mask=None, params=params
-        )
-        return self.__recon_volume(data, rec)
-
-    def __recon_volume(self, data, rec):
-        """
-        Reconstruct the volume using the given reconstruction function.
-
-        Args:
-            data: Dictionary containing the data.
-            rec: The reconstruction function.
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor]: The reconstructed volume and the mixture of Gaussians.
-        """
-
-        self.sample_seeds()
-        self.device = data["stacks"].device
-        trf = self.misregister_slices(
-            data["transforms_angle"], data["transforms_gt_angle"]
-        )
-        trf = self.misregistration_trf(data["positions"], trf)
-        kept_idx = self.kept_slices_idx(data["stacks"].shape[0])
-        volume = rec(trf.matrix()[kept_idx], data["stacks"][kept_idx])
-
-        volume = self.smooth_volume(volume)
-        mask = data["seg_gt"] > 0
-        volume, mog = self.merge_volumes(mask, volume, data["volume_gt"])
-        return volume, mog
-
-
-class PSFReconstructor:
-    """
-    Class that reconstructs the volume from the acquired slices using the PSF and the transforms given.
-
-    Randomly applies: misregistration of a part of the slices, removal of a portion of the slices, merging of the volume with the ground truth according to a 3D MoG and smoothing of the volume.
-
-
-    """
-
-    def __init__(
-        self,
-        prob_misreg_slice: float,
-        slices_misreg_ratio: float,
-        prob_misreg_stack: float,
-        txy: float,
-        prob_merge: float,
-        merge_ngaussians_min: int,
-        merge_ngaussians_max: int,
-        prob_smooth: float,
-        prob_rm_slices: float,
-        rm_slices_min: float,
-        rm_slices_max: float,
-    ):
-        """
-        Initialize the reconstructor with the given parameters.
-
-        Args:
-            prob_misreg_slice: Probability of misregistering a slice.
-            slices_misreg_ratio: Ratio of slices to misregister.
-            prob_misreg_stack: Probability of misregistering a stack.
-            txy: Translation factor.
-            prob_merge: Probability of merging the volume with the ground truth.
-            merge_ngaussians_min: Minimum number of Gaussians for the merging.
-            merge_ngaussians_max: Maximum number of Gaussians for the merging.
-            prob_smooth: Probability of smoothing the volume.
-            prob_rm_slices: Probability of removing slices.
-            rm_slices_min: Minimum ratio of slices to remove.
-            rm_slices_max: Maximum ratio of slices to remove.
-
-        """
-        self.prob_misreg_slice = prob_misreg_slice
-        self.slices_misreg_ratio = slices_misreg_ratio
-        self.prob_misreg_stack = prob_misreg_stack
-        self.txy_stack = txy
-        self.prob_merge = prob_merge
-        self.merge_ngaussians_min = merge_ngaussians_min
-        self.merge_ngaussians_max = merge_ngaussians_max
-        self.prob_smooth = prob_smooth
-        self.prob_rm_slices = prob_rm_slices
-        self.rm_slices_min = rm_slices_min
-        self.rm_slices_max = rm_slices_max
-
-    def sample_seeds(self, genparams: dict = {}):
-        """
-        Sample the seeds for the randomization.
-
-        Args:
-            genparams: Dictionary containing the generation parameters.
-        """
-        self._smooth_volume_on = np.random.rand() < self.prob_smooth
-        self._rm_slices_on = np.random.rand() < self.prob_rm_slices
-        self._misreg_slice_on = np.random.rand() < self.prob_misreg_slice
-
-        if "rm_slices_ratio" in genparams:
-            self._rm_slices_ratio = genparams["rm_slices_ratio"]
-        else:
-            self._rm_slices_ratio = (
-                np.random.uniform(self.rm_slices_min, self.rm_slices_max)
-                if self._rm_slices_on
-                else None
-            )
-        self._misreg_stack_on = []
-        self._merge_volume_on = np.random.rand() < self.prob_merge
-        if "ngaussians_merge" in genparams:
-            self._ngaussians_merge = genparams["ngaussians_merge"]
-        else:
-            self._ngaussians_merge = np.random.randint(
-                self.merge_ngaussians_min, self.merge_ngaussians_max
-            )
-
-    def get_seeds(self):
-        """
-        Get the dictionary of the seeds used for randomization.
-        """
-        return {
-            "smooth_volume_on": self._smooth_volume_on,
-            "rm_slices_on": self._rm_slices_on,
-            "rm_slices_ratio": self._rm_slices_ratio,
-            "misreg_stack_on": self._misreg_stack_on,
-            "misreg_slice_on": self._misreg_slice_on,
-            "merge_volume_on": self._merge_volume_on,
-            "ngaussians_merge": self._ngaussians_merge,
-        }
-
-    def smooth_volume(self, volume):
-        """
-        Smooth the volume using a 3x3x3 convolution kernel
-        """
-        if self._smooth_volume_on:
-            return F.conv3d(
-                volume,
-                torch.ones(1, 1, 3, 3, 3, device=self.device) / 27,
-                padding=1,
-            )
-        else:
-            return volume
-
-    def misregistration_trf(self, positions, base_axisangle):
-        """
-        Simulate misalignment with a registration error.
-
-        Args:
-            positions: The positions of the slices.
-            base_axisangle: The base axis angle.
-
-        Returns:
-            RigidTransform: The misregistered transformation.
-        """
-        nslices = len(positions)
-        rand_angle = torch.zeros((nslices, 6)).to(self.device)
-        for pos in torch.unique(positions[:, 1]):
-            self._misreg_stack_on.append(
-                np.random.rand() < self.prob_misreg_stack
-            )
-            if not self._misreg_stack_on[-1]:
-                continue
-            idx = torch.where(positions[:, 1] == pos)[0]
-
-            tx = torch.ones(len(idx)).to(self.device) * np.random.uniform(
-                -self.txy_stack, self.txy_stack
-            )
-            ty = torch.ones(len(idx)).to(self.device) * np.random.uniform(
-                -self.txy_stack, self.txy_stack
-            )
-            rand_angle[idx, 3:] = random_angle(
-                len(idx), restricted=True, device=self.device
-            )
-            rand_angle[idx, :3] = torch.stack(
-                (tx, ty, torch.zeros_like(tx)), -1
-            )
-
-        trf = RigidTransform(rand_angle, trans_first=True)
-
-        return trf.compose(base_axisangle)
-
-    def misregister_slices(self, trf, trf_gt):
-        """
-        Misregister a part of the slices based on the
-        misregistration transform defined in `misregistration_trf`.
-
-        Args:
-            trf: The misregistered transformation.
-            trf_gt: The ground truth transformation.
-        """
-        trf1 = trf.axisangle()
-        trf2 = trf_gt.axisangle()
-        if self._misreg_slice_on:
-            idx_misreg = torch.randperm(trf2.shape[0])[
-                : int(self.slices_misreg_ratio * trf2.shape[0])
-            ]
-            idx_misreg = idx_misreg[:1]
-            trf2[idx_misreg] = trf1[idx_misreg]
-
-        return RigidTransform(trf2, trans_first=True)
-
-    def merge_volumes(self, vol_mask, volume, volume_gt):
-        """
-        Merge the reconstructed volume with the ground truth according to a 3D mixture of Gaussians.
-        This allows to simulate spatially varying artifacts.
-
-        Args:
-            vol_mask: The volume mask.
-            volume: The reconstructed volume.
-            volume_gt: The ground truth volume.
-        """
-        if self._merge_volume_on:
-            device = volume.device
-            pos = torch.where(vol_mask.squeeze() > 0)
-            idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
-
-            centers = [(pos[0][i], pos[1][i], pos[2][i]) for i in idx]
-            # Tested for an image of size 256^3
-            sigmas = [
-                torch.clamp(20 + 10 * torch.randn(1), 5, 40).to(device)
-                for _ in range(len(centers))
-            ]
-            weight = mog_3d_tensor(
-                volume[0, 0].shape,
-                centers=centers,
-                sigmas=sigmas,
-                device=device,
-            ).view(1, 1, *volume.shape[2:])
             merged = weight * volume + (1 - weight) * volume_gt
             return merged, weight
         else:
