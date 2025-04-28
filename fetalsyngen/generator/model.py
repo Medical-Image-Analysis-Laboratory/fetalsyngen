@@ -166,7 +166,6 @@ class FetalSynthGen:
         self,
         image: torch.Tensor | None,
         segmentation: torch.Tensor,
-        seeds: torch.Tensor | None,
         genparams: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         """
@@ -174,21 +173,20 @@ class FetalSynthGen:
         Supports both random generation and from a fixed genparams dictionary.
 
         Args:
-            image: Image to use as intensity prior if required.
+            image: Image to be augmented
             segmentation: Segmentation to use as spatial prior.
-            seeds: Seeds to use for intensity generation.
             genparams: Dictionary with generation parameters.
                 Used for fixed generation.
                 Should follow the structure and be of the same type as
                 the returned generation parameters.
 
         Returns:
-            The synthetic augmented image, the segmentation, the original image, and the generation parameters.
+            The synthetic augmented image, the segmentation and the generation parameters.
 
         """
         # 1. Gamma contrast transformation
         output, gamma_params = self.gamma(
-            output, self.device, genparams=genparams.get("gamma_params", {})
+            image, self.device, genparams=genparams.get("gamma_params", {})
         )
 
         # 2. Bias field corruption
@@ -232,7 +230,7 @@ class FetalSynthGen:
             "noise_params": noise_params,
             "artifacts": artifacts,
         }
-        return output, segmentation, image, synth_params
+        return output, synth_params
 
     def sample(
         self,
@@ -270,10 +268,9 @@ class FetalSynthGen:
         )
 
         # 2. Augment the deformed image
-        output, segmentation, image, synth_params_aug = self.augment(
-            image=image,
+        output, synth_params_aug = self.augment(
+            image=output,
             segmentation=segmentation,
-            seeds=seeds,
             genparams=genparams,
         )
 

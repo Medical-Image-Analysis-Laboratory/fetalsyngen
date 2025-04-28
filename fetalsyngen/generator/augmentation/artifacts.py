@@ -17,7 +17,7 @@ from fetalsyngen.generator.artifacts.utils import (
     ReconParams,
 )
 from skimage.morphology import ball
-from dataclasses import asdict
+from dataclasses import asdict, fields
 
 
 class BlurCortex(RandTransform):
@@ -356,10 +356,12 @@ class SimulateMotion2(RandTransform):
                 "threshold": 0.1,
             }
             self.scanner_args.resolution_recon = res_
+
             scanner = Scanner(**asdict(self.scanner_args))
             d_scan = scanner.scan(d)
 
-            recon = PSFReconstructor2(**asdict(self.recon_args))
+            print(asdict(self.recon_args))
+            recon = PSFReconstructor2(**{f.name: getattr(self.recon_args, f.name) for f in fields(self.recon_args)})
             output, _ = recon.recon_psf(d_scan)
             print(recon.get_seeds())
             metadata.update(
@@ -375,7 +377,7 @@ class SimulateMotion2(RandTransform):
 
             return output.squeeze(), metadata
         else:
-            print("hi")
+            
             return output, {}
 
 

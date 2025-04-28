@@ -579,14 +579,15 @@ class PSFReconstructor2:
             )
         self._misreg_stack_on = []
         self._merge_volume_on = np.random.rand() < self.prob_merge
-        if isinstance(self.merge_params, GaussianMergeParams):
+        print("MERGEPARAMS", isinstance(self.merge_params, GaussianMergeParams), isinstance(self.merge_params, PerlinMergeParams))
+        if self.merge_params.merge_type == "gaussian":
             if "ngaussians_merge" in genparams:
                 self._ngaussians_merge = genparams["ngaussians_merge"]
             else:
                 self._ngaussians_merge = np.random.randint(
-                    self.merge_ngaussians_min, self.merge_ngaussians_max
+                    self.merge_params.ngaussians_min, self.merge_params.ngaussians_max
                 )
-        elif isinstance(self.merge_params, PerlinMergeParams):
+        elif self.merge_params.merge_type == "perlin":
             if "res" in genparams:
                 self._res = genparams["res"]
             else:
@@ -594,21 +595,29 @@ class PSFReconstructor2:
             if "octave" in genparams:
                 self._octave = genparams["octave"]
             else:
-                self._octave = np.random.choice(self.merge_params.octave_list)
+                self._octave = np.random.choice(self.merge_params.octaves_list)
 
     def get_seeds(self):
         """
         Get the dictionary of the seeds used for randomization.
         """
-        return {
+        seeds =  {
             "smooth_volume_on": self._smooth_volume_on,
             "rm_slices_on": self._rm_slices_on,
             "rm_slices_ratio": self._rm_slices_ratio,
             "misreg_stack_on": self._misreg_stack_on,
             "misreg_slice_on": self._misreg_slice_on,
             "merge_volume_on": self._merge_volume_on,
-            "ngaussians_merge": self._ngaussians_merge,
         }
+        if self.merge_params.merge_type == "gaussian":
+            seeds["merge_type"] = "gaussian"
+            seeds["ngaussians_merge"] = self._ngaussians_merge
+        elif self.merge_params.merge_type == "perlin":
+            seeds["merge_type"] = "perlin"
+            seeds["res"] = self._res
+            seeds["octave"] = self._octave
+
+        return seeds
 
     def smooth_volume(self, volume):
         """
@@ -693,8 +702,8 @@ class PSFReconstructor2:
         Returns:
             torch.Tensor: The merging weights.
         """
-
-        if vol_mask is not None and self.merge_type=="gaussian":
+        print("Merging")
+        if vol_mask is not None and self.merge_params.merge_type=="gaussian":
             pos = torch.where(vol_mask.squeeze() > 0)
             idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
 
@@ -711,7 +720,7 @@ class PSFReconstructor2:
                 device=self.device,
             ).view(1, 1, *shape)
             return weight
-        elif self.merge_type == "perlin":
+        elif self.merge_params.merge_type == "perlin":
             weight = generate_fractal_noise_3d(
                 shape,
                 res=(self._res, self._res, self._res),
@@ -735,8 +744,9 @@ class PSFReconstructor2:
             volume_gt: The ground truth volume.
         """
         if self._merge_volume_on:
-            weight = self.get_merging_weights(volume.shape, vol_mask)
+            weight = self.get_merging_weights(volume.shape[-3:], vol_mask)
             merged = weight * volume + (1 - weight) * volume_gt
+            torch.save(weight, "weight.pt")
             return merged, weight
         else:
             merged = volume

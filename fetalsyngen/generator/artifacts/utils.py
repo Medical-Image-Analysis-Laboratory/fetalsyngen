@@ -57,7 +57,7 @@ class PerlinMergeParams(MergeParams):
     res_list: list[int]
     octaves_list: list[int]
     persistence: float
-    lacunarity: float
+    lacunarity: int
 
     def __post_init__(self):
         self.merge_type = "perlin"
@@ -218,7 +218,7 @@ def perlin_interpolant(t):
     # Perlin interpolation: 6t^5 - 15t^4 + 10t^3
     return t * t * t * (t * (t * 6 - 15) + 10)
 
-def generate_perlin_noise_3d(shape, res, tileable=(False, False, False), interpolant=perlin_interpolant, device=None):
+def generate_perlin_noise_3d(shape, res, tileable=(True, True, True), interpolant=perlin_interpolant, device=None):
     """
     Generate a 3D torch tensor of Perlin noise.
 
@@ -254,6 +254,7 @@ def generate_perlin_noise_3d(shape, res, tileable=(False, False, False), interpo
     local_xyz = grid - cell
 
     # Generate random gradient vectors at lattice points
+    print("res", res, res[0], res[1], res[2], device)
     theta = 2 * torch.pi * torch.rand(res[0]+1, res[1]+1, res[2]+1, device=device)
     phi = 2 * torch.pi * torch.rand(res[0]+1, res[1]+1, res[2]+1, device=device)
     gradients = torch.stack((
@@ -322,7 +323,7 @@ def generate_perlin_noise_3d(shape, res, tileable=(False, False, False), interpo
 
 def generate_fractal_noise_3d(
         shape, res, octaves=1, persistence=0.5, lacunarity=2,
-        tileable=(False, False, False), interpolant=perlin_interpolant, device=None
+        tileable=(True, True, True), interpolant=perlin_interpolant, device=None
 ):
     """Generate a 3D numpy array of fractal noise.
 
@@ -358,6 +359,7 @@ def generate_fractal_noise_3d(
     noise = noise.to(device)
     frequency = 1
     amplitude = 1
+    print(res[0], res[1], res[2])
     for _ in range(octaves):
         noise += amplitude * generate_perlin_noise_3d(
             shape,
