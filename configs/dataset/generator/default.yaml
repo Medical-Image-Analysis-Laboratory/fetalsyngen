@@ -85,7 +85,7 @@ struct_noise:
     perlin_octaves_list: [1, 2, 4]
     perlin_persistence: 0.5
     perlin_lacunarity: 2
-    perlin_increase_size: 0.25
+    perlin_increase_size: 0.3
 
 simulate_motion:
   _target_: fetalsyngen.generator.augmentation.artifacts.SimulateMotion
@@ -129,6 +129,7 @@ simulate_motion:
       perlin_lacunarity: 2
       gauss_ngaussians_min: 2
       gauss_ngaussians_max: 4
+      perlin_increase_size: 0.25
     prob_smooth: 0.2
     prob_rm_slices: 0.3
     rm_slices_min: 0.1

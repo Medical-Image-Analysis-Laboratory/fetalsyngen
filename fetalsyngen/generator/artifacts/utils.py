@@ -61,6 +61,7 @@ class ReconMergeParams:
     perlin_octaves_list: list[int] = None
     perlin_persistence: float = None
     perlin_lacunarity: int = None
+    perlin_increase_size: float = None
 
 
 @dataclass
@@ -268,7 +269,6 @@ def generate_perlin_noise_3d(
     local_xyz = grid - cell
 
     # Generate random gradient vectors at lattice points
-    print("res", res, res[0], res[1], res[2], device)
     theta = (
         2
         * torch.pi
@@ -351,7 +351,9 @@ def generate_fractal_noise_3d(
     lacunarity=2,
     tileable=(True, True, True),
     interpolant=perlin_interpolant,
+    increase=0.0,
     device=None,
+    
 ):
     """Generate a 3D numpy array of fractal noise.
 
@@ -387,7 +389,6 @@ def generate_fractal_noise_3d(
     noise = noise.to(device)
     frequency = 1
     amplitude = 1
-    print(res[0], res[1], res[2])
     for _ in range(octaves):
         noise += amplitude * generate_perlin_noise_3d(
             shape,
@@ -398,5 +399,7 @@ def generate_fractal_noise_3d(
         )
         frequency *= lacunarity
         amplitude *= persistence
-
+    
+    noise = (noise + increase - noise.min()) / (noise.max() - noise.min())
+    noise = torch.clamp(noise, 0, 1)
     return noise
