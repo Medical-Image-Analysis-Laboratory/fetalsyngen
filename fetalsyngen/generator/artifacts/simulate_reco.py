@@ -3,7 +3,7 @@ This file contains the classes that are used to cpplate randomized acquisitions 
 boundary modifications.
 
 - PSFReconstruction: Basic class that reconstructs the volume from the acquired slices using the PDF and the transforms given.
-- Scanner: Class that simulates the acquisition of slices from a volume. Modified version from SVoRT (Xu et al. 2022.) 
+- Scanner: Class that simulates the acquisition of slices from a volume. Modified version from SVoRT (Xu et al. 2022.)
     at https://github.com/daviddmc/SVoRT/blob/main/src/data/scan.py
 - PSFReconstructor: Class that reconstructs the volume from the acquired slices using the PDF and the transforms given.
     Randomly applies: misregistration of a part of the slices, removal of a portion of the slices, merging of the volume with the ground truth according to a 3D
@@ -28,7 +28,11 @@ from fetalsyngen.generator.artifacts.svort import (
     random_angle,
 )
 from functools import partial
-from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
+from fetalsyngen.generator.artifacts.utils import (
+    mog_3d_tensor,
+    ReconMergeParams,
+    generate_fractal_noise_3d,
+)
 
 
 def PSFreconstruction(transforms, slices, slices_mask, vol_mask, params):
@@ -170,7 +174,9 @@ class Scanner:
         if self.resolution_recon is not None:
             data["resolution_recon"] = self.resolution_recon
         else:
-            data["resolution_recon"] = np.random.uniform(resolution, resolution_slice)
+            data["resolution_recon"] = np.random.uniform(
+                resolution, resolution_slice
+            )
         data["resolution_slice"] = resolution_slice
         if "slice_thickness" not in genparams:
             data["slice_thickness"] = np.random.uniform(
@@ -243,7 +249,9 @@ class Scanner:
         mask = slices > self.slice_noise_threshold
         masked = slices[mask]
         if "noise_sigma" not in genparams:
-            sigma = np.random.uniform(self.noise_sigma_min, self.noise_sigma_max)
+            sigma = np.random.uniform(
+                self.noise_sigma_min, self.noise_sigma_max
+            )
         else:
             sigma = genparams["noise_sigma"]
         noise1 = torch.randn_like(masked) * sigma
@@ -262,13 +270,19 @@ class Scanner:
             torch.Tensor: The slices with the signal voids.
         """
 
-        idx = torch.rand(slices.shape[0], device=slices.device) < self.prob_void
+        idx = (
+            torch.rand(slices.shape[0], device=slices.device) < self.prob_void
+        )
 
         n = idx.sum()
         if n > 0:
             h, w = slices.shape[-2:]
-            y = torch.linspace(-(h - 1) / 2, (h - 1) / 2, h, device=slices.device)
-            x = torch.linspace(-(w - 1) / 2, (w - 1) / 2, w, device=slices.device)
+            y = torch.linspace(
+                -(h - 1) / 2, (h - 1) / 2, h, device=slices.device
+            )
+            x = torch.linspace(
+                -(w - 1) / 2, (w - 1) / 2, w, device=slices.device
+            )
             yc = (torch.rand(n, device=slices.device) - 0.5) * (h - 1)
             xc = (torch.rand(n, device=slices.device) - 0.5) * (w - 1)
 
@@ -318,10 +332,15 @@ class Scanner:
             for i in range(3):
                 size_new = int(data["volume"].shape[i + 2] * res / res_r)
                 grid_max = (
-                    (size_new - 1) * res_r / (data["volume"].shape[i + 2] - 1) / res
+                    (size_new - 1)
+                    * res_r
+                    / (data["volume"].shape[i + 2] - 1)
+                    / res
                 )
                 grids.append(
-                    torch.linspace(-grid_max, grid_max, size_new, device=device)
+                    torch.linspace(
+                        -grid_max, grid_max, size_new, device=device
+                    )
                 )
             grid = torch.stack(
                 torch.meshgrid(*grids, indexing="ij")[::-1], -1
@@ -354,7 +373,9 @@ class Scanner:
 
         if self.slice_size is None:
             ss = int(
-                np.sqrt((vs[-1] ** 2 + vs[-2] ** 2 + vs[-3] ** 2) / 2.0) * res / res_s
+                np.sqrt((vs[-1] ** 2 + vs[-2] ** 2 + vs[-3] ** 2) / 2.0)
+                * res
+                / res_s
             )
             ss = int(np.ceil(ss / 32.0) * 32)
         else:
@@ -368,11 +389,12 @@ class Scanner:
         transforms_gt = []
         positions = []
 
-        num_stacks = np.random.randint(self.min_num_stack, self.max_num_stack + 1)
+        num_stacks = np.random.randint(
+            self.min_num_stack, self.max_num_stack + 1
+        )
 
         rand_motion = True
         while True:
-            # print(f"Generating stack : {len(stacks)}")
             # stack transformation
             transform_init = random_init_stack_transforms(
                 ns, gap, self.restrict_transform, self.txy, device
@@ -384,7 +406,11 @@ class Scanner:
             # interleaved acquisition
             interleave_idx = interleave_index(
                 ns,
-                (np.random.randint(2, int(np.sqrt(ns)) + 1) if rand_motion else 2),
+                (
+                    np.random.randint(2, int(np.sqrt(ns)) + 1)
+                    if rand_motion
+                    else 2
+                ),
             )
             transform_motion = transform_motion[interleave_idx]
             # apply motion
@@ -443,7 +469,9 @@ class Scanner:
             transforms.append(transform_init)
             transforms_gt.append(transform_target)
             positions.append(
-                torch.arange(slices.shape[0], dtype=slices.dtype, device=device)
+                torch.arange(
+                    slices.shape[0], dtype=slices.dtype, device=device
+                )
                 - slices.shape[0] // 2
             )
             if len(stacks) >= num_stacks:
@@ -452,7 +480,9 @@ class Scanner:
         stacks_ids = np.random.choice(20, len(stacks), replace=False)
         positions = torch.cat(
             [
-                torch.stack((positions[i], torch.full_like(positions[i], s_i)), -1)
+                torch.stack(
+                    (positions[i], torch.full_like(positions[i], s_i)), -1
+                )
                 for i, s_i in enumerate(stacks_ids)
             ],
             0,
@@ -492,8 +522,7 @@ class PSFReconstructor:
         prob_misreg_stack: float,
         txy: float,
         prob_merge: float,
-        merge_ngaussians_min: int,
-        merge_ngaussians_max: int,
+        merge_params: ReconMergeParams,
         prob_smooth: float,
         prob_rm_slices: float,
         rm_slices_min: float,
@@ -521,8 +550,11 @@ class PSFReconstructor:
         self.prob_misreg_stack = prob_misreg_stack
         self.txy_stack = txy
         self.prob_merge = prob_merge
-        self.merge_ngaussians_min = merge_ngaussians_min
-        self.merge_ngaussians_max = merge_ngaussians_max
+        self.merge_params = merge_params
+        assert merge_params.merge_type in ["gaussian", "perlin"], (
+            f"Merge type {merge_params.merge_type} not supported, "
+            "only gaussian and perlin are supported."
+        )
         self.prob_smooth = prob_smooth
         self.prob_rm_slices = prob_rm_slices
         self.rm_slices_min = rm_slices_min
@@ -549,26 +581,47 @@ class PSFReconstructor:
             )
         self._misreg_stack_on = []
         self._merge_volume_on = np.random.rand() < self.prob_merge
-        if "ngaussians_merge" in genparams:
-            self._ngaussians_merge = genparams["ngaussians_merge"]
-        else:
-            self._ngaussians_merge = np.random.randint(
-                self.merge_ngaussians_min, self.merge_ngaussians_max
-            )
+        if self.merge_params.merge_type == "gaussian":
+            if "ngaussians_merge" in genparams:
+                self._ngaussians_merge = genparams["ngaussians_merge"]
+            else:
+                self._ngaussians_merge = np.random.randint(
+                    self.merge_params.gauss_ngaussians_min,
+                    self.merge_params.gauss_ngaussians_max,
+                )
+        elif self.merge_params.merge_type == "perlin":
+            if "res" in genparams:
+                self._res = genparams["res"]
+            else:
+                self._res = np.random.choice(self.merge_params.perlin_res_list)
+            if "octave" in genparams:
+                self._octave = genparams["octave"]
+            else:
+                self._octave = np.random.choice(
+                    self.merge_params.perlin_octaves_list
+                )
 
     def get_seeds(self):
         """
         Get the dictionary of the seeds used for randomization.
         """
-        return {
+        seeds = {
             "smooth_volume_on": self._smooth_volume_on,
             "rm_slices_on": self._rm_slices_on,
             "rm_slices_ratio": self._rm_slices_ratio,
             "misreg_stack_on": self._misreg_stack_on,
             "misreg_slice_on": self._misreg_slice_on,
             "merge_volume_on": self._merge_volume_on,
-            "ngaussians_merge": self._ngaussians_merge,
         }
+        if self.merge_params.merge_type == "gaussian":
+            seeds["merge_type"] = "gaussian"
+            seeds["ngaussians_merge"] = self._ngaussians_merge
+        elif self.merge_params.merge_type == "perlin":
+            seeds["merge_type"] = "perlin"
+            seeds["res"] = self._res
+            seeds["octave"] = self._octave
+
+        return seeds
 
     def smooth_volume(self, volume):
         """
@@ -597,7 +650,9 @@ class PSFReconstructor:
         nslices = len(positions)
         rand_angle = torch.zeros((nslices, 6)).to(self.device)
         for pos in torch.unique(positions[:, 1]):
-            self._misreg_stack_on.append(np.random.rand() < self.prob_misreg_stack)
+            self._misreg_stack_on.append(
+                np.random.rand() < self.prob_misreg_stack
+            )
             if not self._misreg_stack_on[-1]:
                 continue
             idx = torch.where(positions[:, 1] == pos)[0]
@@ -611,7 +666,9 @@ class PSFReconstructor:
             rand_angle[idx, 3:] = random_angle(
                 len(idx), restricted=True, device=self.device
             )
-            rand_angle[idx, :3] = torch.stack((tx, ty, torch.zeros_like(tx)), -1)
+            rand_angle[idx, :3] = torch.stack(
+                (tx, ty, torch.zeros_like(tx)), -1
+            )
 
         trf = RigidTransform(rand_angle, trans_first=True)
 
@@ -637,6 +694,48 @@ class PSFReconstructor:
 
         return RigidTransform(trf2, trans_first=True)
 
+    def get_merging_weights(self, shape, vol_mask=None):
+        """
+        Get the merging weights for the volume.
+
+        Args:
+            shape: The shape of the volume.
+            vol_mask: The volume mask.
+
+        Returns:
+            torch.Tensor: The merging weights.
+        """
+        if vol_mask is not None and self.merge_params.merge_type == "gaussian":
+            pos = torch.where(vol_mask.squeeze() > 0)
+            idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
+
+            centers = [(pos[0][i], pos[1][i], pos[2][i]) for i in idx]
+            # Tested for an image of size 256^3
+            sigmas = [
+                torch.clamp(20 + 10 * torch.randn(1), 5, 40).to(self.device)
+                for _ in range(len(centers))
+            ]
+            weight = mog_3d_tensor(
+                shape,
+                centers=centers,
+                sigmas=sigmas,
+                device=self.device,
+            ).view(*shape)
+            return weight
+        elif self.merge_params.merge_type == "perlin":
+            weight = generate_fractal_noise_3d(
+                shape,
+                res=(self._res, self._res, self._res),
+                octaves=self._octave,
+                persistence=self.merge_params.perlin_persistence,
+                lacunarity=self.merge_params.perlin_lacunarity,
+                device=self.device,
+            ).view(*shape)
+            weight = (weight - weight.min()) / (weight.max() - weight.min())
+            return weight
+        else:
+            raise RuntimeError
+
     def merge_volumes(self, vol_mask, volume, volume_gt):
         """
         Merge the reconstructed volume with the ground truth according to a 3D mixture of Gaussians.
@@ -648,22 +747,7 @@ class PSFReconstructor:
             volume_gt: The ground truth volume.
         """
         if self._merge_volume_on:
-            device = volume.device
-            pos = torch.where(vol_mask.squeeze() > 0)
-            idx = torch.randperm(pos[0].shape[0])[: self._ngaussians_merge]
-
-            centers = [(pos[0][i], pos[1][i], pos[2][i]) for i in idx]
-            # Tested for an image of size 256^3
-            sigmas = [
-                torch.clamp(20 + 10 * torch.randn(1), 5, 40).to(device)
-                for _ in range(len(centers))
-            ]
-            weight = mog_3d_tensor(
-                volume[0, 0].shape,
-                centers=centers,
-                sigmas=sigmas,
-                device=device,
-            ).view(1, 1, *volume.shape[2:])
+            weight = self.get_merging_weights(volume.shape[-3:], vol_mask)
             merged = weight * volume + (1 - weight) * volume_gt
             return merged, weight
         else:
@@ -709,7 +793,9 @@ class PSFReconstructor:
             "s_thick": data["slice_thickness"],
             "volume_shape": data["volume_shape"],
         }
-        rec = partial(PSFreconstruction, slices_mask=None, vol_mask=None, params=params)
+        rec = partial(
+            PSFreconstruction, slices_mask=None, vol_mask=None, params=params
+        )
         return self.__recon_volume(data, rec)
 
     def __recon_volume(self, data, rec):

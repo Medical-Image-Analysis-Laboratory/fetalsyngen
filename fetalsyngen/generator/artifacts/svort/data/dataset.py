@@ -104,13 +104,13 @@ class AugmentationDataset:
         volume = nib.load(f)
         affine = volume.affine
         volume = volume.get_fdata()
-        volume = torch.from_numpy(volume[None, None, :,:,:])
+        volume = torch.from_numpy(volume[None, None, :, :, :])
         volume = volume.contiguous().to(
             dtype=torch.float32, device=self.device
         )
         if m is not None:
             seg = nib.load(m).get_fdata()
-            seg = torch.from_numpy(seg[None, None, :,:,:])
+            seg = torch.from_numpy(seg[None, None, :, :, :])
             mask = (seg > 0).float()
             if np.random.rand() > 0.7:
                 volume *= mask
@@ -135,6 +135,7 @@ class AugmentationDataset:
         data["affine"] = affine
 
         return data
+
 
 class RegisteredDataset(AugmentationDataset):
     def __init__(self, is_test, cfg):

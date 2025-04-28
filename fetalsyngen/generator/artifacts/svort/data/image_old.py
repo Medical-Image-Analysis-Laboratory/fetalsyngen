@@ -1,7 +1,7 @@
 """
 Define the stacks, slices and volumes.
 This is based on the original code of NeSVoR, so this might not be totally appropriate for our use,
-as this supposes a coordinate-based approach, while we directly model images. 
+as this supposes a coordinate-based approach, while we directly model images.
 """
 
 from __future__ import annotations
@@ -28,7 +28,10 @@ from fetalsyngen.generator.artifacts.svort.transform import (
     init_zero_transform,
     transform_points,
 )
-from fetalsyngen.generator.artifacts.svort.definitions import PathType, DeviceType
+from fetalsyngen.generator.artifacts.svort.definitions import (
+    PathType,
+    DeviceType,
+)
 import nibabel as nib
 from fetalsyngen.generator.artifacts.svort.data.utils import meshgrid, resample
 
