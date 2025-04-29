@@ -729,7 +729,7 @@ class PSFReconstructor:
                 octaves=self._octave,
                 persistence=self.merge_params.perlin_persistence,
                 lacunarity=self.merge_params.perlin_lacunarity,
-                increase = self.perlin_increase_size,
+                increase = self.merge_params.perlin_increase_size,
                 device=self.device,
             ).view(*shape)
 

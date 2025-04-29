@@ -70,8 +70,8 @@ struct_noise:
   _target_: fetalsyngen.generator.augmentation.artifacts.StructNoise
   prob: 0.4
   wm_label: 3
-  std_min: 0.3 # 0.2
-  std_max: 0.5 # 0.4
+  std_min: 0.2 
+  std_max: 0.4
   nstages_min: 1
   nstages_max: 5
   merge_params:
@@ -85,7 +85,7 @@ struct_noise:
     perlin_octaves_list: [1, 2, 4]
     perlin_persistence: 0.5
     perlin_lacunarity: 2
-    perlin_increase_size: 0.3
+    perlin_increase_size: 0.1
 
 simulate_motion:
   _target_: fetalsyngen.generator.augmentation.artifacts.SimulateMotion
