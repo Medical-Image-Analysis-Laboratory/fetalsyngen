@@ -23,6 +23,7 @@ class FetalDataset:
         self,
         bids_path: str,
         sub_list: list[str] | None,
+        bids_path_img_ending: str,
         bids_path_segm_ending: str,
     ) -> dict:
         """
@@ -46,7 +47,7 @@ class FetalDataset:
 
         self.orientation = Orientation(axcodes="RAS")
 
-        self.img_paths = self._load_bids_path(self.bids_path, "T2w")
+        self.img_paths = self._load_bids_path(self.bids_path, self.bids_path_img_ending)
         self.segm_paths = self._load_bids_path(self.bids_path, self.bids_path_segm_ending)
 
     def find_subjects(self, sub_list):
@@ -123,6 +124,7 @@ class FetalTestDataset(FetalDataset):
         self,
         bids_path: str,
         sub_list: list[str] | None,
+        bids_path_img_ending: str,
         bids_path_segm_ending: str,
         transforms: Compose | None = None,
     ):
@@ -140,9 +142,10 @@ class FetalTestDataset(FetalDataset):
 
             See [inference.yaml](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/dev/configs/dataset/transforms/inference.yaml) for an example of the transforms configuration.
         """
+        self.bids_path_img_ending = bids_path_img_ending
         self.bids_path_segm_ending = bids_path_segm_ending
 
-        super().__init__(bids_path, sub_list, bids_path_segm_ending)
+        super().__init__(bids_path, sub_list, bids_path_img_ending, bids_path_segm_ending)
         self.transforms = transforms
 
     def _load_data(self, idx):
@@ -205,7 +208,9 @@ class FetalSynthDataset(FetalDataset):
         bids_path: str,
         generator: FetalSynthGen,
         seed_path: str | None,
+        seed_csf_path: str | None,
         sub_list: list[str] | None,
+        bids_path_img_ending: str,
         bids_path_segm_ending: str,
         load_image: bool = False,
         image_as_intensity: bool = False,
@@ -228,9 +233,11 @@ class FetalSynthDataset(FetalDataset):
             image_as_intensity: If **True**, the image is used as the intensity prior,
                 instead of sampling the intensities from the seeds. Default is **False**.
         """
+        self.bids_path_img_ending = bids_path_img_ending
         self.bids_path_segm_ending = bids_path_segm_ending
-        super().__init__(bids_path, sub_list, bids_path_segm_ending)
+        super().__init__(bids_path, sub_list, bids_path_img_ending, bids_path_segm_ending)
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
+        self.seed_csf_path = Path(seed_csf_path) if isinstance(seed_csf_path, str) else None
         self.load_image = load_image
         self.generator = generator
         self.image_as_intensity = image_as_intensity
@@ -243,6 +250,14 @@ class FetalSynthDataset(FetalDataset):
                 )
             else:
                 self._load_seed_path()
+        # parse seeds paths
+        if not self.image_as_intensity and isinstance(self.seed_csf_path, Path):
+            if not self.seed_csf_path.exists():
+                raise FileNotFoundError(
+                    f"Provided seed csf path {self.seed_csf_path} does not exist."
+                )
+            else:
+                self._load_seed_csf_path()
 
     def _load_seed_path(self):
         """Load the seeds for the subjects."""
@@ -271,6 +286,35 @@ class FetalSynthDataset(FetalDataset):
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_paths[sub_ses_str][n_sub][i] = file
+
+    def _load_seed_csf_path(self):
+        """Load the seeds for the subjects."""
+        self.seed_csf_paths = {
+            self._sub_ses_string(sub, ses): defaultdict(dict)
+            for (sub, ses) in self.sub_ses
+        }
+        avail_seeds = [
+            int(x.name.replace("subclasses_", ""))
+            for x in self.seed_csf_path.glob("subclasses_*")
+        ]
+        min_seeds_available = min(avail_seeds)
+        max_seeds_available = max(avail_seeds)
+        for n_sub in range(
+            min_seeds_available,
+            max_seeds_available + 1,
+        ):
+            seed_csf_path = self.seed_csf_path / f"subclasses_{n_sub}"
+            if not seed_csf_path.exists():
+                raise FileNotFoundError(
+                    f"Provided seed csf path {seed_csf_path} does not exist."
+                )
+            # load the seeds for the subjects for each meta label 1-4
+            for i in range(1, 5):
+                files = self._load_bids_path(seed_csf_path, f"mlabel_{i}")
+                for (sub, ses), file in zip(self.sub_ses, files):
+                    sub_ses_str = self._sub_ses_string(sub, ses)
+                    self.seed_csf_paths[sub_ses_str][n_sub][i] = file
+
 
     def sample(self, idx, genparams: dict = {}) -> tuple[dict, dict]:
         """
@@ -312,19 +356,23 @@ class FetalSynthDataset(FetalDataset):
         # or None if image is to be used as intensity prior
         if self.seed_path is not None:
             seeds = self.seed_paths[name]
+        if self.seed_csf_path is not None:
+            seeds_csf = self.seed_csf_paths[name]
         if self.image_as_intensity:
             seeds = None
+            seeds_csf = None
 
         # log input data
         generation_params["idx"] = idx
         generation_params["img_paths"] = str(self.img_paths[idx])
         generation_params["segm_paths"] = str(self.img_paths[idx])
         generation_params["seeds"] = str(self.seed_path)
+        generation_params["seeds_csf"] = str(self.seed_csf_path)
         generation_time_start = time.time()
 
         # generate the synthetic data
         gen_output, segmentation, image, synth_params = self.generator.sample(
-            image=image, segmentation=segm, seeds=seeds, genparams=genparams
+            image=image, segmentation=segm, seeds=seeds, seeds_csf=seeds_csf, genparams=genparams
         )
 
         # scale the images to [0, 1]

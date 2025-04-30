@@ -14,7 +14,7 @@ import numpy as np
 
 
 class cc_Alterations:        
-    def __init__(self, alteration_prob: float, target_label: int,
+    def __init__(self, alteration_prob: float, target_label: int, csf_label: int,
                  max_dilation: int, min_dilation: int,
                  min_erosion: int, max_erosion: int,
                  min_posterior_loss: float, max_posterior_loss: float,
@@ -44,6 +44,7 @@ class cc_Alterations:
         """
         self.alteration_prob = alteration_prob
         self.target_label = target_label
+        self.csf_label = csf_label
         self.max_dilation = max_dilation
         self.min_dilation = min_dilation
         self.min_erosion = min_erosion
@@ -165,11 +166,12 @@ class cc_Alterations:
 
         component_sizes = torch.bincount(labeled_mask.view(-1))
         # If only background, no CC, skip the cc alterations
-        #if len(component_sizes) < 2: return target_mask, tensor, True
+        if len(component_sizes) < 2: return target_mask, tensor, True
         sorted_indices = torch.argsort(component_sizes[1:], descending=True) + 1
         target_label = sorted_indices[0]
         component_mask = labeled_mask == target_label
 
+        # deixar perque si esta enmig dun teixit millor que sigui daquell que de csf
         tensor = self.NN_interpolation(tensor, target_mask)
         tensor[component_mask] = self.target_label
 
@@ -201,7 +203,7 @@ class cc_Alterations:
         return selected_target_mask[selected_index]
 
 
-    def random_alteration(self, seed, segmentation, genparams: dict = {}):
+    def random_alteration(self, seed, seed_csf, segmentation, genparams: dict = {}):
         """
         Simulates specific alterations on a segmentation mask based on a probability threshold.
 
@@ -236,8 +238,11 @@ class cc_Alterations:
                     return segmentation, seed, genparams
             
             else:
-                NN_segm = self.NN_interpolation(segmentation, target_mask)
-                NN_seed = self.NN_interpolation(seed, target_mask)
+                NN_segm = segmentation.clone()
+                NN_segm[target_mask] = self.csf_label
+                #NN_segm = self.NN_interpolation(segmentation, target_mask)
+                #NN_seed = self.NN_interpolation(seed, target_mask)
+                NN_seed = seed_csf.clone()
                 selected_target_mask = self.random_mask(target_mask, segmentation, NN_segm, NN_seed, seed, genparams)
 
                 if 'kinked_amplitude' in genparams or 'kinked_freq' in genparams:
@@ -528,4 +533,5 @@ class cc_Alterations:
             agenesis transformation has been applied.
         """
         genparams['agenesis'] = 1
+        
         return None, NN_segm, NN_seed, genparams

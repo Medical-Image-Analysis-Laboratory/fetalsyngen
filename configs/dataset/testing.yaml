@@ -4,3 +4,5 @@ defaults:
 _target_: fetalsyngen.data.datasets.FetalTestDataset
 bids_path: ./data
 sub_list: null
+bids_path_img_ending: 'T2w'
+bids_path_segm_ending: 'dseg_CC'

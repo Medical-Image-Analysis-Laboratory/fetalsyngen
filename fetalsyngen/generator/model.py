@@ -111,6 +111,7 @@ class FetalSynthGen:
         image: torch.Tensor | None,
         segmentation: torch.Tensor,
         seeds: torch.Tensor | None,
+        seeds_csf: torch.Tensor | None,
         genparams: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         """
@@ -140,12 +141,17 @@ class FetalSynthGen:
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
             seeds = seeds.long()
+            seeds_csf, selected_seeds_csf = self.intensity_generator.load_seeds(
+                seeds=seeds_csf, genparams=genparams.get("selected_seeds_csf", {})
+            )
+            seeds_csf = seeds_csf.long()
             with torch.no_grad():
                 device = segmentation.device
                 genparams_alteration = {}
                 if self.cc_alteration is not None:
                     segmentation_altered_cpu, seeds_altered_cpu, genparams_alteration = self.cc_alteration.random_alteration(
                         seed=seeds.cpu(),
+                        seed_csf=seeds_csf.cpu(),
                         segmentation=segmentation.cpu(),
                         genparams=genparams.get("brain_alterations", {})
                     )
@@ -167,6 +173,7 @@ class FetalSynthGen:
             # match the intensity generator
             output = (image - image.min()) / (image.max() - image.min()) * 255
             selected_seeds = {}
+            selected_seeds_csf = {}
             seed_intensities = {}
             genparams_alteration = {}
 
@@ -226,6 +233,7 @@ class FetalSynthGen:
         # 9. Aggregete the synth params
         synth_params = {
             "selected_seeds": selected_seeds,
+            "selected_seeds_csf": selected_seeds_csf,
             "seed_intensities": seed_intensities,
             "deform_params": deform_params,
             "gamma_params": gamma_params,

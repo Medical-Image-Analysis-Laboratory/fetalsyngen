@@ -8,6 +8,7 @@ cc_alteration:
   _target_: fetalsyngen.generator.alterations.ccAlterations.cc_Alterations
   alteration_prob: 0.6
   target_label: 8 # Corpus Callosum label
+  csf_label: 1
   min_dilation: 1
   max_dilation: 3 # depends on brain volume ratio
   min_erosion: 2

@@ -4,6 +4,9 @@ defaults:
 _target_: fetalsyngen.data.datasets.FetalSynthDataset
 bids_path: ./data
 seed_path: null
+seed_csf_path: null
 sub_list: null
+bids_path_img_ending: 'T2w'
+bids_path_segm_ending: 'dseg_CC'
 load_image: True
 image_as_intensity: True
