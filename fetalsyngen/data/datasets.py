@@ -90,8 +90,6 @@ class FetalDataset:
             pattern = self._get_pattern(sub, ses, suffix)
             files = list(path.glob(pattern))
             if len(files) == 0:
-                pattern = self._get_pattern(sub, None, suffix)
-                files = list(path.glob(pattern))
                 if len(files) == 0:
                     print(
                         f"No files found for requested subject {sub} in {path} "
