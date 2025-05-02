@@ -1,4 +1,6 @@
 import torch
+import nibabel as nib
+import numpy as np
 from fetalsyngen.generator.intensity.rand_gmm import ImageFromSeeds
 from fetalsyngen.generator.deformation.affine_nonrigid import (
     SpatialDeformation,
@@ -11,6 +13,13 @@ from fetalsyngen.generator.augmentation.synthseg import (
 )
 from typing import Iterable
 import numpy as np
+
+from fetalsyngen.generator.alterations.ccAlterations import(
+    cc_Alterations
+)
+from fetalsyngen.generator.alterations.brainAlterations import(
+    brain_Alterations
+)
 
 
 from fetalsyngen.generator.artifacts.simulate_reco import (
@@ -43,6 +52,7 @@ class FetalSynthGen:
         struct_noise: StructNoise | None = None,
         simulate_motion: SimulateMotion | None = None,
         boundaries: SimulatedBoundaries | None = None,
+        cc_alteration: cc_Alterations | None = None,
     ):
         """
         Initialize the model with the given parameters.
@@ -75,6 +85,7 @@ class FetalSynthGen:
         self.biasfield = bias_field
         self.gamma = gamma
         self.noise = noise
+        self.cc_alteration = cc_alteration
 
         self.artifacts = {
             "blur_cortex": blur_cortex,
@@ -100,6 +111,7 @@ class FetalSynthGen:
         image: torch.Tensor | None,
         segmentation: torch.Tensor,
         seeds: torch.Tensor | None,
+        seeds_csf: torch.Tensor | None,
         genparams: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         """
@@ -119,14 +131,34 @@ class FetalSynthGen:
             The synthetic image, the segmentation, the original image, and the generation parameters.
 
         """
+        segmentation = segmentation.long()
         if genparams:
-            genparams = self._validated_genparams(genparams)
+            genparams = self._validated_genparams(genparams)   
 
         # 1. Generate intensity output.
         if seeds is not None:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
+            seeds = seeds.long()
+            seeds_csf, selected_seeds_csf = self.intensity_generator.load_seeds(
+                seeds=seeds_csf, genparams=genparams.get("selected_seeds_csf", {})
+            )
+            seeds_csf = seeds_csf.long()
+            with torch.no_grad():
+                device = segmentation.device
+                genparams_alteration = {}
+                if self.cc_alteration is not None:
+                    segmentation_altered_cpu, seeds_altered_cpu, genparams_alteration = self.cc_alteration.random_alteration(
+                        seed=seeds.cpu(),
+                        seed_csf=seeds_csf.cpu(),
+                        segmentation=segmentation.cpu(),
+                        genparams=genparams.get("brain_alterations", {})
+                    )
+                    genparams['brain_alterations'] = genparams_alteration
+                    segmentation = segmentation_altered_cpu.to(device)
+                    seeds = seeds_altered_cpu.to(device)
+            
             output, seed_intensities = self.intensity_generator.sample_intensities(
                 seeds=seeds,
                 device=self.device,
@@ -141,7 +173,9 @@ class FetalSynthGen:
             # match the intensity generator
             output = (image - image.min()) / (image.max() - image.min()) * 255
             selected_seeds = {}
+            selected_seeds_csf = {}
             seed_intensities = {}
+            genparams_alteration = {}
 
         # ensure that tensors are on the same device
         output = output.to(self.device)
@@ -195,9 +229,11 @@ class FetalSynthGen:
                 )
                 artifacts[name] = metadata
 
+
         # 9. Aggregete the synth params
         synth_params = {
             "selected_seeds": selected_seeds,
+            "selected_seeds_csf": selected_seeds_csf,
             "seed_intensities": seed_intensities,
             "deform_params": deform_params,
             "gamma_params": gamma_params,
@@ -205,6 +241,7 @@ class FetalSynthGen:
             "resample_params": resample_params,
             "noise_params": noise_params,
             "artifacts": artifacts,
+            "genparams_alteration": genparams_alteration,
         }
 
         return output, segmentation, image, synth_params

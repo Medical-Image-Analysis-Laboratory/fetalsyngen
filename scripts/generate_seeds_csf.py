@@ -19,6 +19,7 @@ import argparse
 import numpy as np
 from multiprocessing import Pool
 import multiprocessing as mp
+import re
 
 
 parser = argparse.ArgumentParser(
@@ -87,14 +88,17 @@ def main(args):
     # Prepare input arguments for parallel processing
     tasks = []
     for sub in subjects:
+
         for subclasses in range(1, max_subclusts):
             imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
             labels = list(sub.glob("**/anat/*dseg_CC.nii.gz"))
+            # Traverse the parts of the path and find the session folder
+            ses = next((part for part in imgs.parts if part.startswith("ses-")), None)
             if not labels:
                 continue  # Skip this subject and move to the next
             label = labels[0]
             tasks.append(
-                (imgs, label, subclasses, feta2meta, out_path, sub, "", loader, args.annotation)
+                (imgs, label, subclasses, feta2meta, out_path, sub, ses, loader, args.annotation)
             )
 
     # Use multiprocessing Pool for parallel processing

@@ -2,5 +2,7 @@ defaults:
   - transforms/inference
 
 _target_: fetalsyngen.data.datasets.FetalTestDataset
-bids_path: ./data
+bids_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/resampled05 #./data
 sub_list: null
+bids_path_img_ending: 'T2w'
+bids_path_segm_ending: 'dseg_CC'

@@ -2,9 +2,11 @@ defaults:
   - generator/default
 
 _target_: fetalsyngen.data.datasets.FetalSynthDataset
-bids_path: /media/vzalevskyi/data/fetal_dHCP/derivatives/derivatives/resampled05 #./data
-seed_path: /media/vzalevskyi/data/fetal_dHCP/derivatives/derivatives/seeds #./data/derivatives/seeds
+bids_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/resampled05 #./data
+seed_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/seeds #./data/derivatives/seeds
+seed_csf_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/seeds_csf
 sub_list: null
+bids_path_img_ending: 'T2w'
+bids_path_segm_ending: 'dseg_CC'
 load_image: False
 image_as_intensity: False
-

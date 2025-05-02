@@ -18,6 +18,7 @@ import torch
 import argparse
 import numpy as np
 from multiprocessing import Pool
+import multiprocessing as mp
 
 
 parser = argparse.ArgumentParser(
@@ -88,9 +89,11 @@ def main(args):
     for sub in subjects:
         for subclasses in range(1, max_subclusts):
             imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
-            label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
+            label = list(sub.glob("**/anat/*dseg_CC.nii.gz"))[0]
+            # Traverse the parts of the path and find the session folder
+            ses = next((part for part in imgs.parts if part.startswith("ses-")), None)
             tasks.append(
-                (imgs, label, subclasses, feta2meta, out_path, sub, "", loader)
+                (imgs, label, subclasses, feta2meta, out_path, sub, ses, loader, args.annotation)
             )
 
     # Use multiprocessing Pool for parallel processing
@@ -103,12 +106,18 @@ def worker_process_subject(args):
     process_subject(*args)
 
 
-def process_subject(imgs, label, subclasses, feta2meta, out_path, sub, session, loader):
+def process_subject(imgs, label, subclasses, feta2meta, out_path, sub, session, loader, annotation):
     data = loader({"image": str(imgs), "label": str(label)})
     data["image"] = data["image"].unsqueeze(0)
     data["label"] = data["label"].unsqueeze(0)
+
+    # replace all NaN values as 0
+    data['image'][torch.isnan(data['image'])] = 0
+    data['label'][torch.isnan(data['label'])] = 0
+    
     # set skull as class 4
-    data["label"][data["label"] == 4] = 0
+    if annotation  == 'dhcp':
+        data["label"][data["label"] == 4] = 0
 
     subclasses_splits = split_lables(
         image=data["image"],
