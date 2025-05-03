@@ -273,7 +273,6 @@ class cc_Alterations:
                     elif selected_transformation == self.hypoplasia:
                         _, transformed_segmentation, transformed_seed, genparams = selected_transformation(target_mask, NN_segm, NN_seed, seed, genparams)
                     else:
-                        selected_target_mask = self.random_mask(target_mask, segmentation, NN_segm, NN_seed, seed, genparams)
                         if selected_transformation == self.kinked:
                             _, transformed_segmentation, transformed_seed, genparams = selected_transformation(target_mask, segmentation, seed, genparams)
                         else:
