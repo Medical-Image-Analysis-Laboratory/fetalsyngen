@@ -146,18 +146,15 @@ class FetalSynthGen:
             )
             seeds_csf = seeds_csf.long()
             with torch.no_grad():
-                device = segmentation.device
                 genparams_alteration = {}
                 if self.cc_alteration is not None:
-                    segmentation_altered_cpu, seeds_altered_cpu, genparams_alteration = self.cc_alteration.random_alteration(
-                        seed=seeds.cpu(),
-                        seed_csf=seeds_csf.cpu(),
-                        segmentation=segmentation.cpu(),
+                    segmentation, seeds, genparams_alteration = self.cc_alteration.random_alteration(
+                        seed=seeds,
+                        seed_csf=seeds_csf,
+                        segmentation=segmentation,
                         genparams=genparams.get("brain_alterations", {})
                     )
                     genparams['brain_alterations'] = genparams_alteration
-                    segmentation = segmentation_altered_cpu.to(device)
-                    seeds = seeds_altered_cpu.to(device)
             
             output, seed_intensities = self.intensity_generator.sample_intensities(
                 seeds=seeds,
