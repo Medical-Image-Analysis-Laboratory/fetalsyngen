@@ -3,7 +3,7 @@ This file contains the classes that are used to cpplate randomized acquisitions 
 boundary modifications.
 
 - PSFReconstruction: Basic class that reconstructs the volume from the acquired slices using the PDF and the transforms given.
-- Scanner: Class that simulates the acquisition of slices from a volume. Modified version from SVoRT (Xu et al. 2022.) 
+- Scanner: Class that simulates the acquisition of slices from a volume. Modified version from SVoRT (Xu et al. 2022.)
     at https://github.com/daviddmc/SVoRT/blob/main/src/data/scan.py
 - PSFReconstructor: Class that reconstructs the volume from the acquired slices using the PDF and the transforms given.
     Randomly applies: misregistration of a part of the slices, removal of a portion of the slices, merging of the volume with the ground truth according to a 3D
@@ -180,7 +180,9 @@ class Scanner:
             data["slice_thickness"] = genparams["slice_thickness"]
 
         if "gap" not in genparams:
-            data["gap"] = np.random.uniform(self.gap_min, self.gap_max)
+            data["gap"] = (
+                np.random.uniform(self.gap_min, self.gap_max) + data["slice_thickness"]
+            )
         else:
             data["gap"] = genparams["gap"]
 
@@ -293,7 +295,7 @@ class Scanner:
             slices[idx, 0] *= mask
         return slices
 
-    def scan(self, data, genparams: dict = {}):
+    def scan(self, data, genparams: dict = {}, scansegm: bool = False):
         """
         Simulate the acquisition of slices from the volume.
 
@@ -304,14 +306,22 @@ class Scanner:
         Returns:
             dict: The updated data dictionary with simulated acquired slices.
         """
-        data = self.get_resolution(data, genparams={})
+        data = self.get_resolution(data, genparams=genparams)
         res = data["resolution"]
         res_r = data["resolution_recon"]
         res_s = data["resolution_slice"]
         s_thick = data["slice_thickness"]
         gap = data["gap"]
         device = data["volume"].device
-
+        # compute stack affine matrix
+        stack_affine = torch.eye(4, device=device)
+        stack_affine[0, 0] = res_s
+        stack_affine[1, 1] = res_s
+        stack_affine[2, 2] = s_thick
+        stack_affine[0, 3] = -res_s / 2
+        stack_affine[1, 3] = -res_s / 2
+        stack_affine[2, 3] = -s_thick / 2
+        data["stack_affine"] = stack_affine
         ## resample the ground truth if needed.
         if res_r != res:
             grids = []
@@ -361,14 +371,19 @@ class Scanner:
             ss = self.slice_size
         ns = int(max(vs) * res / gap) + 2
 
-        ## Define the stacks and do the transformations.
+        # Define the stacks and do the transformations.
         stacks = []
+        segmentations = []
         stacks_no_psf = []
         transforms = []
         transforms_gt = []
         positions = []
 
-        num_stacks = np.random.randint(self.min_num_stack, self.max_num_stack + 1)
+        num_stacks = (
+            np.random.randint(self.min_num_stack, self.max_num_stack + 1)
+            if "num_stacks" not in genparams
+            else genparams["num_stacks"]
+        )
 
         rand_motion = True
         while True:
@@ -414,6 +429,35 @@ class Scanner:
                 False,
                 False,
             )
+            if scansegm:
+                labs = torch.unique(data["seg"])
+                labs2indx = {l: i for i, l in enumerate(labs)}
+                seg1h = torch.stack([data["seg"] == l for l in labs], 0).float()
+                stacks_segm = []
+                for lab1h in range(len(labs)):
+                    seg = slice_acquisition(
+                        mat,
+                        seg1h[lab1h],
+                        None,
+                        None,
+                        get_PSF(0, device=device),
+                        (ss, ss),
+                        res_s / res,
+                        False,
+                        False,
+                    )
+                    stacks_segm.append(seg)
+                stacks_segm = torch.stack(tensors=stacks_segm, dim=0)
+                stacks_segm = torch.argmax(stacks_segm, 0)
+
+                # remap idx back to original labels
+                stacks_segm_corr = torch.zeros_like(stacks_segm, device=device)
+                for lab, idx in labs2indx.items():
+                    stacks_segm_corr[stacks_segm == idx] = lab.long()
+                stacks_segm = stacks_segm_corr
+
+            else:
+                stacks_segm = torch.zeros_like(slices_no_psf)
             # remove zeros
             nnz = slices_no_psf.sum((1, 2, 3))
             idx = nnz > (nnz.max() * np.random.uniform(0.1, 0.3))
@@ -424,6 +468,7 @@ class Scanner:
                 idx[nz[0, 0] : nz[-1, 0]] = True
             slices = slices[idx]
             slices_no_psf = slices_no_psf[idx]
+            stacks_segm = stacks_segm[idx]
             transform_init = transform_init[idx]
             transform_init = reset_transform(transform_init)
             transform_target = transform_target[idx]
@@ -440,6 +485,7 @@ class Scanner:
                 break
             stacks.append(slices)
             stacks_no_psf.append(slices_no_psf)
+            segmentations.append(stacks_segm)
             transforms.append(transform_init)
             transforms_gt.append(transform_target)
             positions.append(
@@ -459,9 +505,9 @@ class Scanner:
         )
         stacks = torch.cat(stacks, 0)
         stacks_no_psf = torch.cat(stacks_no_psf, 0)
+        stacks_segm = torch.cat(segmentations, 0)
         transforms = RigidTransform.cat(transforms)
         transforms_gt = RigidTransform.cat(transforms_gt)
-
         data["slice_shape"] = (ss, ss)
         data["volume_shape"] = volume_gt.shape[-3:]
         data["stacks"] = stacks
@@ -471,6 +517,7 @@ class Scanner:
         data["transforms_angle"] = transforms
         data["transforms_gt"] = transforms_gt.matrix()
         data["transforms_gt_angle"] = transforms_gt
+        data["stacks_segm"] = stacks_segm
 
         data.pop("volume")
         return data

@@ -14,7 +14,7 @@ class ImageFromSeeds:
         max_subclusters: int,
         seed_labels: Iterable[int],
         generation_classes: Iterable[int],
-        meta_labels: int = 4,
+        meta_labels: list[int] = [1, 2, 3, 4],
     ):
         """
 
@@ -46,13 +46,13 @@ class ImageFromSeeds:
         self.generation_classes = generation_classes
         self.meta_labels = meta_labels
         self.loader = SimpleITKReader()
-        self.orientation = Orientation(axcodes="RAS")
 
     def load_seeds(
         self,
         seeds: dict[int : dict[int:Path]],
         mlabel2subclusters: dict[int:int] | None = None,
         genparams: dict = {},
+        orientation: Orientation = Orientation(axcodes="RAS"),
     ) -> torch.Tensor:
         """Generate an intensity image from seeds.
         If seed_mapping is provided, it is used to
@@ -68,6 +68,7 @@ class ImageFromSeeds:
                 use for each meta-label. Defaults to None.
             genparams: Dictionary with generation parameters. Defaults to {}.
                 Should contain the key "mlabel2subclusters" if the mapping is to be fixed.
+            orientation: Orientation to use for the seeds. Defaults to RAS.
 
 
         Returns:
@@ -83,19 +84,23 @@ class ImageFromSeeds:
                 meta_label: np.random.randint(
                     self.min_subclusters, self.max_subclusters + 1
                 )
-                for meta_label in range(1, self.meta_labels + 1)
+                for meta_label in self.meta_labels
             }
         if "mlabel2subclusters" in genparams.keys():
             mlabel2subclusters = genparams["mlabel2subclusters"]
 
         # load the first seed as the one corresponding to mlabel 1
-        seed = self.loader(seeds[mlabel2subclusters[1]][1])
-        seed = self.orientation(seed.unsqueeze(0))
-        # re-orient seeds to RAS
+        first_mlab = list(mlabel2subclusters.keys())[0]
+        first_subcls = list(seeds[mlabel2subclusters[first_mlab]].keys())[0]
 
-        for mlabel in range(2, self.meta_labels + 1):
+        seed = self.loader(seeds[mlabel2subclusters[first_mlab]][first_subcls])
+        seed = orientation(seed.unsqueeze(0))
+        # re-orient seeds to RAS
+        for mlabel in self.meta_labels:
+            if mlabel == first_mlab:
+                continue
             new_seed = self.loader(seeds[mlabel2subclusters[mlabel]][mlabel])
-            new_seed = self.orientation(new_seed.unsqueeze(0))
+            new_seed = orientation(new_seed.unsqueeze(0))
             seed += new_seed
 
         return seed.long().squeeze(0), {"mlabel2subclusters": mlabel2subclusters}
@@ -139,6 +144,11 @@ class ImageFromSeeds:
         # if there are seed labels from the same generation class
         # set their mean to be the same with some random perturbation
         if self.generation_classes != self.seed_labels:
+            # Ensure that seeds are within valid range
+            if (seeds < 0).any() or (seeds >= mus.size(0)).any():
+                raise ValueError(
+                    f"Invalid seed indices detected: min={seeds.min().item()}, max={seeds.max().item()} (expected range: 0-{mus.size(0)-1})"
+                )
             mus[self.seed_labels] = torch.clamp(
                 mus[self.generation_classes]
                 + 25 * torch.randn(nsamp, dtype=torch.float, device=device),

@@ -17,6 +17,8 @@ from fetalsyngen.generator.artifacts.utils import (
 )
 from skimage.morphology import ball
 from dataclasses import asdict
+from monai.data import MetaTensor
+from monai.transforms import SpatialPad, CenterSpatialCrop
 
 
 class BlurCortex(RandTransform):
@@ -552,3 +554,101 @@ class SimulatedBoundaries(RandTransform):
             dilate_stack = dilate_stack.permute(1, 2, 3, 0).int()
             mask = (one_hot * dilate_stack).sum(-1)
         return output * mask, metadata
+
+
+class StackSampler(RandTransform):
+    """Simulates the acquisition of a stack of slices by scanning the image"""
+
+    def __init__(
+        self,
+        prob: float,
+        scanner_params: ScannerParams,
+        device: str,
+        resolution_recon: float,
+        padd_size: int | None = None,
+    ):
+        """
+        Initialize the augmentation parameters.
+        Args:
+            prob: Probability of applying the augmentation.
+            scanner_params: Dataclass of parameters for the scanner.
+            device: Device to use for computation.
+            resolution_recon: Resolution of the input image use to sample slices from.
+                Assumes isotropic resolution and expected to be a single number in mm.
+        """
+        self.scanner_args = scanner_params
+        self.prob = prob
+        self.device = device
+        self.scanner_args.resolution_recon = resolution_recon
+        self.scanner = Scanner(**asdict(self.scanner_args))
+        self.padd_size = (
+            SpatialPad(
+                spatial_size=(padd_size, padd_size, padd_size),
+                mode="constant",
+            )
+            if padd_size is not None
+            else None
+        )
+        self.scrop = CenterSpatialCrop(
+            roi_size=(padd_size, padd_size, padd_size),
+        )
+
+    def __call__(
+        self, output, seg, device, genparams: dict = {}, **kwargs
+    ) -> tuple[torch.Tensor, dict]:
+        """
+        Apply the stack sampling to the input image.
+        Args:
+            output (torch.Tensor): Input image to resample.
+            seg (torch.Tensor): Input segmentation corresponding to the image.
+            device (str): Device to use for computation.
+            genparams (dict): Generation parameters.
+        Returns:
+            Stack with simulated slices and metadata containing the simulation parameters.
+        """
+        if np.random.rand() < self.prob:
+            device = output.device
+            dshape = (1, 1, *output.shape[-3:])
+            res_ = np.float64(self.scanner_args.resolution_recon)
+            metadata = {}
+            res = [res_, res_, res_]
+            d = {
+                "resolution": res_,
+                "volume": output.view(dshape).float().to(device),
+                "mask": (output > 0).view(dshape).float().to(device),
+                "seg": seg.view(dshape).float().to(device),
+                "affine": torch.diag(torch.tensor(list(res) + [1])).to(device),
+                "threshold": 0.1,
+            }
+            d_scan = self.scanner.scan(d, genparams={"num_stacks": 1}, scansegm=True)
+
+            # reshape the outputs so that slicing axis is always the last
+            output = MetaTensor(d_scan["stacks"])
+            output = output.permute(1, 2, 3, 0)
+            output.meta["affine"] = d_scan["stack_affine"]
+
+            seg = MetaTensor(d_scan["stacks_segm"])
+            seg = seg.permute(1, 2, 3, 0)
+            seg.meta["affine"] = d_scan["stack_affine"]
+
+            if self.padd_size is not None:
+                # padd the image and segmentation to the same size
+                output = self.padd_size(output)
+                seg = self.padd_size(seg)
+
+                output = self.scrop(output)
+                seg = self.scrop(seg)
+
+            metadata.update(
+                {
+                    "resolution_recon": d_scan["resolution_recon"],
+                    "resolution_slice": d_scan["resolution_slice"],
+                    "slice_thickness": d_scan["slice_thickness"],
+                    "gap": d_scan["gap"],
+                    "nstacks": 1,
+                }
+            )
+
+            return output, seg, metadata
+        else:
+            return output, seg, {}

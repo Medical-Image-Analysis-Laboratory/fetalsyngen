@@ -21,6 +21,8 @@ class FetalDataset:
         self,
         bids_path: str,
         sub_list: list[str] | None,
+        img_suffix: str = "T2w",
+        seg_suffix: str = "dseg",
     ) -> dict:
         """
         Args:
@@ -30,7 +32,8 @@ class FetalDataset:
 
         """
         super().__init__()
-
+        self.img_suffix = img_suffix
+        self.seg_suffix = seg_suffix
         self.bids_path = Path(bids_path)
         self.subjects = self.find_subjects(sub_list)
         if self.subjects is None:
@@ -41,10 +44,8 @@ class FetalDataset:
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
 
-        self.orientation = Orientation(axcodes="RAS")
-
-        self.img_paths = self._load_bids_path(self.bids_path, "T2w")
-        self.segm_paths = self._load_bids_path(self.bids_path, "dseg")
+        self.img_paths = self._load_bids_path(self.bids_path, self.img_suffix)
+        self.segm_paths = self._load_bids_path(self.bids_path, self.seg_suffix)
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
@@ -75,7 +76,7 @@ class FetalDataset:
         if ses is None:
             return f"{sub}/anat/{sub}*_{suffix}{extension}"
         else:
-            return f"{sub}/{ses}/anat/{sub}_{ses}*_{suffix}{extension}"
+            return f"{sub}/{ses}/anat/{sub}*{suffix}{extension}"
 
     def _load_bids_path(self, path, suffix):
         """
@@ -121,6 +122,8 @@ class FetalTestDataset(FetalDataset):
         bids_path: str,
         sub_list: list[str] | None,
         transforms: Compose | None = None,
+        seg_suffix: str = "dseg",
+        img_suffix: str = "T2w",
     ):
         """
         Args:
@@ -136,7 +139,10 @@ class FetalTestDataset(FetalDataset):
 
             See [inference.yaml](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/dev/configs/dataset/transforms/inference.yaml) for an example of the transforms configuration.
         """
-        super().__init__(bids_path, sub_list)
+
+        super().__init__(
+            bids_path, sub_list, img_suffix=img_suffix, seg_suffix=seg_suffix
+        )
         self.transforms = transforms
 
     def _load_data(self, idx):
@@ -202,6 +208,9 @@ class FetalSynthDataset(FetalDataset):
         sub_list: list[str] | None,
         load_image: bool = False,
         image_as_intensity: bool = False,
+        orientation: str | None = "RAS",
+        img_suffix: str = "T2w",
+        seg_suffix: str = "dseg",
     ):
         """
 
@@ -220,12 +229,19 @@ class FetalSynthDataset(FetalDataset):
                 field as segmentation and the syntehtic image. Default is **False**.
             image_as_intensity: If **True**, the image is used as the intensity prior,
                 instead of sampling the intensities from the seeds. Default is **False**.
+            orientation: The orientation to use for the image and segmentation.
+                Default is **RAS**. If None, no orientation is applied.
+                Could be also 'random', then the orientation is randomly selected
+                from the list of available orientations.
         """
-        super().__init__(bids_path, sub_list)
+        super().__init__(
+            bids_path, sub_list, img_suffix=img_suffix, seg_suffix=seg_suffix
+        )
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
         self.load_image = load_image
         self.generator = generator
         self.image_as_intensity = image_as_intensity
+        self.orientation = orientation
 
         # parse seeds paths
         if not self.image_as_intensity and isinstance(self.seed_path, Path):
@@ -235,6 +251,23 @@ class FetalSynthDataset(FetalDataset):
                 )
             else:
                 self._load_seed_path()
+
+    def __get_orientation(self):
+        if self.orientation is None:
+            return "RAS"
+        elif self.orientation == "random":
+            # RANDOM re-orient TODO: MAKE SWTICHABLE!
+            LR = "L" if torch.rand(1) > 0.5 else "R"
+            AP = "A" if torch.rand(1) > 0.5 else "P"
+            IS = "I" if torch.rand(1) > 0.5 else "S"
+            orient = np.array([LR, AP, IS])
+            rand_orient_oreder = torch.randperm(3)
+            axcodes = orient[rand_orient_oreder]  # "RAS"  #
+            return axcodes
+        else:
+            # RAS re-orient
+            assert len(self.orientation) == 3
+            return self.orientation
 
     def _load_seed_path(self):
         """Load the seeds for the subjects."""
@@ -258,7 +291,7 @@ class FetalSynthDataset(FetalDataset):
                     f"Provided seed path {seed_path} does not exist."
                 )
             # load the seeds for the subjects for each meta label 1-4
-            for i in range(1, 5):
+            for i in self.generator.intensity_generator.meta_labels:
                 files = self._load_bids_path(seed_path, f"mlabel_{i}")
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
@@ -290,11 +323,10 @@ class FetalSynthDataset(FetalDataset):
         image = self.loader(self.img_paths[idx]) if self.load_image else None
         segm = self.loader(self.segm_paths[idx])
 
-        # orient to RAS for consistency
-        image = (
-            self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
-        )
-        segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
+        orienter = Orientation(axcodes=self.__get_orientation())
+        # orient to required orientation for consistency
+        image = orienter(image.unsqueeze(0)).squeeze(0) if self.load_image else None
+        segm = orienter(segm.unsqueeze(0)).squeeze(0)
 
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
@@ -317,7 +349,11 @@ class FetalSynthDataset(FetalDataset):
 
         # generate the synthetic data
         gen_output, segmentation, image, synth_params = self.generator.sample(
-            image=image, segmentation=segm, seeds=seeds, genparams=genparams
+            image=image,
+            segmentation=segm,
+            seeds=seeds,
+            genparams=genparams,
+            orientation=orienter,
         )
 
         # scale the images to [0, 1]

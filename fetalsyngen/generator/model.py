@@ -20,7 +20,10 @@ from fetalsyngen.generator.augmentation.artifacts import (
     StructNoise,
     SimulateMotion,
     BlurCortex,
+    StackSampler,
 )
+from monai.transforms import Orientation
+import nibabel as nib
 from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
 
 
@@ -41,6 +44,7 @@ class FetalSynthGen:
         struct_noise: StructNoise | None = None,
         simulate_motion: SimulateMotion | None = None,
         boundaries: SimulatedBoundaries | None = None,
+        stack_sampler: StackSampler | None = None,
     ):
         """
         Initialize the model with the given parameters.
@@ -63,6 +67,7 @@ class FetalSynthGen:
             struct_noise: Structural noise generator.
             simulate_motion: Motion simulation generator.
             boundaries: Boundaries generator
+            stack_sampler: Stack sampler generator.
 
         """
         self.shape = shape
@@ -80,6 +85,7 @@ class FetalSynthGen:
             "simulate_motion": simulate_motion,
             "boundaries": boundaries,
         }
+        self.stack_sampler = stack_sampler
         self.device = device
 
     def _validated_genparams(self, d: dict) -> dict:
@@ -99,6 +105,7 @@ class FetalSynthGen:
         segmentation: torch.Tensor,
         seeds: torch.Tensor | None,
         genparams: dict = {},
+        orientation: Orientation | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         """
         Generate a synthetic image from the input data.
@@ -123,7 +130,9 @@ class FetalSynthGen:
         # 1. Generate intensity output.
         if seeds is not None:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
-                seeds=seeds, genparams=genparams.get("selected_seeds", {})
+                seeds=seeds,
+                genparams=genparams.get("selected_seeds", {}),
+                orientation=orientation,
             )
             output, seed_intensities = self.intensity_generator.sample_intensities(
                 seeds=seeds,
@@ -193,7 +202,16 @@ class FetalSynthGen:
                 )
                 artifacts[name] = metadata
 
-        # 9. Aggregete the synth params
+        # 9. Apply stack sampler if available
+        if self.stack_sampler is not None:
+            output, segmentation, meta = self.stack_sampler(
+                output, segmentation, device=self.device
+            )
+
+            # unsqueeze the image to match the expected shape
+            output = output.squeeze(0)
+            segmentation = segmentation.squeeze(0)
+        # 10. Aggregete the synth params
         synth_params = {
             "selected_seeds": selected_seeds,
             "seed_intensities": seed_intensities,
@@ -203,6 +221,7 @@ class FetalSynthGen:
             "resample_params": resample_params,
             "noise_params": noise_params,
             "artifacts": artifacts,
+            "stack_sampler": meta if self.stack_sampler is not None else None,
         }
 
         return output, segmentation, image, synth_params
