@@ -58,12 +58,8 @@ for sub in tqdm(subjects):
     )
 
     try:
-        imgs = list(sub.glob(f"anat/*_T2w.nii.gz"))[
-            0
-        ]  # CHANGE THE PATTERN TO MATCH YOUR IMAGES
-        label = list(sub.glob(f"anat/*_dseg.nii.gz"))[
-            0
-        ]  # CHANGE THE PATTERN TO MATCH YOUR LABELS
+        imgs = list(sub.glob(f"anat/*_T2w.nii.gz"))[0]  # CHANGE THE PATTERN TO MATCH YOUR IMAGES
+        label = list(sub.glob(f"anat/*_dseg.nii.gz"))[0]  # CHANGE THE PATTERN TO MATCH YOUR LABELS
         data = loader({"image": str(imgs), "label": str(label)})
         data["image"] = data["image"].unsqueeze(0)
         data["label"] = data["label"].unsqueeze(0)

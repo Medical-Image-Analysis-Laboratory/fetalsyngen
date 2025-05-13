@@ -1,7 +1,7 @@
 """Run this scripts to generate seeds used for FetalSynthGen.
 
 Uses segmentation label -> meta-label mapping defined at `tissue_map` to fuse
-similar classes into the same label. 
+similar classes into the same label.
 
 Then splits it into N clusters using EM clustering.
 
@@ -31,9 +31,7 @@ parser.add_argument(
     required=True,
     help="Path to BIDS folder with the segmentations and images for seeds generation",
 )
-parser.add_argument(
-    "--out_path", type=str, required=True, help="Path to save the seeds"
-)
+parser.add_argument("--out_path", type=str, required=True, help="Path to save the seeds")
 parser.add_argument(
     "--max_subclasses",
     type=int,
@@ -71,9 +69,7 @@ def main(args):
 
     print(f'Using "{args.annotation}" annotation. Labels are mapped as follows:')
     for meta_label, segm_labels in tissue_map.items():
-        print(
-            f"Meta-label {meta_label} is a fusion of segmentation labels: {segm_labels}"
-        )
+        print(f"Meta-label {meta_label} is a fusion of segmentation labels: {segm_labels}")
 
     max_subclusts = int(args.max_subclasses) + 1
     bids_path = Path(args.bids_path).absolute()
@@ -89,9 +85,7 @@ def main(args):
         for subclasses in range(1, max_subclusts):
             imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
             label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
-            tasks.append(
-                (imgs, label, subclasses, feta2meta, out_path, sub, "", loader)
-            )
+            tasks.append((imgs, label, subclasses, feta2meta, out_path, sub, "", loader))
 
     # Use multiprocessing Pool for parallel processing
     with Pool(mp.cpu_count()) as pool:
@@ -146,9 +140,9 @@ def subsplit_label(img, segm, label2assign=10, n_clusters=3):
     # cluster non-zero image voxels that are zero in the mask
     brain_backg = segm * 0
 
-    clust = GaussianMixture(
-        n_components=n_clusters, n_init=5, init_params="k-means++"
-    ).fit_predict(img_voxels.reshape(-1, 1))
+    clust = GaussianMixture(n_components=n_clusters, n_init=5, init_params="k-means++").fit_predict(
+        img_voxels.reshape(-1, 1)
+    )
     clust = torch.tensor(clust).long()
     brain_backg[segm > 0] = clust + label2assign  # clusters are from 0 to n_clusters-1
     return brain_backg

@@ -19,9 +19,7 @@ def bias_field(volume, bias_size, bias_sigma):
         )
         * bias_sigma
     )
-    bias = F.interpolate(
-        bias, size=volume.shape[-3:], mode="trilinear", align_corners=False
-    )
+    bias = F.interpolate(bias, size=volume.shape[-3:], mode="trilinear", align_corners=False)
     volume *= torch.exp(bias)
     return volume
 
@@ -62,9 +60,7 @@ class CombinedDataset:
         else:
             p = np.array([len(dataset) for dataset in self.datasets])
             p = p / p.sum()
-            data = self.datasets[
-                np.random.choice(len(self.datasets), p=p)
-            ].get_data()
+            data = self.datasets[np.random.choice(len(self.datasets), p=p)].get_data()
         return data
 
 
@@ -105,9 +101,7 @@ class AugmentationDataset:
         affine = volume.affine
         volume = volume.get_fdata()
         volume = torch.from_numpy(volume[None, None, :, :, :])
-        volume = volume.contiguous().to(
-            dtype=torch.float32, device=self.device
-        )
+        volume = volume.contiguous().to(dtype=torch.float32, device=self.device)
         if m is not None:
             seg = nib.load(m).get_fdata()
             seg = torch.from_numpy(seg[None, None, :, :, :])
@@ -120,14 +114,10 @@ class AugmentationDataset:
         res = 0.5
         data = {"resolution": res, "mask": mask}
         if self.is_test:
-            volume, threshold, vq = gamma_transform(
-                volume, 1, 0.99, self.threshold
-            )
+            volume, threshold, vq = gamma_transform(volume, 1, 0.99, self.threshold)
         else:
             volume = bias_field(volume, self.bias_size, self.bias_sigma)
-            volume, threshold, vq = gamma_transform(
-                volume, self.gamma, 0.99, self.threshold
-            )
+            volume, threshold, vq = gamma_transform(volume, self.gamma, 0.99, self.threshold)
 
         data["threshold"] = threshold
         data["scale"] = vq

@@ -152,11 +152,7 @@ def mog_3d_tensor(shape, centers, sigmas, device):
             sigma_x, sigma_y, sigma_z = sigma[0], sigma[1], sigma[2]
         x0, y0, z0 = center
         # Calculate the Gaussian distribution values
-        dist_sq = (
-            ((x - x0) / sigma_x) ** 2
-            + ((y - y0) / sigma_y) ** 2
-            + ((z - z0) / sigma_z) ** 2
-        )
+        dist_sq = ((x - x0) / sigma_x) ** 2 + ((y - y0) / sigma_y) ** 2 + ((z - z0) / sigma_z) ** 2
         mog += torch.exp(-dist_sq / 2)
 
     return torch.clamp(mog, 0, 1)
@@ -255,12 +251,8 @@ def generate_perlin_noise_3d(
     res = torch.tensor(res, device=device)
 
     # Create 3D grid of coordinates
-    lin = [
-        torch.linspace(0, res[i], shape[i], device=device) for i in range(3)
-    ]
-    grid = torch.stack(
-        torch.meshgrid(*lin, indexing="ij"), dim=-1
-    )  # shape (X,Y,Z,3)
+    lin = [torch.linspace(0, res[i], shape[i], device=device) for i in range(3)]
+    grid = torch.stack(torch.meshgrid(*lin, indexing="ij"), dim=-1)  # shape (X,Y,Z,3)
 
     # Integer lattice coordinates (which cell)
     cell = grid.floor().to(torch.long)
@@ -269,16 +261,8 @@ def generate_perlin_noise_3d(
     local_xyz = grid - cell
 
     # Generate random gradient vectors at lattice points
-    theta = (
-        2
-        * torch.pi
-        * torch.rand(res[0] + 1, res[1] + 1, res[2] + 1, device=device)
-    )
-    phi = (
-        2
-        * torch.pi
-        * torch.rand(res[0] + 1, res[1] + 1, res[2] + 1, device=device)
-    )
+    theta = 2 * torch.pi * torch.rand(res[0] + 1, res[1] + 1, res[2] + 1, device=device)
+    phi = 2 * torch.pi * torch.rand(res[0] + 1, res[1] + 1, res[2] + 1, device=device)
     gradients = torch.stack(
         (
             torch.sin(phi) * torch.cos(theta),
@@ -298,9 +282,7 @@ def generate_perlin_noise_3d(
 
     # Fetch gradient vectors at each corner of the cell
     def get_grad(ix, iy, iz):
-        return gradients[
-            ix.clamp(max=res[0]), iy.clamp(max=res[1]), iz.clamp(max=res[2])
-        ]
+        return gradients[ix.clamp(max=res[0]), iy.clamp(max=res[1]), iz.clamp(max=res[2])]
 
     g000 = get_grad(cell[..., 0], cell[..., 1], cell[..., 2])
     g100 = get_grad(cell[..., 0] + 1, cell[..., 1], cell[..., 2])
@@ -353,7 +335,6 @@ def generate_fractal_noise_3d(
     interpolant=perlin_interpolant,
     increase=0.0,
     device=None,
-    
 ):
     """Generate a 3D numpy array of fractal noise.
 
@@ -399,7 +380,7 @@ def generate_fractal_noise_3d(
         )
         frequency *= lacunarity
         amplitude *= persistence
-    
+
     noise = (noise + increase - noise.min()) / (noise.max() - noise.min())
     noise = torch.clamp(noise, 0, 1)
     return noise

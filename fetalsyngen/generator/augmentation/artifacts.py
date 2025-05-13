@@ -101,9 +101,7 @@ class BlurCortex(RandTransform):
                 if "nblur" not in genparams.keys()
                 else genparams["nblur"]
             )
-            std_blurs = np.random.gamma(
-                self.std_blur_shape, self.std_blur_scale, 3
-            )
+            std_blurs = np.random.gamma(self.std_blur_shape, self.std_blur_scale, 3)
 
             cortex = seg == self.cortex_label
             cortex_prob = self.blur_proba(output.shape, cortex, device)
@@ -112,14 +110,9 @@ class BlurCortex(RandTransform):
             idx = torch.multinomial(cortex_prob, nblur)
 
             idx_cortex = torch.where(cortex > 0)
-            centers = [
-                [idx_cortex[i][id.item()].item() for i in range(3)]
-                for id in idx
-            ]
+            centers = [[idx_cortex[i][id.item()].item() for i in range(3)] for id in idx]
             # Spatial merging parameters.
-            sigmas = np.random.gamma(
-                self.sigma_gamma_loc, self.sigma_gamma_scale, (nblur, 3)
-            )
+            sigmas = np.random.gamma(self.sigma_gamma_loc, self.sigma_gamma_scale, (nblur, 3))
             gaussian = mog_3d_tensor(
                 output.shape,
                 centers=centers,
@@ -128,9 +121,7 @@ class BlurCortex(RandTransform):
             )
 
             # Generate the blurred image
-            output_blur = gaussian_blur_3d(
-                output.float(), stds=std_blurs, device=output.device
-            )
+            output_blur = gaussian_blur_3d(output.float(), stds=std_blurs, device=output.device)
             output = output * (1 - gaussian) + output_blur * gaussian
             return output, {
                 "nblur": nblur,
@@ -203,11 +194,7 @@ class StructNoise(RandTransform):
             torch.Tensor: The merging weights.
         """
 
-        device = (
-            device
-            if device is not None
-            else "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        device = device if device is not None else "cuda" if torch.cuda.is_available() else "cpu"
         if mask is not None and self.merge_params.merge_type == "gaussian":
             pos = torch.where(mask.squeeze() > 0)
             idx = torch.randperm(pos[0].shape[0])[: self.gauss_nloc]
@@ -218,8 +205,7 @@ class StructNoise(RandTransform):
                 (
                     torch.clamp(
                         self.merge_params.gauss_sigma_mu
-                        + self.merge_params.gauss_sigma_std
-                        * torch.randn(len(idx)),
+                        + self.merge_params.gauss_sigma_std * torch.randn(len(idx)),
                         1,
                         40,
                     )
@@ -242,7 +228,7 @@ class StructNoise(RandTransform):
                 octaves=self._octave,
                 persistence=self.merge_params.perlin_persistence,
                 lacunarity=self.merge_params.perlin_lacunarity,
-                increase = self.merge_params.perlin_increase_size,
+                increase=self.merge_params.perlin_increase_size,
                 device=device,
             ).view(*shape)
             return weight
@@ -261,9 +247,7 @@ class StructNoise(RandTransform):
             if "nstages" not in genparams
             else genparams["nstages"]
         )
-        self.noise_std = (
-            self.std_min + (self.std_max - self.std_min) * np.random.rand()
-        )
+        self.noise_std = self.std_min + (self.std_max - self.std_min) * np.random.rand()
 
         if self.merge_params.merge_type == "gaussian":
             self.gauss_nloc = (
@@ -282,9 +266,7 @@ class StructNoise(RandTransform):
             if "octave" in genparams:
                 self._octave = genparams["octave"]
             else:
-                self._octave = np.random.choice(
-                    self.merge_params.perlin_octaves_list
-                )
+                self._octave = np.random.choice(self.merge_params.perlin_octaves_list)
 
     def get_seeds(self):
         """
@@ -324,15 +306,11 @@ class StructNoise(RandTransform):
             self.sample_seeds()
 
             # Add multiscale noise. Start with a small tensor and add the noise to it.
-            lr_gaussian_noise = torch.zeros(
-                [i // 2**self.nstages for i in output.shape]
-            ).to(device)
+            lr_gaussian_noise = torch.zeros([i // 2**self.nstages for i in output.shape]).to(device)
 
             for k in range(self.nstages):
                 shape = [i // 2 ** (self.nstages - k) for i in output.shape]
-                next_shape = [
-                    i // 2 ** (self.nstages - 1 - k) for i in output.shape
-                ]
+                next_shape = [i // 2 ** (self.nstages - 1 - k) for i in output.shape]
                 lr_gaussian_noise += torch.randn(shape).to(device)
                 lr_gaussian_noise = torch.nn.functional.interpolate(
                     lr_gaussian_noise.unsqueeze(0).unsqueeze(0),
@@ -341,9 +319,7 @@ class StructNoise(RandTransform):
                     align_corners=False,
                 ).squeeze()
 
-            lr_gaussian_noise = lr_gaussian_noise / torch.max(
-                abs(lr_gaussian_noise)
-            )
+            lr_gaussian_noise = lr_gaussian_noise / torch.max(abs(lr_gaussian_noise))
             output_noisy = torch.clamp(
                 output + self.noise_std * lr_gaussian_noise,
                 0,
@@ -358,9 +334,7 @@ class StructNoise(RandTransform):
                 device=device,
             )
             mask = (seg > 0).int()
-            output = (
-                1 - mask * gaussian
-            ) * output + mask * gaussian * output_noisy
+            output = (1 - mask * gaussian) * output + mask * gaussian * output_noisy
 
             return output, self.get_seeds()
 
@@ -431,10 +405,7 @@ class SimulateMotion(RandTransform):
             d_scan = scanner.scan(d)
 
             recon = PSFReconstructor(
-                **{
-                    f.name: getattr(self.recon_args, f.name)
-                    for f in fields(self.recon_args)
-                }
+                **{f.name: getattr(self.recon_args, f.name) for f in fields(self.recon_args)}
             )
             output, _ = recon.recon_psf(d_scan)
             metadata.update(
@@ -522,20 +493,12 @@ class SimulatedBoundaries(RandTransform):
             Mask with the halo.
         """
         device = mask.device
-        kernel = (
-            torch.tensor(ball(radius))
-            .float()
-            .to(device)
-            .unsqueeze(0)
-            .unsqueeze(0)
-        )
+        kernel = torch.tensor(ball(radius)).float().to(device).unsqueeze(0).unsqueeze(0)
         mask = mask.float().view(1, 1, *mask.shape[-3:])
         mask = torch.nn.functional.conv3d(mask, kernel, padding="same")
         return (mask > 0).int().view(*mask.shape[-3:])
 
-    def generate_fuzzy_boundaries(
-        self, mask, kernel_size=7, threshold_filter=3
-    ) -> torch.Tensor:
+    def generate_fuzzy_boundaries(self, mask, kernel_size=7, threshold_filter=3) -> torch.Tensor:
         """
         Generate fuzzy boundaries around the mask.
 
@@ -602,10 +565,7 @@ class SimulatedBoundaries(RandTransform):
             surf = torch.where((mask_modif - mask).squeeze() > 0)
             idx = torch.randperm(surf[0].shape[0])[: self.n_centers]
             centers = [(surf[0][i], surf[1][i], surf[2][i]) for i in idx]
-            sigmas = [
-                self.base_sigma + 10 * np.random.beta(2, 5)
-                for _ in range(len(centers))
-            ]
+            sigmas = [self.base_sigma + 10 * np.random.beta(2, 5) for _ in range(len(centers))]
             mog = mog_3d_tensor(
                 mask_modif.shape[-3:],
                 centers=centers,
@@ -629,13 +589,9 @@ class SimulatedBoundaries(RandTransform):
                 dilate_stack.append(self.build_halo(dilate_stack[-1], 1))
 
             # Generate a stack of dilations intersected with the mask
-            dilate_stack = torch.stack(dilate_stack, 0) * mask_modif.view(
-                1, *mask_modif.shape[-3:]
-            )
+            dilate_stack = torch.stack(dilate_stack, 0) * mask_modif.view(1, *mask_modif.shape[-3:])
 
-            surf_proba = torch.clamp(
-                (surf_proba * len(dilate_stack) - 1).round().int(), 0, None
-            )
+            surf_proba = torch.clamp((surf_proba * len(dilate_stack) - 1).round().int(), 0, None)
 
             # Generate the final mask with the fuzzily generated boundaries
             # and also randomized halos.

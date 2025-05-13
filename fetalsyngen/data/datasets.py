@@ -35,14 +35,9 @@ class FetalDataset:
         self.subjects = self.find_subjects(sub_list)
         if self.subjects is None:
             self.subjects = [x.name for x in self.bids_path.glob("sub-*")]
-        self.sub_ses = [
-            (x, y)
-            for x in self.subjects
-            for y in self._get_ses(self.bids_path, x)
-        ]
+        self.sub_ses = [(x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)]
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
-
         self.orientation = Orientation(axcodes="RAS")
 
         self.img_paths = self._load_bids_path(self.bids_path, "T2w")
@@ -50,11 +45,7 @@ class FetalDataset:
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
-        return (
-            list(set(subj_found) & set(sub_list))
-            if sub_list is not None
-            else None
-        )
+        return list(set(subj_found) & set(sub_list)) if sub_list is not None else None
 
     def _sub_ses_string(self, sub, ses):
         return f"{sub}_{ses}" if ses is not None else sub
@@ -109,9 +100,7 @@ class FetalDataset:
         return len(self.subjects)
 
     def __getitem__(self, idx):
-        raise NotImplementedError(
-            "This method should be implemented in the child class."
-        )
+        raise NotImplementedError("This method should be implemented in the child class.")
 
 
 class FetalTestDataset(FetalDataset):
@@ -154,9 +143,7 @@ class FetalTestDataset(FetalDataset):
             image = image.unsqueeze(0)
             segm = segm.unsqueeze(0)
         elif len(image.shape) != 4:
-            raise ValueError(
-                f"Expected 3D or 4D image, got {len(image.shape)}D image."
-            )
+            raise ValueError(f"Expected 3D or 4D image, got {len(image.shape)}D image.")
 
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
@@ -230,9 +217,7 @@ class FetalSynthDataset(FetalDataset):
                 instead of sampling the intensities from the seeds. Default is **False**.
         """
         super().__init__(bids_path, sub_list)
-        self.seed_path = (
-            Path(seed_path) if isinstance(seed_path, str) else None
-        )
+        self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
         self.load_image = load_image
         self.generator = generator
         self.image_as_intensity = image_as_intensity
@@ -240,21 +225,17 @@ class FetalSynthDataset(FetalDataset):
         # parse seeds paths
         if not self.image_as_intensity and isinstance(self.seed_path, Path):
             if not self.seed_path.exists():
-                raise FileNotFoundError(
-                    f"Provided seed path {self.seed_path} does not exist."
-                )
+                raise FileNotFoundError(f"Provided seed path {self.seed_path} does not exist.")
             else:
                 self._load_seed_path()
 
     def _load_seed_path(self):
         """Load the seeds for the subjects."""
         self.seed_paths = {
-            self._sub_ses_string(sub, ses): defaultdict(dict)
-            for (sub, ses) in self.sub_ses
+            self._sub_ses_string(sub, ses): defaultdict(dict) for (sub, ses) in self.sub_ses
         }
         avail_seeds = [
-            int(x.name.replace("subclasses_", ""))
-            for x in self.seed_path.glob("subclasses_*")
+            int(x.name.replace("subclasses_", "")) for x in self.seed_path.glob("subclasses_*")
         ]
         min_seeds_available = min(avail_seeds)
         max_seeds_available = max(avail_seeds)
@@ -264,9 +245,7 @@ class FetalSynthDataset(FetalDataset):
         ):
             seed_path = self.seed_path / f"subclasses_{n_sub}"
             if not seed_path.exists():
-                raise FileNotFoundError(
-                    f"Provided seed path {seed_path} does not exist."
-                )
+                raise FileNotFoundError(f"Provided seed path {seed_path} does not exist.")
             # load the seeds for the subjects for each meta label 1-4
             for i in range(1, 5):
                 files = self._load_bids_path(seed_path, f"mlabel_{i}")
@@ -301,11 +280,7 @@ class FetalSynthDataset(FetalDataset):
         segm = self.loader(self.segm_paths[idx])
 
         # orient to RAS for consistency
-        image = (
-            self.orientation(image.unsqueeze(0)).squeeze(0)
-            if self.load_image
-            else None
-        )
+        image = self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
         segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
 
         # transform name into a single string otherwise collate fails
@@ -342,9 +317,7 @@ class FetalSynthDataset(FetalDataset):
         image = image.cpu() if image is not None else None
 
         generation_params = {**generation_params, **synth_params}
-        generation_params["generation_time"] = (
-            time.time() - generation_time_start
-        )
+        generation_params["generation_time"] = time.time() - generation_time_start
         data_out = {
             "image": gen_output.unsqueeze(0),
             "label": segmentation.unsqueeze(0).long(),

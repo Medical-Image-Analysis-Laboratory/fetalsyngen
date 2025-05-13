@@ -9,9 +9,7 @@ import monai
 res = 0.5
 
 # INPUT PATH (BIDS)
-bids_path = Path(
-    "/media/vzalevskyi/data/atlasses/CHN-fetal-brain-atlas/chn_bids/derivatives"
-)
+bids_path = Path("/media/vzalevskyi/data/atlasses/CHN-fetal-brain-atlas/chn_bids/derivatives")
 
 # INPUT TARGET SIZE
 target_size = (256, 256, 256)

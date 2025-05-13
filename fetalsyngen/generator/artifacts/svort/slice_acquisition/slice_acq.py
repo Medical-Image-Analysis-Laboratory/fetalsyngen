@@ -143,9 +143,7 @@ class SliceAcqAdjointFunction(Function):
                 vol_weight,
             )
         else:
-            ctx.save_for_backward(
-                transforms, psf, slices, slices_mask, vol_mask
-            )
+            ctx.save_for_backward(transforms, psf, slices, slices_mask, vol_mask)
         ctx.res_slice = res_slice
         ctx.interp_psf = interp_psf
         ctx.equalize = equalize
@@ -157,13 +155,9 @@ class SliceAcqAdjointFunction(Function):
         interp_psf = ctx.interp_psf
         equalize = ctx.equalize
         if equalize:
-            transforms, psf, slices, slices_mask, vol_mask, vol, vol_weight = (
-                ctx.saved_variables
-            )
+            transforms, psf, slices, slices_mask, vol_mask, vol, vol_weight = ctx.saved_variables
         else:
-            transforms, psf, slices, slices_mask, vol_mask = (
-                ctx.saved_variables
-            )
+            transforms, psf, slices, slices_mask, vol_mask = ctx.saved_variables
             vol = vol_weight = torch.empty(0)
         need_slices_grad = ctx.needs_input_grad[2]
         need_transforms_grad = ctx.needs_input_grad[0]
@@ -284,27 +278,17 @@ def _construct_slice_coef(
     if slice_mask is not None:
         _slice = slice_mask
     else:
-        _slice = torch.ones(
-            (1,) + slice_shape, dtype=torch.bool, device=psf.device
-        )
+        _slice = torch.ones((1,) + slice_shape, dtype=torch.bool, device=psf.device)
     slice_xyz = xyz_masked_untransformed(_slice, _slice.shape[-3:], res_slice)
     # transformation
     slice_xyz = mat_transform_points(transform, slice_xyz, trans_first=True)
-    psf_xyz = mat_transform_points(
-        transform, psf_xyz - transform[:, :, -1], trans_first=True
-    )
+    psf_xyz = mat_transform_points(transform, psf_xyz - transform[:, :, -1], trans_first=True)
     #
-    shift_xyz = (
-        torch.tensor(vol_shape[::-1], dtype=psf.dtype, device=psf.device) - 1
-    ) / 2.0
+    shift_xyz = (torch.tensor(vol_shape[::-1], dtype=psf.dtype, device=psf.device) - 1) / 2.0
     # (n_pixel, n_psf, 3)
-    slice_xyz = (
-        shift_xyz + psf_xyz.reshape((1, -1, 3)) + slice_xyz.reshape((-1, 1, 3))
-    )
+    slice_xyz = shift_xyz + psf_xyz.reshape((1, -1, 3)) + slice_xyz.reshape((-1, 1, 3))
     # (n_pixel, n_psf)
-    inside_mask = torch.all(
-        (slice_xyz > 0) & (slice_xyz < (shift_xyz * 2)), -1
-    )
+    inside_mask = torch.all((slice_xyz > 0) & (slice_xyz < (shift_xyz * 2)), -1)
     # (n_masked, 3)
     slice_xyz = slice_xyz[inside_mask].round().long()
     # (n_masked,)
@@ -417,11 +401,7 @@ def slice_acquisition_torch(
                 psf,
                 res_slice,
             )
-            s = (
-                torch.mv(coef, vol.view(-1))
-                .to_dense()
-                .reshape((-1, 1) + slice_shape)
-            )
+            s = torch.mv(coef, vol.view(-1)).to_dense().reshape((-1, 1) + slice_shape)
             weight = torch.sparse.sum(coef, 1).to_dense().reshape_as(s)
             del coef
             succ = True
@@ -449,9 +429,7 @@ def slice_acquisition_torch(
         return slices
 
 
-def mat_transform_points(
-    mat: torch.Tensor, x: torch.Tensor, trans_first: bool
-) -> torch.Tensor:
+def mat_transform_points(mat: torch.Tensor, x: torch.Tensor, trans_first: bool) -> torch.Tensor:
     # mat (*, 3, 4)
     # x (*, 3)
     R = mat[..., :-1]  # (*, 3, 3)
@@ -477,9 +455,9 @@ def slice_acquisition_no_psf_torch(
     _slice = torch.ones((1,) + slice_shape, dtype=torch.bool, device=device)
     slice_xyz = xyz_masked_untransformed(_slice, _slice.shape[-3:], res_slice)
     # transformation
-    slice_xyz = mat_transform_points(
-        transforms[:, None], slice_xyz[None], trans_first=True
-    ).view((transforms.shape[0], 1) + slice_shape + (3,))
+    slice_xyz = mat_transform_points(transforms[:, None], slice_xyz[None], trans_first=True).view(
+        (transforms.shape[0], 1) + slice_shape + (3,)
+    )
 
     output_slices = torch.zeros_like(slice_xyz[..., 0])
 
@@ -490,25 +468,15 @@ def slice_acquisition_no_psf_torch(
 
     # shape = xyz.shape[:-1]
     masked_xyz = masked_xyz / (
-        (
-            torch.tensor(
-                vol.shape[-3:][::-1], dtype=masked_xyz.dtype, device=device
-            )
-            - 1
-        )
-        / 2
+        (torch.tensor(vol.shape[-3:][::-1], dtype=masked_xyz.dtype, device=device) - 1) / 2
     )
     if vol_mask is not None:
         vol = vol * vol_mask
-    masked_v = F.grid_sample(
-        vol, masked_xyz.view(1, 1, 1, -1, 3), align_corners=True
-    )
+    masked_v = F.grid_sample(vol, masked_xyz.view(1, 1, 1, -1, 3), align_corners=True)
     if slices_mask is not None:
         output_slices[slices_mask] = masked_v
     else:
-        output_slices = masked_v.reshape(
-            (transforms.shape[0], 1) + slice_shape
-        )
+        output_slices = masked_v.reshape((transforms.shape[0], 1) + slice_shape)
     return output_slices
 
 

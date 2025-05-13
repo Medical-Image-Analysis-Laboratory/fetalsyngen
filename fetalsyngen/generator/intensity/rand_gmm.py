@@ -35,9 +35,7 @@ class ImageFromSeeds:
         try:
             assert len(set(seed_labels)) == len(seed_labels)
         except AssertionError:
-            raise ValueError(
-                "Parameter seed_labels should have unique values."
-            )
+            raise ValueError("Parameter seed_labels should have unique values.")
         try:
             assert len(seed_labels) == len(generation_classes)
         except AssertionError:
@@ -82,9 +80,7 @@ class ImageFromSeeds:
         # to use for each meta-label in the format {mlabel: n_subclusters}
         if mlabel2subclusters is None:
             mlabel2subclusters = {
-                meta_label: np.random.randint(
-                    self.min_subclusters, self.max_subclusters + 1
-                )
+                meta_label: np.random.randint(self.min_subclusters, self.max_subclusters + 1)
                 for meta_label in range(1, self.meta_labels + 1)
             }
         if "mlabel2subclusters" in genparams.keys():
@@ -100,9 +96,7 @@ class ImageFromSeeds:
             new_seed = self.orientation(new_seed.unsqueeze(0))
             seed += new_seed
 
-        return seed.long().squeeze(0), {
-            "mlabel2subclusters": mlabel2subclusters
-        }
+        return seed.long().squeeze(0), {"mlabel2subclusters": mlabel2subclusters}
 
     def sample_intensities(
         self, seeds: torch.Tensor, device: str, genparams: dict = {}
