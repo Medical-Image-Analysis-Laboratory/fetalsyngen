@@ -121,11 +121,13 @@ class FetalSynthGen:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
+
             output, seed_intensities = self.intensity_generator.sample_intensities(
                 seeds=seeds,
                 device=self.device,
                 genparams=genparams.get("seed_intensities", {}),
             )
+
         else:
             if image is None:
                 raise ValueError(

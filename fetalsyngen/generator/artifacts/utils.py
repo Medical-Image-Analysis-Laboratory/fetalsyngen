@@ -139,7 +139,8 @@ def mog_3d_tensor(shape, centers, sigmas, device):
     x = torch.arange(W).float()
     y = torch.arange(H).float()
     z = torch.arange(D).float()
-    x, y, z = torch.meshgrid(x, y, z, indexing="ij")
+    z, y, x = torch.meshgrid(z, y, x, indexing="ij")
+
     x, y, z = x.to(device), y.to(device), z.to(device)
     mog = torch.zeros((D, H, W)).to(device)
     if not (isinstance(sigmas, list) or isinstance(sigmas, np.ndarray)):
@@ -153,6 +154,7 @@ def mog_3d_tensor(shape, centers, sigmas, device):
         x0, y0, z0 = center
         # Calculate the Gaussian distribution values
         dist_sq = ((x - x0) / sigma_x) ** 2 + ((y - y0) / sigma_y) ** 2 + ((z - z0) / sigma_z) ** 2
+
         mog += torch.exp(-dist_sq / 2)
 
     return torch.clamp(mog, 0, 1)

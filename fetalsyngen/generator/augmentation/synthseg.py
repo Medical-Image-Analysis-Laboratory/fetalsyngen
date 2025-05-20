@@ -161,7 +161,8 @@ class RandBiasField(RandTransform):
                 if "bf_scale" not in genparams.keys()
                 else genparams["bf_scale"]
             )
-            bf_size = np.round(bf_scale * np.array(image_size)).astype(int).tolist()
+            bf_size = np.round(bf_scale * np.array(image_size)).astype(int)
+            bf_size = np.maximum(bf_size, 1).tolist()
             bf_std = (
                 self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
                 if "bf_std" not in genparams.keys()
@@ -173,7 +174,9 @@ class RandBiasField(RandTransform):
                 dtype=torch.float,
                 device=device,
             ) * torch.randn(bf_size, dtype=torch.float, device=device)
+
             bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
+
             bf = torch.exp(bf_interp)
 
             return output * bf, {

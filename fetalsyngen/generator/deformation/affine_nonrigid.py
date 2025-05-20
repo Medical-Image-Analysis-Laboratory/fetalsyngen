@@ -61,14 +61,13 @@ class SpatialDeformation:
 
         self.device = device
 
-        self._prepare_grid()
-
-    def _prepare_grid(self):
-
+    def _prepare_grid(self, size=None):
+        if size is None:
+            size = self.size
         xx, yy, zz = np.meshgrid(
-            range(self.size[0]),
-            range(self.size[1]),
-            range(self.size[2]),
+            range(size[0]),
+            range(size[1]),
+            range(size[2]),
             sparse=False,
             indexing="ij",
         )
@@ -136,6 +135,7 @@ class SpatialDeformation:
             deform_params (dict): Deformation parameters.
 
         """
+
         deform_params = {}
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
             flip = (
@@ -143,6 +143,7 @@ class SpatialDeformation:
                 if "flip" not in genparams.keys()
                 else genparams["flip"]
             )
+            self._prepare_grid(image_shape)
             xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = self.generate_deformation(
                 image_shape, random_shift=random_shift, genparams=genparams
             )
@@ -206,6 +207,7 @@ class SpatialDeformation:
         # sample nonlinear deformation
         if self.nonlinear_transform:
             F, non_rigid_params = self.random_nonlinear_transform(
+                image_shape=image_shape,
                 nonlin_scale_min=self.nonlin_scale_min,
                 nonlin_scale_max=self.nonlin_scale_max,
                 nonlin_std_max=self.nonlin_std_max,
@@ -295,7 +297,7 @@ class SpatialDeformation:
         return A, c2, affine_params
 
     def random_nonlinear_transform(
-        self, nonlin_scale_min, nonlin_scale_max, nonlin_std_max, genparams={}
+        self, image_shape, nonlin_scale_min, nonlin_scale_max, nonlin_std_max, genparams={}
     ):
 
         nonlin_scale = (
@@ -304,7 +306,7 @@ class SpatialDeformation:
             else genparams["nonlin_scale"]
         )
         size_F_small = (
-            np.round(nonlin_scale * np.array(self.size)).astype(int).tolist()
+            np.round(nonlin_scale * np.array(image_shape)).astype(int).tolist()
             if "size_F_small" not in genparams.keys()
             else genparams["size_F_small"]
         )
@@ -314,7 +316,7 @@ class SpatialDeformation:
             else genparams["nonlin_std"]
         )
         Fsmall = nonlin_std * torch.randn([*size_F_small, 3], dtype=torch.float, device=self.device)
-        F = myzoom_torch(Fsmall, np.array(self.size) / size_F_small)
+        F = myzoom_torch(Fsmall, np.array(image_shape) / size_F_small)
 
         return F, {
             "nonlin_scale": nonlin_scale,
@@ -323,6 +325,7 @@ class SpatialDeformation:
         }
 
     def deform_image(self, shp, A, c2, F):
+
         if F is not None:
             # deform the images (we do nonlinear "first" ie after so we can do heavy coronal deformations in photo mode)
             xx1 = self.xc + F[:, :, :, 0]
