@@ -47,8 +47,8 @@ class FetalDataset:
 
         self.orientation = Orientation(axcodes="RAS")
 
-        self.img_paths = self._load_bids_path(self.bids_path, self.bids_path_img_ending)
-        self.segm_paths = self._load_bids_path(self.bids_path, self.bids_path_segm_ending)
+        self.img_paths, self.segm_paths = self._load_bids_path_new(self.bids_path)
+        #self.segm_paths = self._load_bids_path(self.bids_path, self.bids_path_segm_ending)
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
@@ -80,7 +80,7 @@ class FetalDataset:
             return f"{sub}/anat/{sub}*_{suffix}{extension}"
         else:
             return f"{sub}/{ses}/anat/{sub}*_{suffix}{extension}"
-
+        
     def _load_bids_path(self, path, suffix):
         """
         "Check that for a given path, all subjects have a file with the provided suffix
@@ -103,6 +103,61 @@ class FetalDataset:
             else: files_paths.append(files[0])
 
         return files_paths
+
+    def _load_bids_path_new(self, path):
+        """
+        Check that for a given path, all subjects have a file with the provided suffix
+        (either image or segmentation). If no segmentation is found, the image will be skipped.
+        """
+        files_paths = []
+        skip_subjects = set()  # A set to keep track of subjects to skip
+
+        for sub, ses in self.sub_ses:
+            pattern = self._get_pattern(sub, ses, self.bids_path_segm_ending)
+            files = list(path.glob(pattern))
+            
+            if len(files) == 0:
+                # If no segmentation files found, print and skip the subject for both image and segmentation
+                print(
+                    f"No files found for requested subject {sub} in {path} "
+                    f"({pattern} returned nothing)"
+                )
+                skip_subjects.add((sub, ses))  # Mark this subject-session pair to be skipped
+            elif len(files) > 1:
+                # If multiple files found, print a warning
+                print(
+                    f"Multiple files found for requested subject {sub} in {path} "
+                    f"({pattern} returned {files})"
+                )
+            else:
+                files_paths.append(files[0])
+
+        # Now, we need to ensure that if we skip a subject due to missing segmentation,
+        # we also skip the corresponding image paths
+        # Filter out skipped subjects before processing
+        self.sub_ses = [(sub, ses) for sub, ses in self.sub_ses if (sub, ses) not in skip_subjects]
+
+
+        img_paths = []
+        for sub, ses in self.sub_ses:
+            if (sub, ses) not in skip_subjects:  # Only load image files if not skipped
+                pattern = self._get_pattern(sub, ses, self.bids_path_img_ending)
+                files = list(path.glob(pattern))
+                if len(files) == 0:
+                    print(
+                        f"No image files found for requested subject {sub} in {path} "
+                        f"({pattern} returned nothing)"
+                    )
+                elif len(files) > 1:
+                    print(
+                        f"Multiple image files found for requested subject {sub} in {path} "
+                        f"({pattern} returned {files})"
+                    )
+                else:
+                    img_paths.append(files[0])
+
+        return img_paths, files_paths  # Return both image and segmentation file paths
+
 
     def __len__(self):
         return len(self.subjects)
@@ -145,7 +200,6 @@ class FetalTestDataset(FetalDataset):
         """
         self.bids_path_img_ending = bids_path_img_ending
         self.bids_path_segm_ending = bids_path_segm_ending
-
         super().__init__(bids_path, sub_list, bids_path_img_ending, bids_path_segm_ending)
         self.transforms = transforms
 
@@ -437,3 +491,4 @@ class FetalSynthDataset(FetalDataset):
         data, generation_params = self.sample(idx, genparams=genparams)
         data["generation_params"] = generation_params
         return data
+    

@@ -448,7 +448,7 @@ std::vector<torch::Tensor> axisangle2mat_forward_cuda(
     const int32_t threads = 256;
     const int32_t blocks = (axisangle.size(0) + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(axisangle.type(), "axisangle2mat_forward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(axisangle.scalar_type(), "axisangle2mat_forward_cuda", [&] {
         axisangle2mat_forward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             mat.data_ptr<scalar_t>(),
             axisangle.data_ptr<scalar_t>(),
@@ -466,7 +466,7 @@ std::vector<torch::Tensor> axisangle2mat_backward_cuda(
     const int32_t threads = 256;
     const int32_t blocks = (axisangle.size(0) + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(axisangle.type(), "axisangle2mat_backward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(axisangle.scalar_type(), "axisangle2mat_backward_cuda", [&] {
         axisangle2mat_backward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             grad_mat.data_ptr<scalar_t>(),
             axisangle.data_ptr<scalar_t>(),
@@ -484,7 +484,7 @@ std::vector<torch::Tensor> mat2axisangle_forward_cuda(
     const int32_t threads = 256;
     const int32_t blocks = (mat.size(0) + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(mat.type(), "mat2axisangle_forward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(mat.scalar_type(), "mat2axisangle_forward_cuda", [&] {
         mat2axisangle_forward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             mat.data_ptr<scalar_t>(),
             axisangle.data_ptr<scalar_t>(),
@@ -502,7 +502,7 @@ std::vector<torch::Tensor> mat2axisangle_backward_cuda(
     const int32_t threads = 256;
     const int32_t blocks = (mat.size(0) + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(mat.type(), "mat2axisangle_backward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(mat.scalar_type(), "mat2axisangle_backward_cuda", [&] {
         mat2axisangle_backward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             mat.data_ptr<scalar_t>(),
             grad_axisangle.data_ptr<scalar_t>(),

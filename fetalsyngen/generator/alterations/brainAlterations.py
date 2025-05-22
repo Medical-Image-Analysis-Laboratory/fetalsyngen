@@ -9,7 +9,6 @@ from scipy.ndimage import binary_dilation, binary_erosion, distance_transform_ed
 from sklearn.neighbors import NearestNeighbors
 import random
 import nibabel as nib
-import skfmm
 import time
 
 
