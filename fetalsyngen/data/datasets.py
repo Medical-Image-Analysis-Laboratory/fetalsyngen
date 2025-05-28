@@ -47,7 +47,7 @@ class FetalDataset:
 
         self.orientation = Orientation(axcodes="RAS")
 
-        self.img_paths, self.segm_paths = self._load_bids_path_new(self.bids_path)
+        self.img_paths, self.segm_paths = self._load_bids_path(self.bids_path)
         #self.segm_paths = self._load_bids_path(self.bids_path, self.bids_path_segm_ending)
 
     def find_subjects(self, sub_list):
@@ -81,7 +81,7 @@ class FetalDataset:
         else:
             return f"{sub}/{ses}/anat/{sub}*_{suffix}{extension}"
         
-    def _load_bids_path(self, path, suffix):
+    def _load_metalabel_path(self, path, suffix):
         """
         "Check that for a given path, all subjects have a file with the provided suffix
         """
@@ -104,7 +104,7 @@ class FetalDataset:
 
         return files_paths
 
-    def _load_bids_path_new(self, path):
+    def _load_bids_path(self, path):
         """
         Check that for a given path, all subjects have a file with the provided suffix
         (either image or segmentation). If no segmentation is found, the image will be skipped.
@@ -200,7 +200,7 @@ class FetalTestDataset(FetalDataset):
         """
         self.bids_path_img_ending = bids_path_img_ending
         self.bids_path_segm_ending = bids_path_segm_ending
-        super().__init__(bids_path, sub_list, bids_path_img_ending, bids_path_segm_ending)
+        super().__init__(bids_path, sub_list, bids_path_img_ending, bids_path_segm_ending, )
         self.transforms = transforms
 
     def _load_data(self, idx):
@@ -337,7 +337,7 @@ class FetalSynthDataset(FetalDataset):
                 )
             # load the seeds for the subjects for each meta label 1-4
             for i in range(1, 5):
-                files = self._load_bids_path(seed_path, f"mlabel_{i}")
+                files = self._load_metalabel_path(seed_path, f"mlabel_{i}")
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_paths[sub_ses_str][n_sub][i] = file
@@ -365,7 +365,7 @@ class FetalSynthDataset(FetalDataset):
                 )
             # load the seeds for the subjects for each meta label 1-4
             for i in range(1, 5):
-                files = self._load_bids_path(seed_csf_path, f"mlabel_{i}")
+                files = self._load_metalabel_path(seed_csf_path, f"mlabel_{i}")
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_csf_paths[sub_ses_str][n_sub][i] = file
