@@ -55,11 +55,11 @@ def main(args):
     # mapping fetal labels to meta labels
     if args.annotation == "feta":
         tissue_map = {
-            "CSF": [1, 4],  # meta-label 1
+            "CSF": [1, 4, 8],  # meta-label 1
             "GM": [2, 6],  # meta-label 2
-            "WM": [3, 5, 7, 8],  # meta-label 3
+            "WM": [3, 5, 7],  # meta-label 3
         }
-        feta2meta = {1: 1, 4: 1, 2: 2, 6: 2, 5: 3, 7: 3, 3: 3, 8: 3}
+        feta2meta = {1: 1, 4: 1, 8: 1, 2: 2, 6: 2, 5: 3, 7: 3, 3: 3}
     elif args.annotation == "dhcp":
         tissue_map = {
             "CSF": [1, 5],  # meta-label 1
@@ -124,7 +124,6 @@ def main(args):
                 tasks.append(
                     (t2w, label, subclasses, feta2meta, out_path, sub, ses.name, loader, args.annotation)
                 )
-
 
     # Use multiprocessing Pool for parallel processing
     with Pool(mp.cpu_count()-6) as pool:

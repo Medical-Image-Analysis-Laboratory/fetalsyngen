@@ -88,18 +88,44 @@ def main(args):
     # Prepare input arguments for parallel processing
     tasks = []
     for sub in subjects:
+    # Loop over each session in the subject
+        for ses in sub.glob("ses-*"):
+            anat_path = ses / "anat"
+            if not anat_path.exists():
+                continue
 
-        for subclasses in range(1, max_subclusts):
-            imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
-            labels = list(sub.glob("**/anat/*dseg_CC.nii.gz"))
-            # Traverse the parts of the path and find the session folder
-            ses = next((part for part in imgs.parts if part.startswith("ses-")), None)
-            if not labels:
-                continue  # Skip this subject and move to the next
+            # Get T2w and label files
+            t2ws = list(anat_path.glob("*_T2w.nii.gz"))
+            labels = list(anat_path.glob("*T2w_dseg_CC.nii.gz"))
+
+            if not t2ws or not labels:
+                continue  # Skip if any missing
+
+            t2w = t2ws[0]
             label = labels[0]
-            tasks.append(
-                (imgs, label, subclasses, feta2meta, out_path, sub, ses, loader, args.annotation)
-            )
+
+            # Track which subclasses need to be processed
+            subclasses_to_run = []
+
+            for subclasses in range(1, max_subclusts):
+                out_suffix = f"subclasses_{subclasses}/{sub.name}/{ses.name}/anat/"
+                expected_path = out_path / out_suffix
+
+                # Check if output already exists
+                if not expected_path.exists() or not any(expected_path.glob("*.nii.gz")):
+                    subclasses_to_run.append(subclasses)
+
+            # Skip if all subclasses already processed
+            if not subclasses_to_run:
+                print(f"Skipped {sub.name}/{ses.name}")
+                continue
+
+            # Add task only for missing subclasses
+            for subclasses in subclasses_to_run:
+                tasks.append(
+                    (t2w, label, subclasses, feta2meta, out_path, sub, ses.name, loader, args.annotation)
+                )
+
 
     # Use multiprocessing Pool for parallel processing
     with Pool(mp.cpu_count()-6) as pool:

@@ -14,6 +14,7 @@ import numpy as np
 from monai.data import MetaTensor
 import nibabel as nib
 import numpy as np
+import os
 
 
 class FetalDataset:
@@ -64,6 +65,9 @@ class FetalDataset:
     def _get_ses(self, bids_path, sub):
         """Get the session names for the subject."""
         sub_path = bids_path / sub
+        if not sub_path.exists():
+            print(f"Subject {sub} not found at {sub_path}")
+
         ses_dir = [x for x in sub_path.iterdir() if x.is_dir()]
         ses = []
         for s in ses_dir:
@@ -90,11 +94,10 @@ class FetalDataset:
             pattern = self._get_pattern(sub, ses, suffix)
             files = list(path.glob(pattern))
             if len(files) == 0:
-                if len(files) == 0:
-                    print(
-                        f"No files found for requested subject {sub} in {path} "
-                        f"({pattern} returned nothing)"
-                    )
+                print(
+                    f"No files found for requested subject {sub} in {path} "
+                    f"({pattern} returned nothing)"
+                )
             elif len(files) > 1:
                 print(
                     f"Multiple files found for requested subject {sub} in {path} "
@@ -115,7 +118,6 @@ class FetalDataset:
         for sub, ses in self.sub_ses:
             pattern = self._get_pattern(sub, ses, self.bids_path_segm_ending)
             files = list(path.glob(pattern))
-            
             if len(files) == 0:
                 # If no segmentation files found, print and skip the subject for both image and segmentation
                 print(
@@ -125,9 +127,13 @@ class FetalDataset:
                 skip_subjects.add((sub, ses))  # Mark this subject-session pair to be skipped
             elif len(files) > 1:
                 # If multiple files found, print a warning
+                cc_files = [f for f in files if "CC" in os.path.basename(f)]
+                if cc_files: file = cc_files[0]  # Use the first matching "CC" file
+                else: file = files[0] 
+                files_paths.append(file)
                 print(
                     f"Multiple files found for requested subject {sub} in {path} "
-                    f"({pattern} returned {files})"
+                    f"({file} was selected.)"
                 )
             else:
                 files_paths.append(files[0])
@@ -136,7 +142,6 @@ class FetalDataset:
         # we also skip the corresponding image paths
         # Filter out skipped subjects before processing
         self.sub_ses = [(sub, ses) for sub, ses in self.sub_ses if (sub, ses) not in skip_subjects]
-
 
         img_paths = []
         for sub, ses in self.sub_ses:
