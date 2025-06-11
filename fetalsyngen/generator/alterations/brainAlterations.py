@@ -8,29 +8,30 @@ from skimage.morphology import ball
 from scipy.ndimage import binary_dilation, binary_erosion, distance_transform_edt
 from sklearn.neighbors import NearestNeighbors
 import random
-import nibabel as nib
-import time
 
 
 class brain_Alterations:
-    def __init__(self, alteration_prob: float, cortex_label: int,
-                 csf_label: int, wm_label: int, ventri_label: int, 
-                 cerebellum_label: int, deep_gm_label: int, 
-                 brainstem_label: int, cc_label: int,
+    def __init__(self, alteration_prob: float, brain_threshold: float,
+                 cortex_label: int, csf_label: int, wm_label: int, 
+                 ventri_label: int, cerebellum_label: int, 
+                 deep_gm_label: int, brainstem_label: int, 
+                 cc_label: int,
                  min_size_smooth: int, max_size_smooth: int,
                  min_iter_smooth: int, max_iter_smooth: int,
                  min_size_thick: int, max_size_thick:int,
                  min_size_thin: int,
                  ventri_max_strength: float, ventri_min_strength: float,
                  ventri_max_radius: float, ventri_min_radius: float,
-                 left_ventri: int, right_ventri: int, bilateral_ventri: int,
-                 min_size_hypo: int, brain_alter_prob: torch.Tensor
+                 left_ventri: int, right_ventri: int, 
+                 bilateral_ventri: int, ventri_probs: torch.Tensor,
+                 min_size_hypo: int, max_size_hypo: int, brain_alter_prob: torch.Tensor
 
 ):
-        """Initialize brain alteration parameters.
+        """Initialize the brain alteration class with parameters for different types of alterations.
         
         Args:
             alteration_prob (float): Probability of applying an alteration.
+            brain_threshold (float): Threshold for percentage of pathological cases.
             cortex_label (int): Label for cortical regions.
             csf_label (int): Label for cerebrospinal fluid (CSF).
             wm_label (int): Label for white matter.
@@ -42,13 +43,16 @@ class brain_Alterations:
             min_size_smooth (int), max_size_smooth (int): Min/max kernel sizes for smoothing.
             min_iter_smooth (int), max_iter_smooth (int): Min/max iterations for smoothing.
             min_size_thick (int), max_size_thick (int): Min/max kernel sizes for thickening.
-            min_size_thin (int), max_size_thin (int): Min/max kernel sizes for thinning.
+            min_size_thin (int): Min kernel sizes for thinning.
             ventri_max_strength (float), ventri_min_strength (float): Strength range for ventriculomegaly.
             ventri_max_radius (float), ventri_min_radius (float): Radius range for ventriculomegaly.
             left_ventri (int), right_ventri (int), bilateral_ventri (int): Ventricular region flags.
+            ventri_probs (torch.Tensor): Probability distribution for different types of ventriculomegaly.
             min_size_hypo (int), max_size_hypo (int): Min/max kernel sizes for hypoplasia.
+            brain_alter_prob (torch.Tensor): Class-specific probabilities for different brain alterations types.
         """
         self.alteration_prob = alteration_prob
+        self.brain_threshold = brain_threshold
         self.cortex_label = cortex_label
         self.csf_label = csf_label
         self.wm_label = wm_label
@@ -71,7 +75,9 @@ class brain_Alterations:
         self.left_ventri = left_ventri
         self.right_ventri = right_ventri
         self.bilateral_ventri = bilateral_ventri
+        self.ventri_probs = torch.tensor(ventri_probs, dtype=torch.float32) 
         self.min_size_hypo = min_size_hypo
+        self.max_size_hypo = max_size_hypo
         self.brain_alter_prob = torch.tensor(brain_alter_prob, dtype=torch.float32)
 
 
@@ -84,8 +90,17 @@ class brain_Alterations:
         """Convert a PyTorch tensor to a NumPy array."""
         return tensor.cpu().numpy()
     
+
     def brain_volumne_computation(self, segm, segm_affine):
-        """Computes brain volume in dm3."""
+        """Computes brain volume in dm3 from a segmentation map.
+        Args:
+            segm (torch.Tensor): 3D tensor representing the segmentation map.
+            segm_affine (torch.Tensor): 4x4 affine matrix associated with the 
+                segmentation image, used to calculate voxel dimensions.
+
+        Returns:
+            brain_volume_dm3 (float): Computed brain volume in cubic decimeters (dm³).
+        """
         voxel_size = torch.abs(torch.linalg.det(segm_affine[:3, :3]))
         # Automatically get all non-background labels
         unique_labels = torch.unique(segm).int()
@@ -100,23 +115,58 @@ class brain_Alterations:
     
     
     def max_ratio(self, segm, segm_affine):
-        """Computes a scaling ratio based on a reference 38-week gestational age (GW) brain volume atlas."""
+        """
+        Computes the scaling ratio between the brain volume of the given segmentation 
+        and a reference brain volume corresponding to a 38-week gestational age atlas.
+
+        Args:
+            segm (torch.Tensor): 3D tensor of the brain segmentation.
+            segm_affine (torch.Tensor): 4x4 affine matrix used to compute the voxel size.
+
+        Returns:
+            max_ratio (float): The ratio of the computed brain volume (in dm³) to the reference 
+                volume of 0.444 dm³ (typical for a 38-week gestational age brain).
+        """
         brain_volume = self.brain_volumne_computation(segm, segm_affine)
-        max_ratio = brain_volume/0.257 # Based on 38gw atlas brain volume
+        max_ratio = brain_volume/0.444 # Based on 38gw brain volume
 
         return max_ratio
 
+
     def thin_range(self, segm, segm_affine):
-        """Determines the threshold for thinning operations based on brain volume."""
+        """Determines the threshold for thinning operations based on brain volume.
+        
+        Args:
+            segm (torch.Tensor): 3D tensor of the brain segmentation.
+            segm_affine (torch.Tensor): 4x4 affine matrix used to compute the voxel size.
+
+        Returns:
+            int: Thinning threshold (1 for small brains, 2 for large brains, above 31 gestational weeks).
+        """
         brain_volume = self.brain_volumne_computation(segm, segm_affine)
         if brain_volume > 0.3: return 2 # Above 31gw
         else: return 1
 
-    def hypo_range(self, segm, segm_affine):
-        """ Determines the threshold for hypoplasia severity based on brain volume."""
-        brain_volume = self.brain_volumne_computation(segm, segm_affine)
-        if brain_volume > 0.2: return 3 # Above 26gw
-        else: return 2
+
+    def validate_range(self, attr_min: str, attr_max: str, min_default=1, max_default=1):
+        """Ensures that min/max attributes are valid for random selection and processing."""
+        min_val = getattr(self, attr_min)
+        max_val = getattr(self, attr_max)
+
+        # Ensure min > 0
+        if min_val == 0:
+            min_val = min_default
+        if max_val == 0:
+            max_val = max_default
+
+        # Swap if out of order
+        if min_val > max_val:
+            min_val, max_val = max_val, min_val
+
+        # Save corrected values back
+        setattr(self, attr_min, min_val)
+        setattr(self, attr_max, max_val)
+
 
     def NN_interpolation(self, tensor, mask, dilated_mask=None, background=False):
         """Perform nearest neighbor interpolation on a given tensor or seed region.
@@ -132,18 +182,20 @@ class brain_Alterations:
             background (bool, optional): Whether to interpolate using background pixels. Defaults to False.
 
         Returns:
-            - tensor (torch.Tensor): Interpolated tensor where missing values are filled.
+            tensor_NN (torch.Tensor): Interpolated tensor where missing values are filled.
         """
         if dilated_mask is not None:
             # Seed Interpolation Mode: Find missing values only in the dilated mask
             NN_tensor = mask.clone()
             missing_values = torch.nonzero((dilated_mask == 1) & (mask == 0))
+            # Reference dataset for the nearest neighbor search
             valid_indices = torch.nonzero(mask)
         else:
             # General Interpolation Mode: Work on the entire tensor
             NN_tensor = tensor.clone()
-            NN_tensor[mask > 0.5] = 0  # Remove old labels
+            NN_tensor[mask > 0.5] = 0  # Remove mask label
             missing_values = torch.nonzero(mask)
+            # Reference dataset for the nearest neighbor search
             valid_indices = torch.nonzero(mask == 0 if background else NN_tensor != 0)
 
         if valid_indices.numel() == 0 or missing_values.numel() == 0:
@@ -164,20 +216,23 @@ class brain_Alterations:
         return NN_tensor
     
 
-    def create_pinch_grid_3d(self, d, h, w, strength, radius, center):
-        """Create a pinch grid for 3D images.
+    def create_pinch_grid_3d(self, d, h, w, strength, radius = 1.0, center = (0.0, 0.0, 0.0)):
+        """Generates a 3D deformation grid that applies a pinch effect around a specified center.
 
         Args:
-            d, h, w: The depth, height, and width of the grid.
+            d (int), h (int), w (int): The depth (along z-axis), height (along y-axis), and width 
+                (along x-axis) of the grid.
             strength: The strength of the pinch effect. A value of 0 will have no effect,
                 while a value of 1 will completely pinch the image to the center.
-            radius: The radius of the pinch effect. If None, the radius will be the smallest
-                value that fits within the grid.
-            center: The center of the pinch effect. If None, the center will be the middle
-                of the grid. Should be a tuple of normalized coordinates (x, y, z).
+            radius (float or None): The radius of the pinch effect. If None, the radius 
+                will be the smallest value that fits within the grid.
+            center (tuple of float or None): Normalized coordinates (x, y, z) for the pinch center,
+                where each coordinate ranges from -1 to 1. If None, defaults to the center of the
+                grid (0, 0, 0).
 
         Returns:
-            A tensor with shape (D, H, W, 3) containing the pinch grid.
+            grid (torch.Tensor): A grid tensor of shape (D, H, W, 3) containing the modified coordinates
+                after applying the pinch effect. Can be used directly with grid_sample.
         """
         z, y, x = torch.meshgrid(
             torch.linspace(-1, 1, d),
@@ -187,12 +242,7 @@ class brain_Alterations:
         )
         grid = torch.stack((x, y, z), dim=-1)
 
-        if center is None:
-            center = (0.0, 0.0, 0.0) 
         center_z, center_y, center_x = center
-
-        if radius is None:
-            radius = 1.0 
 
         # Compute distances from the center
         dx = grid[..., 0] - center_x
@@ -211,8 +261,7 @@ class brain_Alterations:
         grid[..., 2] = center_z + dz * factor
 
         return grid
-
-
+    
 
     def random_brain_alteration(self, seed, segmentation, genparams: dict = {}):
         """
@@ -220,17 +269,17 @@ class brain_Alterations:
         based on predefined probabilities and input parameters.
 
         Parameters:
-        - seed: A random seed for reproducibility.
-        - segmentation: Tensor representing the segmented brain regions.
-        - genparams (dict): Dictionary containing parameters for specific transformations.
+            seed (torch.Tensor): Original seed tensor.
+            segmentation (torch.Tensor): Tensor representing the segmented brain regions.
+            genparams (dict): Dictionary containing parameters for specific transformations.
 
         Returns:
-        - transformed_segmentation: The updated segmentation tensor after alteration.
-        - transformed_seed: The uodated seed value after alteration.
-        - genparams: Updated dictionary of parameters.
+            torch.Tensor: Transformed segmentation after applying the selected alteration.
+            torch.Tensor: Transformed seed corresponding to the altered region.
+            dict: Updated generation parameters reflecting the applied transformation.
         """
         self.alteration_prob = random.random()
-        if self.alteration_prob > 0.5:
+        if self.alteration_prob > self.brain_threshold:
             cortex_mask = segmentation == self.cortex_label
             csf_mask = segmentation == self.csf_label
             ventricles_mask = segmentation.clone()
@@ -276,18 +325,20 @@ class brain_Alterations:
         Apply a smoothing transformation by dilating and then eroding the cortex mask.
 
         Parameters:
-        - cortex_mask: A boolean mask indicating the cortex region in the segmentation.
-        - segm: The original brain segmentation.
-        - seed: The original seed tensor.
-        - genparams:  Dictionary containing transformation parameters.
+            cortex_mask (torch.Tensor): A boolean mask indicating the cortex region in the segmentation.
+            segm (torch.Tensor): The original brain segmentation.
+            seed (torch.Tensor): The original seed tensor.
+            genparams (dict):  Dictionary containing transformation parameters.
 
         Returns:
-        - smooth_cortex_segm: The modified brain segmentation after transformation.
-        - smooth_cortex_seed: The modified seed tensor after transformation.
-        - genparams: Updated generation parameters.
+            smooth_cortex_segm (torch.Tensor): The modified brain segmentation after transformation.
+            smooth_cortex_seed (torch.Tensor): The modified seed tensor after transformation.
+            genparams (dict): Updated generation parameters.
         """
+        self.validate_range('min_size_smooth', 'max_size_smooth')
         size = genparams.get('size_smooth', random.randint(self.min_size_smooth, self.max_size_smooth))
         genparams['size_smooth'] = size
+        self.validate_range('min_iter_smooth', 'max_iter_smooth')
         iter = genparams.get('iter_smooth', random.randint(self.min_iter_smooth, self.max_iter_smooth))
         genparams['iter_smooth'] = iter
 
@@ -298,14 +349,19 @@ class brain_Alterations:
         smooth_cortex_mask = cortex_mask.clone() 
         smooth_cortex_mask = torch.tensor(binary_dilation(self.tensor_to_numpy(smooth_cortex_mask), structure=self.tensor_to_numpy(struct), iterations=iter))
         smooth_cortex_mask = torch.tensor(binary_erosion(self.tensor_to_numpy(smooth_cortex_mask), structure=self.tensor_to_numpy(struct), iterations=iter))
-        extended_mask = self.NN_interpolation(seed, NN_seed, smooth_cortex_mask) 
 
+        # Base seed image
         smooth_cortex_seed = seed.clone()
+        # Base segmentation image
         smooth_cortex_segm = segm.clone()
-        # Only extentd on the csf, do not eat wm
+        # Only extentd the cortex on the csf, the wm remains intact
         mask_condition = torch.zeros_like(seed, dtype=torch.int64)
         mask_condition = (smooth_cortex_mask) & (smooth_cortex_segm == self.csf_label)
+
+        # Use NN_interpolation to obtain the extended seed mask
+        extended_mask = self.NN_interpolation(seed, NN_seed, mask_condition) 
         
+        # Reinsert extended mask on top of base seed image
         smooth_cortex_seed[mask_condition] = extended_mask[mask_condition]
         smooth_cortex_segm[mask_condition] = self.cortex_label
 
@@ -314,19 +370,20 @@ class brain_Alterations:
 
     def thicker_cortex(self, cortex_mask, segm, seed, genparams):
         """
-        Apply hyperplasia transformation by dilating the affected region, specifically to the cortex (gray matter).
+        Apply hyperplasia transformation by dilating the affected region, the cortex (gray matter).
         
         Parameters:
-        - cortex_mask: A boolean mask indicating the cortex region in the segmentation.
-        - segm: The original brain segmentation.
-        - seed: The original seed tensor.
-        - genparams: A dictionary containing transformation parameters.
+            cortex_mask (torch.Tensor): A boolean mask indicating the cortex region in the segmentation.
+            segm (torch.Tensor): The original brain segmentation.
+            seed (torch.Tensor): The original seed tensor.
+            genparams (dict):  Dictionary containing transformation parameters.
 
         Returns:
-        - thick_cortex_segm: The modified brain segmentation after transformation (with thicker cortex).
-        - thick_cortex_seed: The modified seed tensor after transformation.
-        - genparams: Updated generation parameters.
+            thick_cortex_segm (torch.Tensor): The modified brain segmentation after transformation (with thicker cortex).
+            thick_cortex_seed (torch.Tensor): The modified seed tensor after transformation.
+            genparams (dict): Updated generation parameters.
         """
+        self.validate_range('min_size_thick', 'max_size_thick')
         size = genparams.get('size_thick', random.randint(self.min_size_thick, self.max_size_thick))
         genparams['size_thick'] = size
 
@@ -334,15 +391,20 @@ class brain_Alterations:
         NN_seed[cortex_mask] = seed[cortex_mask]
 
         struct = torch.tensor(ball(size))
-        thick_cortex_mask = torch.tensor(binary_dilation(self.tensor_to_numpy(cortex_mask), structure=self.tensor_to_numpy(struct)))
-        extended_mask = self.NN_interpolation(seed, NN_seed, thick_cortex_mask) 
+        thick_cortex_mask = torch.tensor(binary_dilation(self.tensor_to_numpy(cortex_mask), structure=self.tensor_to_numpy(struct))) 
 
+        # Base seed image
         thick_cortex_seed = seed.clone()
+        # Base segmentation image
         thick_cortex_segm = segm.clone()
         # Only extentd the gm (cortex) on the wm, csf remains intact
         mask_condition = torch.zeros_like(seed, dtype=torch.int64)
         mask_condition = (thick_cortex_mask) & (thick_cortex_segm == self.wm_label)
 
+        # Use NN_interpolation to obtain the extended seed mask
+        extended_mask = self.NN_interpolation(seed, NN_seed, mask_condition) 
+
+        # Reinsert extended mask on top of base seed image
         thick_cortex_seed[mask_condition] = extended_mask[mask_condition]
         thick_cortex_segm[mask_condition] = self.cortex_label
 
@@ -354,37 +416,41 @@ class brain_Alterations:
         Apply hypoplasia transformation by dilating the CSF region to erode the cortex (gray matter).
 
         Parameters:
-        - csf_mask: A boolean mask indicating the CSF region in the segmentation.
-        - segm: The original brain segmentation.
-        - seed: The original seed tensor.
-        - genparams: A dictionary containing transformation parameters.
+            csf_mask (torch.Tensor): A boolean mask indicating the CSF region in the segmentation.
+            segm (torch.Tensor): The original brain segmentation.
+            seed (torch.Tensor): The original seed tensor.
+            genparams (dict): A dictionary containing transformation parameters.
 
         Returns:
-        - thin_cortex_segm: The modified brain segmentation after transformation (with thinner cortex).
-        - thin_cortex_seed: The modified seed tensor after transformation.
-        - genparams: Updated generation parameters.
+            thin_cortex_segm (torch.Tensor): The modified brain segmentation after transformation (with thinner cortex).
+            thin_cortex_seed (torch.Tensor): The modified seed tensor after transformation.
+            genparams (dict): Updated generation parameters.
         """
+        # Defined relative to brain volume
         max_size_thin = self.thin_range(segm, segm.affine)
-        if self.min_size_thin == max_size_thin: size = max_size_thin
-        else:
-            size = genparams.get('size_thin', random.randint(self.min_size_thin, max_size_thin))
+        if self.min_size_thin > max_size_thin: 
+            self.min_size_thin, max_size_thin = max_size_thin, self.min_size_thin
+        size = genparams.get('size_thin', random.randint(self.min_size_thin, max_size_thin))
         genparams['size_thin'] = size
 
         NN_seed = torch.zeros_like(seed, dtype=torch.int64)
         NN_seed[csf_mask] = seed[csf_mask]
 
         struct = torch.tensor(ball(size))
-            
         thin_cortex_mask = torch.tensor(binary_dilation(self.tensor_to_numpy(csf_mask), structure=self.tensor_to_numpy(struct)))
 
-        extended_mask = self.NN_interpolation(seed, NN_seed, thin_cortex_mask)
-
+        # Base seed image
         thin_cortex_seed = seed.clone()
+        # Base segmentation image
         thin_cortex_segm = segm.clone()
         # Only extentd the csf on the gm (crotex) to erode it
         mask_condition = torch.zeros_like(seed, dtype=torch.int64)
         mask_condition = (thin_cortex_mask) & (thin_cortex_segm == self.cortex_label)
+
+        # Use NN_interpolation to obtain the extended seed mask
+        extended_mask = self.NN_interpolation(seed, NN_seed, mask_condition)
        
+        # Reinsert extended mask on top of base seed image
         thin_cortex_seed[mask_condition] = extended_mask[mask_condition]
         thin_cortex_segm[mask_condition] = self.csf_label
 
@@ -398,21 +464,25 @@ class brain_Alterations:
         the ventricle mask (either left or right).
 
         Parameters:
-        - segm: The original brain segmentation.
-        - seed: The original seed tensor.
-        - ventricle_mask: A binary mask identifying the ventricle regions in the brain (either left or right).
-        - strength: The strength of the ventriculomegaly effect (how much the ventricles should be enlarged).
-        - radius: The radius of influence for the ventriculomegaly effect (how far the transformation should spread).
+            segm (torch.Tensor): The original brain segmentation.
+            seed (torch.Tensor): The original seed tensor.
+            ventricle_mask (torch.Tensor): A binary mask identifying the ventricle regions in the brain 
+                (either left or right).
+            strength (float): The strength of the ventriculomegaly effect (how much the ventricles 
+                should be enlarged).
+            radius (float): The radius of influence for the ventriculomegaly effect (how far the 
+                transformation should spread).
 
         Returns:
-        - pinched_segm: The modified segmentation tensor after applying the ventriculomegaly transformation.
-        - pinched_seed: The modified seed tensor after the transformation.
+            pinched_segm (torch.Tensor): The modified segmentation tensor after applying the ventriculomegaly transformation.
+            pinched_seed (torch.Tensor): The modified seed tensor after the transformation.
         """
         segm = segm.unsqueeze(0).unsqueeze(0).float()
         seed = seed.unsqueeze(0).unsqueeze(0).float()
         d, h, w = segm.shape[2:]
 
         coords = torch.where(ventricle_mask[0, 0] != 0)
+        # Randomly selects one voxel from the ventricle region as the center of the transformation
         idx = np.random.randint(coords[0].shape[0])
         random_point = coords[0][idx], coords[1][idx], coords[2][idx]
         norm_random_point = random_point / np.array([d, h, w]) * 2 - 1  # Normalized coordinates
@@ -424,7 +494,7 @@ class brain_Alterations:
         pinched_segm = pinched_segm.squeeze(0).squeeze(0).long()
         pinched_seed = pinched_seed.squeeze(0).squeeze(0).long()
 
-        return  pinched_segm, pinched_seed, ventricle_mask
+        return  pinched_segm, pinched_seed
     
 
     def left_ventricle(self, ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_np, midsagittal_x, genparams):
@@ -433,26 +503,30 @@ class brain_Alterations:
         of the brain segmentation.
 
         Parameters:
-        - ventriculomegaly_segm: The brain segmentation tensor.
-        - ventriculomegaly_seed: The seed tensor.
-        - inside_mask_np: A binary mask representing the inside points of the left ventricle from where to chose a random point.
-        - midsagittal_x: The x-coordinate of the midsagittal plane (used to split the brain into left and right hemispheres).
-        - genparams: A dictionary containing the generation parameters for the transformation.
+            ventriculomegaly_segm (torch.Tensor): The brain segmentation tensor.
+            ventriculomegaly_seed (torch.Tensor): The seed tensor.
+            inside_mask_np (torch.Tensor): A binary mask representing the inside points of the left ventricle from 
+                where to chose a random point.
+            midsagittal_x (int): The x-coordinate of the midsagittal plane (used to split the brain into left and right hemispheres).
+            genparams (dict): A dictionary containing the generation parameters for the transformation.
 
         Returns:
-        - ventriculomegaly_segm: The modified brain segmentation after applying the left ventriculomegaly transformation.
-        - ventriculomegaly_seed: The modified seed tensor after applying the transformation.
+            ventriculomegaly_segm (torch.Tensor): The modified brain segmentation after applying the left ventriculomegaly 
+                transformation.
+            ventriculomegaly_seed (torch.Tensor): The modified seed tensor after applying the transformation.
         """
         inside_mask_left = np.zeros_like(inside_mask_np)
         inside_mask_left[:midsagittal_x, :, :] = inside_mask_np[:midsagittal_x, :, :]
 
         inside_mask_left_segm = torch.tensor(inside_mask_left, dtype=torch.int64).unsqueeze(0).unsqueeze(0)
+        self.validate_range('ventri_min_strength', 'ventri_max_strength', min_default=0, max_default=0)
         left_ventri_strength = genparams.get('left_ventri_strength', random.uniform(self.ventri_min_strength, self.ventri_max_strength))
         genparams['left_ventri_strength'] = left_ventri_strength
+        self.validate_range('ventri_min_radius', 'ventri_max_radius', min_default=0, max_default=0)
         left_ventri_radius = genparams.get('left_ventri_radius', random.uniform(self.ventri_min_radius, self.ventri_max_radius))
         genparams['left_ventri_radius'] = left_ventri_radius
         
-        ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_left_segm = self.apply_ventriculomegaly(ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_left_segm, left_ventri_strength, left_ventri_radius)
+        ventriculomegaly_segm, ventriculomegaly_seed = self.apply_ventriculomegaly(ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_left_segm, left_ventri_strength, left_ventri_radius)
 
         return ventriculomegaly_segm, ventriculomegaly_seed
     
@@ -463,26 +537,30 @@ class brain_Alterations:
         of the brain segmentation.
 
         Parameters:
-        - ventriculomegaly_segm: The brain segmentation tensor.
-        - ventriculomegaly_seed: The seed tensor.
-        - inside_mask_np: A binary mask representing the inside points of the right ventricle from where to chose a random point.
-        - midsagittal_x: The x-coordinate of the midsagittal plane (used to split the brain into left and right hemispheres).
-        - genparams: A dictionary containing the generation parameters for the transformation.
+            ventriculomegaly_segm (torch.Tensor): The brain segmentation tensor.
+            ventriculomegaly_seed (torch.Tensor): The seed tensor.
+            inside_mask_np (torch.Tensor): A binary mask representing the inside points of the right ventricle from
+                where to chose a random point.
+            midsagittal_x (int): The x-coordinate of the midsagittal plane (used to split the brain into left and right hemispheres).
+            genparams (dict): A dictionary containing the generation parameters for the transformation.
 
         Returns:
-        - ventriculomegaly_segm: The modified brain segmentation after applying the right ventriculomegaly transformation.
-        - ventriculomegaly_seed: The modified seed tensor after applying the transformation.
+            ventriculomegaly_segm (torch.Tensor): The modified brain segmentation after applying the right ventriculomegaly
+                transformation.
+            ventriculomegaly_seed (torch.Tensor): The modified seed tensor after applying the transformation.
         """
         inside_mask_right = np.zeros_like(inside_mask_np)
         inside_mask_right[midsagittal_x:, :, :] = inside_mask_np[midsagittal_x:, :, :]
 
         inside_mask_right_segm = torch.tensor(inside_mask_right, dtype=torch.int64).unsqueeze(0).unsqueeze(0)
+        self.validate_range('ventri_min_strength', 'ventri_max_strength', min_default=0, max_default=0)
         right_ventri_strength = genparams.get('right_ventri_strength', random.uniform(self.ventri_min_strength, self.ventri_max_strength))
         genparams['right_ventri_strength'] = right_ventri_strength
+        self.validate_range('ventri_min_radius', 'ventri_max_radius', min_default=0, max_default=0)
         right_ventri_radius = genparams.get('right_ventri_radius', random.uniform(self.ventri_min_radius, self.ventri_max_radius))
         genparams['right_ventri_radius'] = right_ventri_radius
 
-        ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_right_segm = self.apply_ventriculomegaly(ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_right_segm, right_ventri_strength, right_ventri_radius)
+        ventriculomegaly_segm, ventriculomegaly_seed = self.apply_ventriculomegaly(ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_right_segm, right_ventri_strength, right_ventri_radius)
 
         return ventriculomegaly_segm, ventriculomegaly_seed
 
@@ -494,20 +572,20 @@ class brain_Alterations:
         an asymmetric approach.
 
         Parameters:
-        - ventricles_mask: A binary mask that indicates the location of the ventricles.
-        - segm: The original brain segmentation tensor.
-        - seed: The origianl seed tensor.
-        - genparams: A dictionary containing generation parameters for the transformation.
+            ventricles_mask (torch.Tensor): A labeled mask indicating the ventricles region in the segmentation.
+            segm (torch.Tensor): The original brain segmentation tensor.
+            seed (torch.Tensor): The origianl seed tensor.
+            genparams (dict): A dictionary containing generation parameters for the transformation.
 
         Returns:
-        - ventriculomegaly_segm: The modified brain segmentation tensor after the transformation.
-        - ventriculomegaly_seed: The modified seed tensor after the transformation.
-        - genparams: Updated generation parameters.
+            ventriculomegaly_segm (torch.Tensor): The modified brain segmentation tensor after the transformation.
+            ventriculomegaly_seed (torch.Tensor): The modified seed tensor after the transformation.
+            genparams (dict): Updated generation parameters.
         """
         ventricles_mask_np = ventricles_mask.numpy()
 
+        # Defined relative to brain volume
         self.ventri_max_radius = self.ventri_max_radius * self.max_ratio(segm, segm.affine)
-        self.ventri_min_radius = self.ventri_min_radius * self.max_ratio(segm, segm.affine)
 
         # Compute signed distance transform (SDT)
         sdt = distance_transform_edt(ventricles_mask_np > 0.5)
@@ -536,10 +614,8 @@ class brain_Alterations:
             'unilateral_left',
             'unilateral_right'
         ]
-        probabilities = torch.tensor([0.6, 0.2, 0.2])
-        selected_index = torch.multinomial(probabilities, 1).item()
+        selected_index = torch.multinomial(self.ventri_probs, 1).item()
         ventri = ventri_types[selected_index]
-        #ventri = 'unilateral_left'
 
         if ventri == 'unilateral_left' or ventri == 'bilateral':
             # Left hemisphere: Keep everything left of midsagittal plane (y < midsagittal_y)
@@ -554,17 +630,20 @@ class brain_Alterations:
 
     def hypoplasia(self, segm, seed, genparams):
         """
-        Apply hypoplasia transformation by eroding the brain regions of interest (brainstem and cerebellum) and modifying the segmentation.
+        Apply hypoplasia transformation by eroding the brain regions of interest (brainstem and cerebellum) 
+        and modifying the segmentation.
 
         Parameters:
-        - segm: The original brain segmentation tensor containing labeled regions.
-        - seed: The originalseed tensor.
-        - genparams: A dictionary containing generation parameters, including the size of the erosion for the hypoplasia effect.
+            segm (torch.Tensor): The original brain segmentation tensor containing labeled regions.
+            seed (torch.Tensor): The original seed tensor.
+            genparams (dict): A dictionary containing generation parameters, including the size of 
+                the erosion for the hypoplasia effect.
 
         Returns:
-        - hypo_segm: The modified brain segmentation tensor after applying the hypoplasia transformation.
-        - hypo_seed: The modified seed tensor after applying the hypoplasia transformation.
-        - genparams: Updated generation parameters.
+            hypo_segm (torch.Tensor): The modified brain segmentation tensor after applying the hypoplasia 
+                transformation.
+            hypo_seed (torch.Tensor): The modified seed tensor after applying the hypoplasia transformation.
+            genparams (dict): Updated generation parameters.
         """
         hypo = segm.clone()
 
@@ -575,24 +654,33 @@ class brain_Alterations:
         label_map = hypo.clone()
         label_map[~mask] = 0
 
-        max_size_hypo = self.hypo_range(segm, segm.affine)
-        size = genparams.get('size_hypo', random.randint(self.min_size_hypo, max_size_hypo))
+        # Defined relative to brain volume
+        self.max_size_hypo = int(self.max_size_hypo * self.max_ratio(segm, segm.affine))
+        self.validate_range('min_size_hypo', 'max_size_hypo', min_default=0, max_default=0)
+        size = genparams.get('size_hypo', random.randint(self.min_size_hypo, self.max_size_hypo))
         genparams['size_hypo'] = size
 
         struct = torch.tensor(ball(size))
         hypo_mask = torch.tensor(binary_erosion(self.tensor_to_numpy(mask), structure=self.tensor_to_numpy(struct)))
+        # Hypo_mask with label names of interest, everything else set to 0
         eroded_label_map = torch.where(hypo_mask, label_map, 0)
 
+        # Select specific labels we want for the output (brainstem and cerebellum)
         labels_to_retain = torch.tensor([self.brainsetm_label, self.cerebellum_label])
         eroded_mask = torch.isin(eroded_label_map, labels_to_retain)
+        # Eroded_mask with label names of interest, everything else set to 0
         eroded_label_mask = torch.where(eroded_mask, label_map, 0)
 
+        # Use NN_interpolation to replace regions of interest by neighbouring tissues, to create base seed image
         aux_mask = torch.isin(hypo, torch.tensor([self.brainsetm_label, self.cerebellum_label]))
+        # Base seed image
         hypo_seed = self.NN_interpolation(seed, aux_mask)
-
+        # Base segmentation image
         hypo_segm = segm.clone()
-        hypo_segm[aux_mask] = 1
-        hypo_segm[eroded_mask] = eroded_label_mask[eroded_mask]
+        hypo_segm[aux_mask] = self.csf_label
+
+        # Reinsert eroded mask on top of base seed image
         hypo_seed[eroded_mask] = seed[eroded_mask]
+        hypo_segm[eroded_mask] = eroded_label_mask[eroded_mask]
 
         return hypo_segm, hypo_seed, genparams

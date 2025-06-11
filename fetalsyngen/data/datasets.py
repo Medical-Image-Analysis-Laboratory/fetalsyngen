@@ -35,7 +35,6 @@ class FetalDataset:
 
         """
         super().__init__()
-
         self.bids_path = Path(bids_path)
         self.subjects = self.find_subjects(sub_list)
         if self.subjects is None:
@@ -309,7 +308,8 @@ class FetalSynthDataset(FetalDataset):
                     f"Provided seed path {self.seed_path} does not exist."
                 )
             else:
-                self._load_seed_path()
+                self._load_seed_paths("seed_paths", "seed_path", "seed")
+
         # parse seeds paths
         if not self.image_as_intensity and isinstance(self.seed_csf_path, Path):
             if not self.seed_csf_path.exists():
@@ -317,63 +317,36 @@ class FetalSynthDataset(FetalDataset):
                     f"Provided seed csf path {self.seed_csf_path} does not exist."
                 )
             else:
-                self._load_seed_csf_path()
+                self._load_seed_paths("seed_csf_paths", "seed_csf_path", "seed csf")
 
-    def _load_seed_path(self):
-        """Load the seeds for the subjects."""
-        self.seed_paths = {
+
+    def _load_seed_paths(self, attr_name: str, root_path_attr: str, path_label: str = "seed"):
+        """General method to load seeds or seed_csf paths."""
+        # Prepare destination dict
+        setattr(self, attr_name, {
             self._sub_ses_string(sub, ses): defaultdict(dict)
             for (sub, ses) in self.sub_ses
-        }
+        })
+        
+        root_path = getattr(self, root_path_attr)
         avail_seeds = [
             int(x.name.replace("subclasses_", ""))
-            for x in self.seed_path.glob("subclasses_*")
+            for x in root_path.glob("subclasses_*")
         ]
         min_seeds_available = min(avail_seeds)
         max_seeds_available = max(avail_seeds)
-        for n_sub in range(
-            min_seeds_available,
-            max_seeds_available + 1,
-        ):
-            seed_path = self.seed_path / f"subclasses_{n_sub}"
-            if not seed_path.exists():
-                raise FileNotFoundError(
-                    f"Provided seed path {seed_path} does not exist."
-                )
-            # load the seeds for the subjects for each meta label 1-4
-            for i in range(1, 5):
-                files = self._load_metalabel_path(seed_path, f"mlabel_{i}")
-                for (sub, ses), file in zip(self.sub_ses, files):
-                    sub_ses_str = self._sub_ses_string(sub, ses)
-                    self.seed_paths[sub_ses_str][n_sub][i] = file
 
-    def _load_seed_csf_path(self):
-        """Load the seeds for the subjects."""
-        self.seed_csf_paths = {
-            self._sub_ses_string(sub, ses): defaultdict(dict)
-            for (sub, ses) in self.sub_ses
-        }
-        avail_seeds = [
-            int(x.name.replace("subclasses_", ""))
-            for x in self.seed_csf_path.glob("subclasses_*")
-        ]
-        min_seeds_available = min(avail_seeds)
-        max_seeds_available = max(avail_seeds)
-        for n_sub in range(
-            min_seeds_available,
-            max_seeds_available + 1,
-        ):
-            seed_csf_path = self.seed_csf_path / f"subclasses_{n_sub}"
-            if not seed_csf_path.exists():
+        for n_sub in range(min_seeds_available, max_seeds_available + 1):
+            current_path = root_path / f"subclasses_{n_sub}"
+            if not current_path.exists():
                 raise FileNotFoundError(
-                    f"Provided seed csf path {seed_csf_path} does not exist."
+                    f"Provided {path_label} path {current_path} does not exist."
                 )
-            # load the seeds for the subjects for each meta label 1-4
             for i in range(1, 5):
-                files = self._load_metalabel_path(seed_csf_path, f"mlabel_{i}")
+                files = self._load_metalabel_path(current_path, f"mlabel_{i}")
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
-                    self.seed_csf_paths[sub_ses_str][n_sub][i] = file
+                    getattr(self, attr_name)[sub_ses_str][n_sub][i] = file
 
 
     def sample(self, idx, genparams: dict = {}) -> tuple[dict, dict]:

@@ -7,15 +7,13 @@ from skimage.morphology import ball
 from scipy.ndimage import label, binary_dilation, binary_erosion
 import random
 from fetalsyngen.generator.alterations.brainAlterations import brain_Alterations
-import nibabel as nib
 import numpy as np
 import random
 
 
-
-
 class cc_Alterations:        
-    def __init__(self, alteration_prob: float, target_label: int, csf_label: int,
+    def __init__(self, alteration_prob: float, cc_threshold: float,
+                 target_label: int, csf_label: int,
                  max_dilation: int, min_dilation: int,
                  min_erosion: int, max_erosion: int,
                  min_posterior_loss: float, max_posterior_loss: float,
@@ -29,7 +27,9 @@ class cc_Alterations:
 
         Args:
             alteration_prob (float): Probability of applying an alteration to the segmentation.
+            cc_threshold (float): Threshold for percentage of pathological cases.
             target_label (int): Label of the target region to be modified.
+            csf_label (int): Label for cerebrospinal fluid (CSF).
             max_dilation (int): Maximum dilation size for region expansion.
             min_dilation (int): Minimum dilation size for region expansion.
             min_erosion (int): Minimum erosion size for shrinking the region.
@@ -42,8 +42,11 @@ class cc_Alterations:
             max_amplitude_kinked (int): Maximum amplitude for kinked deformation.
             min_freq_kinked (int): Minimum frequency for kinked deformation.
             max_freq_kinked (int): Maximum frequency for kinked deformation.
+            cc_alter_prob (torch.Tensor): Class-specific probabilities for corpus callosum different alterations types.
+            brain_alterations (brain_Alterations | None): Optional predefined brain alteration configurations.
         """
         self.alteration_prob = alteration_prob
+        self.cc_threshold = cc_threshold
         self.target_label = target_label
         self.csf_label = csf_label
         self.max_dilation = max_dilation
@@ -62,7 +65,6 @@ class cc_Alterations:
         self.cc_alter_prob = torch.tensor(cc_alter_prob, dtype=torch.float32)
 
 
-
     def numpy_to_tensor(self, array):
         """Convert a NumPy array to a PyTorch tensor."""
         return torch.tensor(array, dtype=torch.int64)
@@ -72,10 +74,26 @@ class cc_Alterations:
         """Convert a PyTorch tensor to a NumPy array."""
         return tensor.cpu().numpy()
     
+
     def brain_volumne_computation(self, segm, segm_affine):
-        """Computes brain volume in dm3."""
+        """
+        Computes the total brain volume and the anterior-posterior length 
+        (in the Y-axis) from a segmentation map.
+
+        Args:
+            segm (torch.Tensor): 3D tensor representing the segmentation map.
+            segm_affine (torch.Tensor): 4x4 affine matrix associated with the 
+                segmentation image, used to calculate voxel dimensions.
+
+        Returns:
+            Tuple[float, int]:
+                - brain_volume_dm3 (float): Computed brain volume in cubic decimeters (dm³).
+                - brain_y_length (int): Length of the brain along the Y-axis in voxel units.
+        """
         voxel_size = torch.abs(torch.linalg.det(segm_affine[:3, :3]))
-        brain_tissues = torch.tensor([1, 2, 3, 4, 5, 6, 7, 8])
+        # Automatically get all non-background labels
+        unique_labels = torch.unique(segm).int()
+        brain_tissues = unique_labels[unique_labels != 0]
         brain_mask = torch.isin(segm, brain_tissues)
 
         brain_voxels = brain_mask.sum()
@@ -90,19 +108,61 @@ class cc_Alterations:
     
     
     def max_ratio(self, segm, segm_affine):
-        """Computes a scaling ratio based on a reference 38-week gestational age (GW) brain volume."""
+        """
+        Computes the scaling ratio between the brain volume of the given segmentation 
+        and a reference brain volume corresponding to a 38-week gestational age.
+
+        Args:
+            segm (torch.Tensor): 3D tensor of the brain segmentation.
+            segm_affine (torch.Tensor): 4x4 affine matrix used to compute the voxel size.
+
+        Returns:
+            max_ratio (float): The ratio of the computed brain volume (in dm³) to the reference 
+                volume of 0.444 dm³ (typical for a 38-week gestational age brain).
+        """
         brain_volume, _ = self.brain_volumne_computation(segm, segm_affine)
         max_ratio = brain_volume/0.444 # Based on 38gw brain volume
 
         return max_ratio
-    
+
     
     def length_ratio(self, segm, segm_affine):
-        """Computes a scaling ratio based on a reference 21-week gestational age (GW) brain length."""
+        """
+        Computes the scaling ratio between a reference anterior-posterior brain length 
+        (from a 21-week gestational age brain) and the length of the brain in the input segmentation.
+
+        Args:
+            segm (torch.Tensor): 3D tensor representing the brain segmentation.
+            segm_affine (torch.Tensor): 4x4 affine matrix associated with the segmentation, 
+                used to determine voxel spacing.
+
+        Returns:
+            length_ratio (float): The ratio of the reference brain length (80 voxels, typical for 
+                21-week gestational age) to the measured brain length in the Y-axis from the input segmentation.
+        """
         _, brain_y_length = self.brain_volumne_computation(segm, segm_affine)
         length_ratio = 80/brain_y_length # Based on 21gw brain length
 
         return length_ratio
+
+    def validate_range(self, attr_min: str, attr_max: str, min_default=1, max_default=1):
+        """Ensures that min/max attributes are valid for random selection and processing."""
+        min_val = getattr(self, attr_min)
+        max_val = getattr(self, attr_max)
+
+        # Ensure min > 0, struct of size 0 returns error
+        if min_val == 0:
+            min_val = min_default
+        if max_val == 0:
+            max_val = max_default
+
+        # Swap if out of order
+        if min_val > max_val:
+            min_val, max_val = max_val, min_val
+
+        # Save corrected values back
+        setattr(self, attr_min, min_val)
+        setattr(self, attr_max, max_val)
 
 
     def NN_interpolation(self, tensor, mask, dilated_mask=None, background=False):
@@ -119,18 +179,20 @@ class cc_Alterations:
             background (bool, optional): Whether to interpolate using background pixels. Defaults to False.
 
         Returns:
-            - tensor (torch.Tensor): Interpolated tensor where missing values are filled.
+            NN_tensor (torch.Tensor): Interpolated tensor where missing values are filled.
         """
         if dilated_mask is not None:
             # Seed Interpolation Mode: Find missing values only in the dilated mask
             NN_tensor = mask.clone()
             missing_values = torch.nonzero((dilated_mask == 1) & (mask == 0))
+            # Reference dataset for the nearest neighbor search
             valid_indices = torch.nonzero(mask)
         else:
             # General Interpolation Mode: Work on the entire tensor
             NN_tensor = tensor.clone()
-            NN_tensor[mask > 0.5] = 0  # Remove old labels
+            NN_tensor[mask > 0.5] = 0  # Remove mask label
             missing_values = torch.nonzero(mask)
+            # Reference dataset for the nearest neighbor search
             valid_indices = torch.nonzero(mask == 0 if background else NN_tensor != 0)
 
         if valid_indices.numel() == 0 or missing_values.numel() == 0:
@@ -152,17 +214,20 @@ class cc_Alterations:
 
 
     def biggest_connected_component(self, target_mask, tensor):
-        """Extract the biggest connected component from a binary mask and apply nearest neighbor interpolation.
+        """Extract the biggest connected component from a binary mask and apply nearest
+        neighbor interpolation.
 
         Args:
             target_mask (torch.Tensor): Binary mask representing the region of interest.
             tensor (torch.Tensor): Segmentation tensor to be modified.
 
         Returns:
-            - component_mask (torch.Tensor): Mask of the largest connected component.
-            - tensor (torch.Tensor): Updated segmentation tensor with the largest component preserved.
+            component_mask (torch.Tensor): Mask of the largest connected component.
+            tensor (torch.Tensor): Updated segmentation tensor with the largest component preserved.
         """
-        labeled_mask, _ = label(self.tensor_to_numpy(target_mask))
+        # For 26-connectivity
+        structure = np.ones((3,3,3), dtype=int)
+        labeled_mask, _ = label(self.tensor_to_numpy(target_mask), structure=structure)
         labeled_mask = self.numpy_to_tensor(labeled_mask).to(torch.long)
 
         component_sizes = torch.bincount(labeled_mask.view(-1))
@@ -172,7 +237,6 @@ class cc_Alterations:
         target_label = sorted_indices[0]
         component_mask = labeled_mask == target_label
 
-        # deixar perque si esta enmig dun teixit millor que sigui daquell que de csf
         tensor = self.NN_interpolation(tensor, target_mask)
         tensor[component_mask] = self.target_label
 
@@ -180,7 +244,9 @@ class cc_Alterations:
     
 
     def random_mask(self, target_mask, segmentation, NN_tensor, NN_seed, seed, genparams):
-        """Generate a random mask transformation based on three options: original mask, hyperplasia or hypoplasia.
+        """
+        Generate a random mask transformation based on three options: original mask, hyperplasia,
+        or hypoplasia. Only compute eroded or dilated masks if they are selected.
 
         Args:
             target_mask (torch.Tensor): Binary mask indicating the affected area.
@@ -191,43 +257,63 @@ class cc_Alterations:
             genparams (dict): Dictionary containing transformation parameters.
 
         Returns:
-            - selected_target_mask (torch.Tensor): Transformed target mask after applying random pathology.
+            selected_target_mask (torch.Tensor): Transformed target mask after
+                applying random pathology.
         """
-        genparams_copy = genparams.copy()
-        eroded_target_mask, _, _, _ = self.hypoplasia(target_mask, NN_tensor, NN_seed, seed, genparams_copy)
-        dilated_target_mask, _, _, _ = self.hyperplasia(target_mask, segmentation, seed, genparams_copy)
-        selected_target_mask = torch.stack([eroded_target_mask, dilated_target_mask, target_mask])
 
         probabilities = torch.tensor([0.7, 0.1, 0.2])
         selected_index = torch.multinomial(probabilities, 1).item()
 
-        return selected_target_mask[selected_index]
+        if selected_index == 0:
+            # Hypoplasia (eroded mask)
+            selected_target_mask, _, _, _ = self.hypoplasia(target_mask, NN_tensor, NN_seed, seed, genparams.copy())
+        elif selected_index == 1:
+            # Hyperplasia (dilated mask)
+            selected_target_mask, _, _, _ = self.hyperplasia(target_mask, segmentation, seed, genparams.copy())
+        else:
+            # Original mask
+            selected_target_mask = target_mask
+            
+        return selected_target_mask
 
 
     def random_alteration(self, seed, seed_csf, segmentation, genparams: dict = {}):
         """
-        Simulates specific alterations on a segmentation mask based on a probability threshold.
+        Applies a random or specified cc anaotmy alteration to a segmentation mask and its corresponding seed.
 
-        This function applies different types of deformations (hyperplasia, hypoplasia, partial loss, kinked, or agenesis)
-        to a given label of a segmentation mask. If specific generation parameters (`genparams`) are provided, it selects the 
-        appropriate transformation. Otherwise, it randomly chooses a transformation based on predefined probabilities.
+        This function introduces structural abnormalities to a segmentation by simulating various cc alterations such as 
+        hyperplasia, hypoplasia, partial loss, kinked deformation, or agenesis. The transformation is conditionally applied 
+        based on a random probability threshold. If a connected component exists in the target label, it is isolated and used 
+        as the base for the transformation. If `genparams` are provided, they guide the choice of alteration; otherwise, a 
+        transformation is randomly selected using predefined probabilities.
+
+        The function also supports the application of additional brain-wide alterations through the `brain_alteration` object 
+        if it is defined.
 
         Args:
-            seed (torch.Tensor): The seed mask of the target structure,, representing the initial state before transformation.
-            segmentation (torch.Tensor): The segmentation mask of the target structure, representing the initial state before transformation.
-            genparams (dict, optional): Dictionary containing parameters for specific transformations. Defaults to {}.
+            seed (torch.Tensor): The binary mask (seed) corresponding to the target structure before any transformation.
+            seed_csf (torch.Tensor): A variant of the seed where the target structure is replaced by CSF, used for interpolation.
+            segmentation (torch.Tensor): The full segmentation mask that includes the target label to be altered.
+            genparams (dict, optional): Parameters specifying which pathological alteration to apply. If empty, a random
+                alteration is selected. Keys can include:
+                - 'kinked_amplitude', 'kinked_freq'
+                - 'size_dilation'
+                - 'size_erosion'
+                - 'anterior_loss', 'posterior_loss'
+                - 'angenesis'
 
         Returns:
-            - None: Placeholder return value.
-            - transformed_segmentation (torch.Tensor): The altered segmentation after applying the pathology.
-            - transformed_seed (torch.Tensor): The altered seed after applying the pathology.
-            - genparams (dict): Updated generation parameters after transformation.
+            torch.Tensor: Transformed segmentation mask after applying the selected alteration.
+            torch.Tensor: Transformed seed mask corresponding to the altered region.
+            dict: Updated generation parameters reflecting the applied transformation.
         """
+
         self.alteration_prob = random.random()
-        if self.alteration_prob > 0.5:
+        if self.alteration_prob > self.cc_threshold:
             target_mask = segmentation == self.target_label
             target_mask, segmentation, indicator = self.biggest_connected_component(target_mask, segmentation)
             
+            # If only background, no CC, skip the cc alterations
             if indicator:
                 if self.brain_alteration is not None:
                     transformed_segmentation, transformed_seed, genparams = self.brain_alteration.random_brain_alteration(
@@ -240,6 +326,7 @@ class cc_Alterations:
                     return segmentation, seed, genparams
             
             else:
+                # For the base images, cc is substituted by csf
                 NN_segm = segmentation.clone()
                 NN_segm[target_mask] = self.csf_label
                 #NN_segm = self.NN_interpolation(segmentation, target_mask)
@@ -272,11 +359,12 @@ class cc_Alterations:
                         _, transformed_segmentation, transformed_seed, genparams = selected_transformation(target_mask, segmentation, seed, genparams)
                     elif selected_transformation == self.hypoplasia:
                         _, transformed_segmentation, transformed_seed, genparams = selected_transformation(target_mask, NN_segm, NN_seed, seed, genparams)
+                    # Kinked and partial_loss alterations have a ranodom mask between original, eroded or dilated
+                    elif selected_transformation == self.kinked:
+                        _, transformed_segmentation, transformed_seed, genparams = selected_transformation(selected_target_mask, segmentation, seed, genparams)
                     else:
-                        if selected_transformation == self.kinked:
-                            _, transformed_segmentation, transformed_seed, genparams = selected_transformation(target_mask, segmentation, seed, genparams)
-                        else:
-                            _, transformed_segmentation, transformed_seed, genparams = selected_transformation(target_mask, NN_segm, NN_seed, seed, genparams)
+                        _, transformed_segmentation, transformed_seed, genparams = selected_transformation(selected_target_mask, NN_segm, NN_seed, seed, genparams)
+                
                 if self.brain_alteration is not None:
                     transformed_segmentation, transformed_seed, genparams = self.brain_alteration.random_brain_alteration(
                         seed=transformed_seed,
@@ -305,30 +393,31 @@ class cc_Alterations:
             genparams (dict): Dictionary containing transformation parameters.
 
         Returns:
-            - dilated_mask (torch.Tensor): Updated mask after dilation.
-            - dilated_tensor (torch.Tensor): Updated segmentation tensor after dilation.
-            - dilated_seed (torch.Tensor): Updated seed tensor after dilation.
-            - genparams (dict): Updated transformation parameters.
+            dilated_mask (torch.Tensor): Updated mask after dilation.
+            dilated_tensor (torch.Tensor): Updated segmentation tensor after dilation.
+            dilated_seed (torch.Tensor): Updated seed tensor after dilation.
+            genparams (dict): Updated transformation parameters.
         """
-        # Struct of size 0 returns error
+        # Defined relative to brain volume
         self.max_dilation = round(self.max_dilation * self.max_ratio(segm, segm.affine))
-        if (self.min_dilation == 0): self.min_dilation = 1
-        if (self.max_dilation == 0): self.max_dilation = 1
-        if self.min_dilation == self.max_dilation: size = self.min_dilation
-        else:
-            size = genparams.get('size_dilation', random.randint(self.min_dilation, self.max_dilation))
+        self.validate_range('min_dilation', 'max_dilation')
+        size = genparams.get('size_dilation', random.randint(self.min_dilation, self.max_dilation))
         genparams['size_dilation'] = size
+        # Base segmentation image
         dilated_tensor = segm.clone()
+        # Base seed image
         dilated_seed = seed.clone()
 
-        NN_seed = torch.zeros_like(seed, dtype=torch.int64)
-        NN_seed[target_mask] = seed[target_mask]
+        NN_mask = torch.zeros_like(seed, dtype=torch.int64)
+        NN_mask[target_mask] = seed[target_mask]
 
         struct = torch.tensor(ball(size))
         dilated_mask = torch.tensor(binary_dilation(self.tensor_to_numpy(target_mask), structure=self.tensor_to_numpy(struct)))
 
-        extended_mask = self.NN_interpolation(seed, NN_seed, dilated_mask) 
+        # Use NN_interpolation to obtain the extended seed mask
+        extended_mask = self.NN_interpolation(seed, NN_mask, dilated_mask) 
 
+        # Reinsert extended mask on top of base seed image
         dilated_seed[dilated_mask] = extended_mask[dilated_mask]
         dilated_tensor[dilated_mask] = self.target_label
 
@@ -346,20 +435,23 @@ class cc_Alterations:
             genparams (dict): Dictionary of generation parameters.
 
         Returns:
-            - eroded_mask (torch.Tensor): Updated mask after erosion.
-            - eroded_tensor (torch.Tensor): Updated segmentation tensor after erosion.
-            - eroded_seed (torch.Tensor):  Updated seed segmentation tensor after erosion.
-            - genparams (dict): Updated generation parameters.
+            eroded_mask (torch.Tensor): Updated mask after erosion.
+            eroded_tensor (torch.Tensor): Updated segmentation tensor after erosion.
+            eroded_seed (torch.Tensor):  Updated seed segmentation tensor after erosion.
+            genparams (dict): Updated generation parameters.
         """
+        self.validate_range('min_erosion', 'max_erosion')
         size = genparams.get('size_erosion', random.randint(self.min_erosion, self.max_erosion))
         genparams['size_erosion'] = size
 
         struct = torch.ones((size, 1), dtype=torch.int).unsqueeze(0)
         eroded_mask = torch.tensor(binary_erosion(self.tensor_to_numpy(target_mask), structure=self.tensor_to_numpy(struct)))
 
+        # Post-processing step: only keep the biggest connected component after erosion
         eroded_mask, NN_segm, _ = self.biggest_connected_component(eroded_mask, NN_segm)
 
         eroded_seed = NN_seed.clone()
+        # Reinsert dilated mask on top of base seed image
         eroded_seed[eroded_mask] = seed[eroded_mask]
         eroded_tensor = NN_segm.clone()
         eroded_tensor[eroded_mask] = self.target_label
@@ -377,14 +469,15 @@ class cc_Alterations:
             genparams (dict): Dictionary of generation parameters.
 
         Returns:
-            - genparams (dict): Updated generation parameters.
-            - mask_condition (torch.Tensor): Boolean mask indicating the affected area.
+            genparams (dict): Updated generation parameters.
+            mask_condition (torch.Tensor): Boolean mask indicating the affected area.
         """
+        self.validate_range('min_posterior_loss', 'max_posterior_loss', min_default=0, max_default=0)
         percentage = genparams.get('posterior_loss', random.uniform(self.min_posterior_loss, self.max_posterior_loss))
         genparams['posterior_loss'] = percentage
 
         segment = min_y + int(percentage * total_length)
-        mask_condition = (coords[:, 1] >= min_y) & (coords[:, 1] > segment)
+        mask_condition = (coords[:, 1] > segment)
 
         return genparams, mask_condition
     
@@ -399,9 +492,10 @@ class cc_Alterations:
             genparams (dict): Dictionary of generation parameters.
 
         Returns:
-            - genparams (dict): Updated generation parameters.
-            - mask_condition (torch.Tensor): Boolean mask indicating the affected area.
+            genparams (dict): Updated generation parameters.
+            mask_condition (torch.Tensor): Boolean mask indicating the affected area.
         """
+        self.validate_range('min_anterior_loss', 'max_anterior_loss', min_default=0, max_default=0)
         percentage = genparams.get('anterior_loss', random.uniform(self.min_anterior_loss, self.max_anterior_loss))
         genparams['anterior_loss'] = percentage
 
@@ -423,10 +517,10 @@ class cc_Alterations:
             genparams (dict): Dictionary of generation parameters.
 
         Returns:
-            - partial_loss_mask (torch.Tensor): Updated mask indicating the removed region.
-            - partial_loss_segm (torch.Tensor): Updated segmentation after applying the loss.
-            - partial_loss_seed (torch.Tensor): Updated seed segmentation after applying the loss.
-            - genparams (dict): Updated generation parameters.
+            partial_loss_mask (torch.Tensor): Updated mask indicating the removed region.
+            partial_loss_segm (torch.Tensor): Updated segmentation after applying the loss.
+            partial_loss_seed (torch.Tensor): Updated seed segmentation after applying the loss.
+            genparams (dict): Updated generation parameters.
         """
         coords = torch.nonzero(target_mask, as_tuple=False)
         partial_loss_mask = torch.zeros_like(target_mask, dtype=torch.bool)
@@ -448,6 +542,7 @@ class cc_Alterations:
             partial_loss_mask[segment_coords[:, 0], segment_coords[:, 1], segment_coords[:, 2]] = 1
 
         partial_loss_seed = NN_seed.clone()
+        # Reinsert partial mask on top of base seed image
         partial_loss_seed[partial_loss_mask] = seed[partial_loss_mask]
         partial_loss_segm = NN_segm.clone()
         partial_loss_segm[partial_loss_mask] = self.target_label
@@ -456,8 +551,13 @@ class cc_Alterations:
 
 
     def kinked(self, target_mask, segm, seed, genparams):
-        """Apply a sinusoidal deformation to the affected region to warp the x-coordinates, creating a 
-        kinked effect.
+        """Apply a sinusoidal deformation to the specified region of a segmentation mask, producing a 
+        "kinked" distortion effect by warping the x-coordinates based on the y-coordinate.
+
+        This transformation simulates structural irregularities by introducing a smooth, wave-like 
+        deviation along the x-axis within a region of interest (ROI) defined by `target_mask`.
+        The deformation is parameterized by amplitude and frequency, which can be controlled via 
+        `genparams` or randomly sampled within configured bounds.
 
         Args:
             target_mask (torch.Tensor): Binary mask of the region to modify.
@@ -466,10 +566,10 @@ class cc_Alterations:
             genparams (dict): Dictionary of generation parameters.
 
         Returns:
-            - None: Placeholder return value.
-            - kinked_segm (torch.Tensor): Updated segmentation after the kinked transformation.
-            - kinked_seed (torch.Tensor): Updated seed segmentation after transformation.
-            - genparams (dict): Updated generation parameters.
+            None: Placeholder return value.
+            kinked_segm (torch.Tensor): Updated segmentation after the kinked transformation.
+            kinked_seed (torch.Tensor): Updated seed segmentation after transformation.
+            genparams (dict): Updated generation parameters.
         """
         self.max_freq_kinked = round(self.max_freq_kinked * self.length_ratio(segm, segm.affine))
         roi_coords = torch.nonzero(target_mask, as_tuple=False)
@@ -484,11 +584,11 @@ class cc_Alterations:
                 torch.arange(min_x, max_x+margin, device=segm.device),
                 indexing='ij'
             )
-
-            amplitude = genparams['kinked_amplitude'] if 'kinked_amplitude' in genparams else random.randint(self.min_amplitude_kinked, self.max_amplitude_kinked)
-            if self.min_freq_kinked > self.max_freq_kinked:
-                self.max_freq_kinked = self.min_freq_kinked
-            freq = genparams['kinked_freq'] if 'kinked_freq' in genparams else random.randint(self.min_freq_kinked, self.max_freq_kinked)
+            self.validate_range('min_amplitude_kinked', 'max_amplitude_kinked', min_default=0, max_default=0)
+            amplitude = genparams.get('kinked_amplitude', random.uniform(self.min_amplitude_kinked, self.max_amplitude_kinked))
+            self.validate_range('min_freq_kinked', 'max_freq_kinked', min_default=0, max_default=0)
+            freq = genparams.get('kinked_freq', random.uniform(self.min_freq_kinked, self.max_freq_kinked))
+            # Convert frequency into radians 
             frequency = freq * torch.pi / segm.shape[2]
             genparams['kinked_amplitude'] = amplitude
             genparams['kinked_freq'] = freq
@@ -527,11 +627,11 @@ class cc_Alterations:
             genparams (dict): Dictionary of generation parameters.
 
         Returns:
-            - None: Placeholder return value.
-            - NN_segm (torch.Tensor): The nearest-neighbor interpolated segmentation remains unchanged.
-            - NN_seed (torch.Tensor): The nearest-neighbor interpolated seed segmentation remains unchanged.
-            - genparams (dict): Updated generation parameters with agenesis set to 1, as an boolean indicator that 
-            agenesis transformation has been applied.
+            None: Placeholder return value.
+            NN_segm (torch.Tensor): The nearest-neighbor interpolated segmentation remains unchanged.
+            NN_seed (torch.Tensor): The nearest-neighbor interpolated seed segmentation remains unchanged.
+            genparams (dict): Updated generation parameters with agenesis set to 1, as an boolean indicator that 
+                agenesis transformation has been applied.
         """
         genparams['agenesis'] = 1
         
