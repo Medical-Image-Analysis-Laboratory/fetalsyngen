@@ -1,10 +1,15 @@
 site_name: FetalSynthGen
 
 theme:
-  name: readthedocs
+  name: material #readthedocs
   logo: media/fetsynthgen_logo.png  # Path to your logo file
   favicon: media/favicon-32x32.pngs  # Path to your favicon file
+  features:
+  - navigation.sections
+  - navigation.expand
 
+extra_css:
+  - stylesheets/extra.css
 plugins:
 - mkdocstrings:
     enabled: !ENV [ENABLE_MKDOCSTRINGS, true]

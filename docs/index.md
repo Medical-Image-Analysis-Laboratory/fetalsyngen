@@ -28,6 +28,11 @@ The output of the generator is a paired set of **synthetic images** and correspo
 ```bash
 git clone https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen
 cd fetalsyngen
+# create a conda environment from environment.yml
+conda env create -f environment.yml
+# activate the environment
+conda activate fetalsyngen
+# install the package
 pip install -e .
 ```
 
