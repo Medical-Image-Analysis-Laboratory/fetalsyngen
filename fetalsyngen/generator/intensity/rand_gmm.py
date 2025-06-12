@@ -126,7 +126,7 @@ class ImageFromSeeds:
         )
         sigmas = (
             5
-            + 20
+            + 10
             * torch.rand(
                 nlabels,
                 dtype=torch.float,
