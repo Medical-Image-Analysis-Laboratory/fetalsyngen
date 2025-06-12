@@ -48,9 +48,7 @@ def resolution2sigma(rx, ry=None, rz=None, /, isotropic=False):
                 return fx * rx
             else:
                 assert rx.shape[-1] == 3
-                return rx * torch.tensor(
-                    [fx, fy, fz], dtype=rx.dtype, device=rx.device
-                )
+                return rx * torch.tensor([fx, fy, fz], dtype=rx.dtype, device=rx.device)
         elif isinstance(rx, List) or isinstance(rx, Tuple):
             assert len(rx) == 3
             return resolution2sigma(rx[0], rx[1], rx[2], isotropic=isotropic)
@@ -78,24 +76,15 @@ def get_PSF(
         r_max = max(int(2 * r + 1) for r in (sigma_x, sigma_y, sigma_z))
         r_max = max(r_max, 4)
 
-    x = torch.linspace(
-        -r_max, r_max, 2 * r_max + 1, dtype=torch.float32, device=device
-    )
+    x = torch.linspace(-r_max, r_max, 2 * r_max + 1, dtype=torch.float32, device=device)
     grid_z, grid_y, grid_x = torch.meshgrid(x, x, x, indexing="ij")
     if psf_type == "gaussian":
         psf = torch.exp(
-            -0.5
-            * (
-                grid_x**2 / sigma_x**2
-                + grid_y**2 / sigma_y**2
-                + grid_z**2 / sigma_z**2
-            )
+            -0.5 * (grid_x**2 / sigma_x**2 + grid_y**2 / sigma_y**2 + grid_z**2 / sigma_z**2)
         )
     elif psf_type == "sinc":
         psf = torch.sinc(
-            torch.sqrt(
-                (grid_x / res_ratio[0]) ** 2 + (grid_y / res_ratio[1]) ** 2
-            )
+            torch.sqrt((grid_x / res_ratio[0]) ** 2 + (grid_y / res_ratio[1]) ** 2)
         ) ** 2 * torch.exp(-0.5 * grid_z**2 / sigma_z**2)
     else:
         raise TypeError(f"Unknown PSF type: <{psf_type}>!")
@@ -118,9 +107,7 @@ def get_PSF(
 # # # # # # # # # # # # # # # # # #
 
 
-def resample(
-    x: torch.Tensor, res_xyz_old: Sequence, res_xyz_new: Sequence
-) -> torch.Tensor:
+def resample(x: torch.Tensor, res_xyz_old: Sequence, res_xyz_new: Sequence) -> torch.Tensor:
     """
     Resample a tensor from a grid with resolution res_xyz_old to a grid with resolution res_xyz_new using
     pytorch's grid_sample function.
@@ -134,11 +121,7 @@ def resample(
         fac = res_xyz_old[i] / res_xyz_new[i]
         size_new = int(x.shape[-i - 1] * fac)
         grid_max = (size_new - 1) / fac / (x.shape[-i - 1] - 1)
-        grids.append(
-            torch.linspace(
-                -grid_max, grid_max, size_new, dtype=x.dtype, device=x.device
-            )
-        )
+        grids.append(torch.linspace(-grid_max, grid_max, size_new, dtype=x.dtype, device=x.device))
     grid = torch.stack(torch.meshgrid(*grids[::-1], indexing="ij")[::-1], -1)
     y = F.grid_sample(
         x,
@@ -161,9 +144,7 @@ def meshgrid(
 ):
     assert len(shape_xyz) == len(resolution_xyz)
     if min_xyz is None:
-        min_xyz = tuple(
-            -(s - 1) * r / 2 for s, r in zip(shape_xyz, resolution_xyz)
-        )
+        min_xyz = tuple(-(s - 1) * r / 2 for s, r in zip(shape_xyz, resolution_xyz))
     else:
         assert len(shape_xyz) == len(min_xyz)
 

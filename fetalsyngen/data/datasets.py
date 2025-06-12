@@ -35,12 +35,9 @@ class FetalDataset:
         self.subjects = self.find_subjects(sub_list)
         if self.subjects is None:
             self.subjects = [x.name for x in self.bids_path.glob("sub-*")]
-        self.sub_ses = [
-            (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
-        ]
+        self.sub_ses = [(x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)]
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
-
         self.orientation = Orientation(axcodes="RAS")
 
         self.img_paths = self._load_bids_path(self.bids_path, "T2w")
@@ -103,9 +100,7 @@ class FetalDataset:
         return len(self.subjects)
 
     def __getitem__(self, idx):
-        raise NotImplementedError(
-            "This method should be implemented in the child class."
-        )
+        raise NotImplementedError("This method should be implemented in the child class.")
 
 
 class FetalTestDataset(FetalDataset):
@@ -230,21 +225,17 @@ class FetalSynthDataset(FetalDataset):
         # parse seeds paths
         if not self.image_as_intensity and isinstance(self.seed_path, Path):
             if not self.seed_path.exists():
-                raise FileNotFoundError(
-                    f"Provided seed path {self.seed_path} does not exist."
-                )
+                raise FileNotFoundError(f"Provided seed path {self.seed_path} does not exist.")
             else:
                 self._load_seed_path()
 
     def _load_seed_path(self):
         """Load the seeds for the subjects."""
         self.seed_paths = {
-            self._sub_ses_string(sub, ses): defaultdict(dict)
-            for (sub, ses) in self.sub_ses
+            self._sub_ses_string(sub, ses): defaultdict(dict) for (sub, ses) in self.sub_ses
         }
         avail_seeds = [
-            int(x.name.replace("subclasses_", ""))
-            for x in self.seed_path.glob("subclasses_*")
+            int(x.name.replace("subclasses_", "")) for x in self.seed_path.glob("subclasses_*")
         ]
         min_seeds_available = min(avail_seeds)
         max_seeds_available = max(avail_seeds)
@@ -254,9 +245,7 @@ class FetalSynthDataset(FetalDataset):
         ):
             seed_path = self.seed_path / f"subclasses_{n_sub}"
             if not seed_path.exists():
-                raise FileNotFoundError(
-                    f"Provided seed path {seed_path} does not exist."
-                )
+                raise FileNotFoundError(f"Provided seed path {seed_path} does not exist.")
             # load the seeds for the subjects for each meta label 1-4
             for i in range(1, 5):
                 files = self._load_bids_path(seed_path, f"mlabel_{i}")
@@ -291,9 +280,7 @@ class FetalSynthDataset(FetalDataset):
         segm = self.loader(self.segm_paths[idx])
 
         # orient to RAS for consistency
-        image = (
-            self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
-        )
+        image = self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
         segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
 
         # transform name into a single string otherwise collate fails

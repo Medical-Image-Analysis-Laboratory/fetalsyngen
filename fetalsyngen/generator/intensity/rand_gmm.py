@@ -80,9 +80,7 @@ class ImageFromSeeds:
         # to use for each meta-label in the format {mlabel: n_subclusters}
         if mlabel2subclusters is None:
             mlabel2subclusters = {
-                meta_label: np.random.randint(
-                    self.min_subclusters, self.max_subclusters + 1
-                )
+                meta_label: np.random.randint(self.min_subclusters, self.max_subclusters + 1)
                 for meta_label in range(1, self.meta_labels + 1)
             }
         if "mlabel2subclusters" in genparams.keys():

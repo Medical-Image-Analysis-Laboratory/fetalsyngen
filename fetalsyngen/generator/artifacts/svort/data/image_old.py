@@ -1,7 +1,7 @@
 """
 Define the stacks, slices and volumes.
 This is based on the original code of NeSVoR, so this might not be totally appropriate for our use,
-as this supposes a coordinate-based approach, while we directly model images. 
+as this supposes a coordinate-based approach, while we directly model images.
 """
 
 from __future__ import annotations
@@ -28,7 +28,10 @@ from fetalsyngen.generator.artifacts.svort.transform import (
     init_zero_transform,
     transform_points,
 )
-from fetalsyngen.generator.artifacts.svort.definitions import PathType, DeviceType
+from fetalsyngen.generator.artifacts.svort.definitions import (
+    PathType,
+    DeviceType,
+)
 import nibabel as nib
 from fetalsyngen.generator.artifacts.svort.data.utils import meshgrid, resample
 
@@ -66,9 +69,7 @@ class _Data(object):
         if not isinstance(value, RigidTransform):
             raise RuntimeError("Transformation must be RigidTransform")
         if value.device != self.device:
-            raise RuntimeError(
-                "The device of transformation must be the same as data!"
-            )
+            raise RuntimeError("The device of transformation must be the same as data!")
 
     @property
     def data(self) -> torch.Tensor:
@@ -221,9 +222,7 @@ class Image(_Data):
     def v_masked(self) -> torch.Tensor:
         return self.image[self.mask]
 
-    def rescale(
-        self, intensity_mean: Union[float, torch.Tensor], masked: bool = True
-    ) -> None:
+    def rescale(self, intensity_mean: Union[float, torch.Tensor], masked: bool = True) -> None:
         if masked:
             scale_factor = intensity_mean / self.image[self.mask].mean()
         else:
@@ -241,9 +240,7 @@ class Image(_Data):
             image = old.image.clone() if deep else old.image
         if mask is None:
             mask = old.mask.clone() if deep else old.mask
-        transformation = (
-            old.transformation.clone() if deep else old.transformation
-        )
+        transformation = old.transformation.clone() if deep else old.transformation
         return old.__class__(
             image=image,
             mask=mask,
@@ -322,9 +319,7 @@ class Volume(Image):
         if resolution_new is None:
             resolution_new = self.resolution_xyz
         elif isinstance(resolution_new, float) or resolution_new.numel == 1:
-            resolution_new = torch.tensor(
-                [resolution_new] * 3, dtype=dtype, device=device
-            )
+            resolution_new = torch.tensor([resolution_new] * 3, dtype=dtype, device=device)
 
         xyz = self.xyz_masked
         # new rotation
@@ -395,9 +390,7 @@ class Stack(_Data):
         if gap is None:
             gap = thickness
         if transformation is None:
-            transformation = init_stack_transform(
-                slices.shape[0], gap, slices.device
-            )
+            transformation = init_stack_transform(slices.shape[0], gap, slices.device)
         super().__init__(slices, mask, transformation)
         self.resolution_x = resolution_x
         self.resolution_y = resolution_y
@@ -415,9 +408,7 @@ class Stack(_Data):
     def check_transformation(self, value) -> None:
         super().check_transformation(value)
         if len(value) != self.slices.shape[0]:
-            raise RuntimeError(
-                "The number of transformatons is not equal to the number of slices!"
-            )
+            raise RuntimeError("The number of transformatons is not equal to the number of slices!")
 
     @property
     def slices(self) -> torch.Tensor:
@@ -532,9 +523,7 @@ class Stack(_Data):
             slices = stack.slices.clone() if deep else stack.slices
         if mask is None:
             mask = stack.mask.clone() if deep else stack.mask
-        transformation = (
-            stack.transformation.clone() if deep else stack.transformation
-        )
+        transformation = stack.transformation.clone() if deep else stack.transformation
         return Stack(
             slices=slices,
             mask=mask,
@@ -609,9 +598,7 @@ def save_volume(fname, data, res):
     w, h, d = data.shape
     affine = np.eye(4)
     affine[:3, :3] *= res
-    affine[:3, -1] = (
-        -np.array([(w - 1) / 2.0, (h - 1) / 2.0, (d - 1) / 2.0]) * res
-    )
+    affine[:3, -1] = -np.array([(w - 1) / 2.0, (h - 1) / 2.0, (d - 1) / 2.0]) * res
     img = nib.Nifti1Image(data, affine)
     img.header.set_xyzt_units(2)
     img.header.set_qform(affine, code="aligned")
@@ -624,9 +611,7 @@ def save_nii_volume(
     volume: Union[torch.Tensor, np.ndarray],
     affine: Optional[Union[torch.Tensor, np.ndarray]],
 ) -> None:
-    assert len(volume.shape) == 3 or (
-        len(volume.shape) == 4 and volume.shape[1] == 1
-    )
+    assert len(volume.shape) == 3 or (len(volume.shape) == 4 and volume.shape[1] == 1)
     if len(volume.shape) == 4:
         volume = volume.squeeze(1)
     if isinstance(volume, torch.Tensor):
@@ -637,9 +622,7 @@ def save_nii_volume(
         affine = affine.detach().cpu().numpy()
     if affine is None:
         affine = np.eye(4)
-    if volume.dtype == bool and isinstance(
-        volume, np.ndarray
-    ):  # bool type is not supported
+    if volume.dtype == bool and isinstance(volume, np.ndarray):  # bool type is not supported
         volume = volume.astype(np.int16)
     img = nib.nifti1.Nifti1Image(volume, affine)
     img.header.set_xyzt_units(2)

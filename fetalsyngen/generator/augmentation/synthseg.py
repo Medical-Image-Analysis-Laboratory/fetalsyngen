@@ -47,9 +47,7 @@ class RandResample(RandTransform):
         self.min_resolution = min_resolution
         self.max_resolution = max_resolution
 
-    def __call__(
-        self, output, input_resolution, device, genparams: dict = {}
-    ) -> torch.Tensor:
+    def __call__(self, output, input_resolution, device, genparams: dict = {}) -> torch.Tensor:
         """Apply the resampling to the input image.
 
         Args:
@@ -77,13 +75,7 @@ class RandResample(RandTransform):
             # calculate stds of gaussian kernels
             # used for blurring to simulate resampling
             # the data to different resolutions
-            stds = (
-                (0.85 + 0.3 * np.random.rand())
-                * np.log(5)
-                / np.pi
-                * spacing
-                / input_resolution
-            )
+            stds = (0.85 + 0.3 * np.random.rand()) * np.log(5) / np.pi * spacing / input_resolution
             # no blur if thickness is equal or smaller to the resolution of the training data
             stds[spacing <= input_resolution] = 0.0
             output_blurred = gaussian_blur_3d(output, stds, device)
@@ -95,15 +87,15 @@ class RandResample(RandTransform):
             factors = np.array(new_size) / np.array(input_size)
             # delta is the offset for the interpolation
             delta = (1.0 - factors) / (2.0 * factors)
-            vx = np.arange(
-                delta[0], delta[0] + new_size[0] / factors[0], 1 / factors[0]
-            )[: new_size[0]]
-            vy = np.arange(
-                delta[1], delta[1] + new_size[1] / factors[1], 1 / factors[1]
-            )[: new_size[1]]
-            vz = np.arange(
-                delta[2], delta[2] + new_size[2] / factors[2], 1 / factors[2]
-            )[: new_size[2]]
+            vx = np.arange(delta[0], delta[0] + new_size[0] / factors[0], 1 / factors[0])[
+                : new_size[0]
+            ]
+            vy = np.arange(delta[1], delta[1] + new_size[1] / factors[1], 1 / factors[1])[
+                : new_size[1]
+            ]
+            vz = np.arange(delta[2], delta[2] + new_size[2] / factors[2], 1 / factors[2])[
+                : new_size[2]
+            ]
             II, JJ, KK = np.meshgrid(vx, vy, vz, sparse=False, indexing="ij")
             II = torch.tensor(II, dtype=torch.float, device=device)
             JJ = torch.tensor(JJ, dtype=torch.float, device=device)
@@ -169,7 +161,8 @@ class RandBiasField(RandTransform):
                 if "bf_scale" not in genparams.keys()
                 else genparams["bf_scale"]
             )
-            bf_size = np.round(bf_scale * np.array(image_size)).astype(int).tolist()
+            bf_size = np.round(bf_scale * np.array(image_size)).astype(int)
+            bf_size = np.maximum(bf_size, 1).tolist()
             bf_std = (
                 self.std_min + (self.std_max - self.std_min) * np.random.rand(1)
                 if "bf_std" not in genparams.keys()
@@ -181,7 +174,9 @@ class RandBiasField(RandTransform):
                 dtype=torch.float,
                 device=device,
             ) * torch.randn(bf_size, dtype=torch.float, device=device)
+
             bf_interp = myzoom_torch(bf_low_scale, np.array(image_size) / bf_size)
+
             bf = torch.exp(bf_interp)
 
             return output * bf, {

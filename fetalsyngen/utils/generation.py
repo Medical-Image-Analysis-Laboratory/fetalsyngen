@@ -1,4 +1,4 @@
-"""Taken from https://github.com/peirong26/Brain-ID/blob/main/BrainID/datasets/utils.py 
+"""Taken from https://github.com/peirong26/Brain-ID/blob/main/BrainID/datasets/utils.py
 Utils needed for the synthetic data generation
 """
 
@@ -391,9 +391,7 @@ def myzoom_torch(X, factor, aff=None):
     if aff is not None:
         aff_new = aff.copy()
         aff_new[:-1] = aff_new[:-1] / factor
-        aff_new[:-1, -1] = aff_new[:-1, -1] - aff[:-1, :-1] @ (
-            0.5 - 0.5 / (factor * np.ones(3))
-        )
+        aff_new[:-1, -1] = aff_new[:-1, -1] - aff[:-1, :-1] @ (0.5 - 0.5 / (factor * np.ones(3)))
         return Y, aff_new
     else:
         return Y

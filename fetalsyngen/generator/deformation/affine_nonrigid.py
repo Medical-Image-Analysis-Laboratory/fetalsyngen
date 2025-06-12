@@ -61,14 +61,13 @@ class SpatialDeformation:
 
         self.device = device
 
-        self._prepare_grid()
-
-    def _prepare_grid(self):
-
+    def _prepare_grid(self, size=None):
+        if size is None:
+            size = self.size
         xx, yy, zz = np.meshgrid(
-            range(self.size[0]),
-            range(self.size[1]),
-            range(self.size[2]),
+            range(size[0]),
+            range(size[1]),
+            range(size[2]),
             sparse=False,
             indexing="ij",
         )
@@ -101,37 +100,97 @@ class SpatialDeformation:
         Returns:
             Deformed image, segmentation, output and deformation parameters.
         """
+
+        xx2, yy2, zz2, flip, deform_params = self.generate_deformation_and_flip(
+            image_shape=output.shape,
+            random_shift=True,
+            genparams=genparams,
+        )
+
+        image, segmentation, output = self.apply_deformation_and_flip(
+            image=image,
+            segmentation=segmentation,
+            output=output,
+            xx2=xx2,
+            yy2=yy2,
+            zz2=zz2,
+            flip=flip,
+        )
+
+        return image, segmentation, output, deform_params
+
+    def generate_deformation_and_flip(
+        self, image_shape, random_shift=True, genparams={}
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Generate the deformation and flip.
+        Args:
+            image_shape (tuple): Shape of the image.
+            random_shift (bool): Whether to apply random shift.
+            genparams (dict): Generation parameters.
+        Returns:
+            xx2 (torch.Tensor): Deformed x coordinates.
+            yy2 (torch.Tensor): Deformed y coordinates.
+            zz2 (torch.Tensor): Deformed z coordinates.
+            flip (bool): Whether to flip the image.
+            deform_params (dict): Deformation parameters.
+
+        """
+
         deform_params = {}
         if np.random.rand() < self.prob or len(genparams.keys()) > 0:
-            image_shape = output.shape
             flip = (
                 np.random.rand() < self.flip_prb
                 if "flip" not in genparams.keys()
                 else genparams["flip"]
             )
-            xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = (
-                self.generate_deformation(
-                    image_shape, random_shift=True, genparams=genparams
-                )
+            self._prepare_grid(image_shape)
+            xx2, yy2, zz2, x1, y1, z1, x2, y2, z2, deform_params = self.generate_deformation(
+                image_shape, random_shift=random_shift, genparams=genparams
             )
             # flip the image if nessesary
-            if flip:
-                segmentation = torch.flip(segmentation, [0])
-                output = torch.flip(output, [0])
-                image = torch.flip(image, [0]) if image is not None else None
+            deform_params["flip"] = flip
+        else:
+            xx2 = None
+            yy2 = None
+            zz2 = None
+            flip = False
+            deform_params = {
+                "affine": None,
+                "non_rigid": None,
+                "flip": flip,
+            }
+        return xx2, yy2, zz2, flip, deform_params
 
+    def apply_deformation_and_flip(self, image, segmentation, output, xx2, yy2, zz2, flip):
+        """Apply the deformation and flip to the image and segmentation.
+
+        Args:
+            image (torch.Tensor): Image to deform.
+            segmentation (torch.Tensor): Segmentation to deform.
+            output (torch.Tensor): Output to deform.
+            xx2 (torch.Tensor): Deformed x coordinates.
+            yy2 (torch.Tensor): Deformed y coordinates.
+            zz2 (torch.Tensor): Deformed z coordinates.
+            flip (bool): Whether to flip the image and segmentation.
+
+        Returns:
+            Deformed image, segmentation and output.
+        """
+        # flip the image if nessesary
+        if flip:
+            segmentation = torch.flip(segmentation, [0])
+            output = torch.flip(output, [0])
+            image = torch.flip(image, [0]) if image is not None else None
+
+        if xx2 is not None:
             output = fast_3D_interp_torch(output, xx2, yy2, zz2, "linear")
             segmentation = fast_3D_interp_torch(
                 segmentation.to(self.device), xx2, yy2, zz2, "nearest"
             )
             if image is not None:
-                image = fast_3D_interp_torch(
-                    image.to(self.device), xx2, yy2, zz2, "linear"
-                )
+                image = fast_3D_interp_torch(image.to(self.device), xx2, yy2, zz2, "linear")
 
-            deform_params["flip"] = flip
-
-        return image, segmentation, output, deform_params
+        return image, segmentation, output
 
     def generate_deformation(self, image_shape, random_shift=True, genparams={}):
 
@@ -148,6 +207,7 @@ class SpatialDeformation:
         # sample nonlinear deformation
         if self.nonlinear_transform:
             F, non_rigid_params = self.random_nonlinear_transform(
+                image_shape=image_shape,
                 nonlin_scale_min=self.nonlin_scale_min,
                 nonlin_scale_max=self.nonlin_scale_max,
                 nonlin_std_max=self.nonlin_std_max,
@@ -221,10 +281,7 @@ class SpatialDeformation:
                 (np.array(shp[0:3]) - 1) / 2,
                 dtype=torch.float,
                 device=self.device,
-            ) + (
-                2 * (max_shift * torch.rand(3, dtype=float, device=self.device))
-                - max_shift
-            )
+            ) + (2 * (max_shift * torch.rand(3, dtype=float, device=self.device)) - max_shift)
         else:
             c2 = torch.tensor(
                 (np.array(shp[0:3]) - 1) / 2,
@@ -240,7 +297,7 @@ class SpatialDeformation:
         return A, c2, affine_params
 
     def random_nonlinear_transform(
-        self, nonlin_scale_min, nonlin_scale_max, nonlin_std_max, genparams={}
+        self, image_shape, nonlin_scale_min, nonlin_scale_max, nonlin_std_max, genparams={}
     ):
 
         nonlin_scale = (
@@ -249,7 +306,7 @@ class SpatialDeformation:
             else genparams["nonlin_scale"]
         )
         size_F_small = (
-            np.round(nonlin_scale * np.array(self.size)).astype(int).tolist()
+            np.round(nonlin_scale * np.array(image_shape)).astype(int).tolist()
             if "size_F_small" not in genparams.keys()
             else genparams["size_F_small"]
         )
@@ -258,10 +315,8 @@ class SpatialDeformation:
             if "nonlin_std" not in genparams.keys()
             else genparams["nonlin_std"]
         )
-        Fsmall = nonlin_std * torch.randn(
-            [*size_F_small, 3], dtype=torch.float, device=self.device
-        )
-        F = myzoom_torch(Fsmall, np.array(self.size) / size_F_small)
+        Fsmall = nonlin_std * torch.randn([*size_F_small, 3], dtype=torch.float, device=self.device)
+        F = myzoom_torch(Fsmall, np.array(image_shape) / size_F_small)
 
         return F, {
             "nonlin_scale": nonlin_scale,
@@ -270,6 +325,7 @@ class SpatialDeformation:
         }
 
     def deform_image(self, shp, A, c2, F):
+
         if F is not None:
             # deform the images (we do nonlinear "first" ie after so we can do heavy coronal deformations in photo mode)
             xx1 = self.xc + F[:, :, :, 0]
