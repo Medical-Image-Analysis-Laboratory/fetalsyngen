@@ -21,6 +21,9 @@ class FetalDataset:
         self,
         bids_path: str,
         sub_list: list[str] | None,
+        img_suffix: str = "T2w",
+        seg_suffix: str = "dseg",
+        load_segmentations: bool = True,
     ) -> dict:
         """
         Args:
@@ -30,7 +33,9 @@ class FetalDataset:
 
         """
         super().__init__()
-
+        self.img_suffix = img_suffix
+        self.seg_suffix = seg_suffix
+        self.load_segmentations = load_segmentations
         self.bids_path = Path(bids_path)
         self.subjects = self.find_subjects(sub_list)
         if self.subjects is None:
@@ -38,13 +43,49 @@ class FetalDataset:
         self.sub_ses = [
             (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
+
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
 
         self.orientation = Orientation(axcodes="RAS")
 
-        self.img_paths = self._load_bids_path(self.bids_path, "T2w")
-        self.segm_paths = self._load_bids_path(self.bids_path, "dseg")
+        self.img_paths, img_subject_sessions = self._load_bids_path(
+            self.bids_path, self.img_suffix
+        )
+
+        if load_segmentations:
+            # load the segmentation paths and ensure they are in the same order as images
+            self.segm_paths, segm_subject_sessions = self._load_bids_path(
+                self.bids_path, self.seg_suffix
+            )
+
+            if len(self.img_paths) != 0 and len(self.segm_paths) != 0:
+                # ensure that image and segmentation paths are in the same order and have only overlapping subjects
+                overlapping_subjects = set(img_subject_sessions) & set(
+                    segm_subject_sessions
+                )
+                if len(overlapping_subjects) == 0:
+                    raise ValueError(
+                        f"No overlapping subjects found between image and segmentation paths."
+                    )
+
+                # realign img_paths and segm_paths to the filtered self.sub_ses
+                img_map = {
+                    sess: path
+                    for sess, path in zip(img_subject_sessions, self.img_paths)
+                }
+                seg_map = {
+                    sess: path
+                    for sess, path in zip(segm_subject_sessions, self.segm_paths)
+                }
+                self.img_paths = [img_map[key] for key in overlapping_subjects]
+                self.segm_paths = [seg_map[key] for key in overlapping_subjects]
+                self.sub_ses = list(overlapping_subjects)
+                self.subjects = list(set([x[0] for x in self.sub_ses]))
+        else:
+            self.segm_paths = None
+            self.sub_ses = img_subject_sessions
+            self.subjects = list(set([x[0] for x in img_subject_sessions]))
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
@@ -82,25 +123,30 @@ class FetalDataset:
         "Check that for a given path, all subjects have a file with the provided suffix
         """
         files_paths = []
+        subject_sessions = []
         for sub, ses in self.sub_ses:
+
             pattern = self._get_pattern(sub, ses, suffix)
             files = list(path.glob(pattern))
             if len(files) == 0:
-                raise FileNotFoundError(
+                print(
                     f"No files found for requested subject {sub} in {path} "
                     f"({pattern} returned nothing)"
                 )
+                continue
             elif len(files) > 1:
-                raise RuntimeError(
+                raise ValueError(
                     f"Multiple files found for requested subject {sub} in {path} "
-                    f"({pattern} returned {files})"
+                    f"({pattern} returned {files}). "
+                    "Please ensure that there is only one file per subject/session."
                 )
             files_paths.append(files[0])
+            subject_sessions.append((sub, ses))
 
-        return files_paths
+        return files_paths, subject_sessions
 
     def __len__(self):
-        return len(self.subjects)
+        return len(self.sub_ses)
 
     def __getitem__(self, idx):
         raise NotImplementedError(
@@ -121,6 +167,9 @@ class FetalTestDataset(FetalDataset):
         bids_path: str,
         sub_list: list[str] | None,
         transforms: Compose | None = None,
+        img_suffix: str = "T2w",
+        seg_suffix: str = "dseg",
+        load_segmentations: bool = True,
     ):
         """
         Args:
@@ -136,17 +185,23 @@ class FetalTestDataset(FetalDataset):
 
             See [inference.yaml](https://github.com/Medical-Image-Analysis-Laboratory/fetalsyngen/blob/dev/configs/dataset/transforms/inference.yaml) for an example of the transforms configuration.
         """
-        super().__init__(bids_path, sub_list)
+        super().__init__(
+            bids_path,
+            sub_list,
+            img_suffix,
+            seg_suffix,
+            load_segmentations,
+        )
         self.transforms = transforms
 
     def _load_data(self, idx):
         # load the image and segmentation
         image = self.loader(self.img_paths[idx])
-        segm = self.loader(self.segm_paths[idx])
+        segm = self.loader(self.segm_paths[idx]) if self.load_segmentations else None
         if len(image.shape) == 3:
             # add channel dimension
             image = image.unsqueeze(0)
-            segm = segm.unsqueeze(0)
+            segm = segm.unsqueeze(0) if segm is not None else None
         elif len(image.shape) != 4:
             raise ValueError(f"Expected 3D or 4D image, got {len(image.shape)}D image.")
 
@@ -154,7 +209,11 @@ class FetalTestDataset(FetalDataset):
         name = self.sub_ses[idx]
         name = self._sub_ses_string(name[0], ses=name[1])
 
-        return {"image": image, "label": segm.long(), "name": name}
+        data = {"image": image, "name": name}
+        if segm is not None:
+            data["label"] = segm.long()
+
+        return data
 
     def __getitem__(self, idx) -> dict:
         """
@@ -172,7 +231,11 @@ class FetalTestDataset(FetalDataset):
 
         if self.transforms:
             data = self.transforms(data)
-        data["label"] = data["label"].long()
+        if "label" in data:
+            # ensure label is long tensor
+            # to avoid issues with collate_fn
+            # and loss functions expecting long tensors
+            data["label"] = data["label"].long()
         return data
 
     def reverse_transform(self, data: dict) -> dict:
@@ -202,6 +265,8 @@ class FetalSynthDataset(FetalDataset):
         sub_list: list[str] | None,
         load_image: bool = False,
         image_as_intensity: bool = False,
+        img_suffix: str = "T2w",
+        seg_suffix: str = "dseg",
     ):
         """
 
@@ -221,12 +286,11 @@ class FetalSynthDataset(FetalDataset):
             image_as_intensity: If **True**, the image is used as the intensity prior,
                 instead of sampling the intensities from the seeds. Default is **False**.
         """
-        super().__init__(bids_path, sub_list)
+        super().__init__(bids_path, sub_list, img_suffix, seg_suffix)
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
         self.load_image = load_image
         self.generator = generator
         self.image_as_intensity = image_as_intensity
-
         # parse seeds paths
         if not self.image_as_intensity and isinstance(self.seed_path, Path):
             if not self.seed_path.exists():
@@ -258,8 +322,8 @@ class FetalSynthDataset(FetalDataset):
                     f"Provided seed path {seed_path} does not exist."
                 )
             # load the seeds for the subjects for each meta label 1-4
-            for i in range(1, 5):
-                files = self._load_bids_path(seed_path, f"mlabel_{i}")
+            for i in range(1, self.generator.intensity_generator.meta_labels + 1):
+                files, __ = self._load_bids_path(seed_path, f"mlabel_{i}")
                 for (sub, ses), file in zip(self.sub_ses, files):
                     sub_ses_str = self._sub_ses_string(sub, ses)
                     self.seed_paths[sub_ses_str][n_sub][i] = file
@@ -381,3 +445,18 @@ class FetalSynthDataset(FetalDataset):
         data, generation_params = self.sample(idx, genparams=genparams)
         data["generation_params"] = generation_params
         return data
+
+
+if __name__ == "__main__":
+    # Example usage
+    dataset = FetalTestDataset(
+        bids_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/resampled05",
+        # generator=None,
+        # seed_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/seeds",
+        sub_list=None,
+        # load_image=True,
+        # image_as_intensity=False,
+    )
+    print(f"Number of subjects: {len(dataset)}")
+    sample = dataset[0]
+    print(f"Sample: {sample}")
