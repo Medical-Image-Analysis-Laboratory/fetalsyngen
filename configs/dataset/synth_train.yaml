@@ -3,8 +3,8 @@ defaults:
 
 _target_: fetalsyngen.data.datasets.FetalSynthDataset
 bids_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/resampled05 #./data
-seed_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/seeds #./data/derivatives/seeds
-seed_csf_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/seeds_csf
+seed_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/seeds_4m_6s #./data/derivatives/seeds
+seed_csf_path: /home/marinagrifell/Desktop/TFG/Data/pathsim/derivatives/seeds_csf_4m_6s
 sub_list: null
 bids_path_img_ending: 'T2w'
 bids_path_segm_ending: 'dseg_CC'

@@ -624,7 +624,7 @@ class brain_Alterations:
         if ventri == 'unilateral_right' or ventri == 'bilateral':
             # Right hemisphere: Keep everything right of midsagittal plane (y >= midsagittal_y)
             ventriculomegaly_segm, ventriculomegaly_seed = self.right_ventricle(ventriculomegaly_segm, ventriculomegaly_seed, inside_mask_np, midsagittal_x, genparams)
-    
+
         return ventriculomegaly_segm, ventriculomegaly_seed, genparams
     
 
