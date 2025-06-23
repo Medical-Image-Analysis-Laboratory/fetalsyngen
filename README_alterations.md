@@ -1,3 +1,5 @@
+## AUGMENTATION PIPELINE DETAILED EXPLANATION
+
 The **main contribution** of this project to the FetalSynthSeg framework is the **integration of anatomical alteration simulations to improve model performance on pathological cases.** This modification is applied immediately after the generation of meta-labels and intensity cluster seeds within the FetalSynthSeg pipeline.
 
 Given the structure of the framework, each subject requires two consistently altered images: the original segmentation and its corresponding seed (intensity cluster) image. The two paired images must be modified equally to ensure proper alignment for domain randomization (DR), as the synthetic intensity image is generated directly from the seed and must remain consistent with the original segmentation.
