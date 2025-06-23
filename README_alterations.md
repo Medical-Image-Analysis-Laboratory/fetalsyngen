@@ -106,11 +106,10 @@ Ventriculomegaly is the dilation of the ventricles, although it is not a uniform
 
 $$
 f(d) = 
-\begin{cases}
-1 - s \left(\frac{R - d}{R}\right)^2 & \text{if } d < R \\[6pt]
-1 & \text{if } d \geq R
-\end{cases}
-$$
+      \begin{cases}
+        1 - s \cdot \left( \dfrac{R - d}{R} \right)^2, & \text{if } d < R \\
+        1, & \text{if } d \geq R
+      \end{cases}$$
 
 
 where d is the distance from a voxel to the center, R is the radius of the expansion effect, s the strength (in range \[0,1]) and f(d) is the radial expansion factor at distance d.
