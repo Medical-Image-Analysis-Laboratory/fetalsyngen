@@ -104,13 +104,13 @@ The size of the structuring element (a ball) used for erosion is a random parame
 **Ventriculomegaly**
 Ventriculomegaly is the dilation of the ventricles, although it is not a uniform dilation across all the ventricle tissue. We need to simulate a localized radial expansion, which means we want to simulate a balloon effect, altering the surrounding geometry by stretching the ventricle tissue outwards and, consequently, compressing the surrounding tissues. To obtain this simulation, we create a spatial transformation using a flow-field grid. In this, we will simulate the radial expansion based on three parameters: center, radius and strength. It is defined as:
 
-\[
+```
 f(d) = 
 \begin{cases}
 1 - s \left(\frac{R - d}{R}\right)^2 & \text{if } d < R \\[6pt]
 1 & \text{if } d \geq R
 \end{cases}
-\]
+```
 
 
 where d is the distance from a voxel to the center, R is the radius of the expansion effect, s the strength (in range \[0,1]) and f(d) is the radial expansion factor at distance d.
