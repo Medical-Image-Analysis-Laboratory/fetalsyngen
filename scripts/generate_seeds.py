@@ -8,6 +8,15 @@ Then splits it into N clusters using EM clustering.
 All non-zero voxels from the image that are background in the segmentation
 are clustered into 4th clusters (MAX_BACK_SUBCLUST) also defines how mby subclasses
 to simulate for the background tissue).
+
+
+If adding custom meta-label mapping, or own annotation scheme, please update the
+`feta2meta` dictionary and `tissue_map` dictionary as well as data parsing if needed.
+```python
+            imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
+            label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
+```
+
 """
 
 from pathlib import Path
@@ -18,7 +27,7 @@ import torch
 import argparse
 import numpy as np
 from multiprocessing import Pool
-
+import multiprocessing as mp
 
 parser = argparse.ArgumentParser(
     description="Generate seeds for FetalSynthGen",
@@ -31,7 +40,9 @@ parser.add_argument(
     required=True,
     help="Path to BIDS folder with the segmentations and images for seeds generation",
 )
-parser.add_argument("--out_path", type=str, required=True, help="Path to save the seeds")
+parser.add_argument(
+    "--out_path", type=str, required=True, help="Path to save the seeds"
+)
 parser.add_argument(
     "--max_subclasses",
     type=int,
@@ -51,25 +62,33 @@ args = parser.parse_args()
 def main(args):
     # mapping fetal labels to meta labels
     if args.annotation == "feta":
+        # tissue maps is used purely for logging and debugging
+        # the actual mapping is done in feta2meta
         tissue_map = {
             "CSF": [1, 4],  # meta-label 1
             "GM": [2, 6],  # meta-label 2
             "WM": [3, 5, 7],  # meta-label 3
         }
+        # feta2meta is used to map the fetal labels to meta labels
         feta2meta = {1: 1, 4: 1, 2: 2, 6: 2, 5: 3, 7: 3, 3: 3}
     elif args.annotation == "dhcp":
+        # tissue maps is used purely for logging and debugging
+        # the actual mapping is done in feta2meta
         tissue_map = {
             "CSF": [1, 5],  # meta-label 1
             "GM": [2, 7, 9],  # meta-label 2
             "WM": [3, 6, 8],  # meta-label 3
         }
+        # feta2meta is used to map the fetal labels to meta labels
         feta2meta = {1: 1, 5: 1, 2: 2, 7: 2, 9: 2, 3: 3, 6: 3, 8: 3}
     else:
         raise ValueError("Unknown annotation type. Should be either 'feta' or 'dhcp'")
 
     print(f'Using "{args.annotation}" annotation. Labels are mapped as follows:')
     for meta_label, segm_labels in tissue_map.items():
-        print(f"Meta-label {meta_label} is a fusion of segmentation labels: {segm_labels}")
+        print(
+            f"Meta-label {meta_label} is a fusion of segmentation labels: {segm_labels}"
+        )
 
     max_subclusts = int(args.max_subclasses) + 1
     bids_path = Path(args.bids_path).absolute()
@@ -85,7 +104,19 @@ def main(args):
         for subclasses in range(1, max_subclusts):
             imgs = list(sub.glob("**/anat/*_T2w.nii.gz"))[0]
             label = list(sub.glob("**/anat/*_dseg.nii.gz"))[0]
-            tasks.append((imgs, label, subclasses, feta2meta, out_path, sub, "", loader))
+            tasks.append(
+                (
+                    imgs,
+                    label,
+                    subclasses,
+                    feta2meta,
+                    out_path,
+                    sub,
+                    "",
+                    loader,
+                    args.annotation,
+                )
+            )
 
     # Use multiprocessing Pool for parallel processing
     with Pool(mp.cpu_count()) as pool:
@@ -97,12 +128,20 @@ def worker_process_subject(args):
     process_subject(*args)
 
 
-def process_subject(imgs, label, subclasses, feta2meta, out_path, sub, session, loader):
+def process_subject(
+    imgs, label, subclasses, feta2meta, out_path, sub, session, loader, annotation
+):
     data = loader({"image": str(imgs), "label": str(label)})
     data["image"] = data["image"].unsqueeze(0)
     data["label"] = data["label"].unsqueeze(0)
+
+    # replace NaNs with 0 otherwise clustering will fail
+    data["image"][torch.isnan(data["image"])] = 0
+    data["label"][torch.isnan(data["label"])] = 0
+
     # set skull as class 4
-    data["label"][data["label"] == 4] = 0
+    if annotation == "dhcp":
+        data["label"][data["label"] == 4] = 0
 
     subclasses_splits = split_lables(
         image=data["image"],
@@ -140,9 +179,9 @@ def subsplit_label(img, segm, label2assign=10, n_clusters=3):
     # cluster non-zero image voxels that are zero in the mask
     brain_backg = segm * 0
 
-    clust = GaussianMixture(n_components=n_clusters, n_init=5, init_params="k-means++").fit_predict(
-        img_voxels.reshape(-1, 1)
-    )
+    clust = GaussianMixture(
+        n_components=n_clusters, n_init=5, init_params="k-means++"
+    ).fit_predict(img_voxels.reshape(-1, 1))
     clust = torch.tensor(clust).long()
     brain_backg[segm > 0] = clust + label2assign  # clusters are from 0 to n_clusters-1
     return brain_backg
