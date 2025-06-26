@@ -3,6 +3,7 @@ from SimpleITK import ReadImage, GetArrayFromImage
 from monai.data import MetaTensor
 from torch import from_numpy, Tensor
 from pathlib import Path
+import torchio as tio
 
 
 class SimpleITKReader:
@@ -47,9 +48,30 @@ class SimpleITKReader:
         affine = Tensor(self.make_affine_from_sitk(img))
         img_data = GetArrayFromImage(img)
 
-        # convert to LPS to match nibabel loading order
+        # convert to RAS to match nibabel loading order
         img_data = from_numpy(img_data).permute(2, 1, 0)
         if as_meta:
             return MetaTensor(x=img_data, affine=affine)
         else:
             return img_data
+
+
+class TorchIOReader:
+    def __call__(self, img_path: str | Path, type: str) -> Tensor | MetaTensor:
+        """Reads an image from a path either as an
+        intensity image or a label map, returning it as a tio.Image.
+
+        Args:
+            img_path: Path to the image.
+            type: Type of the image ('intensity' or 'label').
+
+        Returns:
+            torchio.Image
+        """
+        if isinstance(img_path, Path):
+            img_path = str(img_path)
+        img_type = tio.INTENSITY if type == "intensity" else tio.LABEL
+        if type not in ["intensity", "label"]:
+            raise ValueError("Type must be either 'intensity' or 'label'.")
+        img = tio.Image(img_path, type=img_type, check_nans=True)
+        return img

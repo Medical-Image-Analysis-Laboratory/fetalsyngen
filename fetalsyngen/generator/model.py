@@ -11,17 +11,20 @@ from fetalsyngen.generator.augmentation.synthseg import (
 )
 from typing import Iterable
 import numpy as np
-from fetalsyngen.generator.artifacts.simulate_reco import (
-    Scanner,
-    PSFReconstructor,
-)
-from fetalsyngen.generator.augmentation.artifacts import (
-    SimulatedBoundaries,
-    StructNoise,
-    SimulateMotion,
-    BlurCortex,
-)
+
+
 from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
+
+from torchio.transforms import (
+    RandomAffineElasticDeformation,
+    RandomAnisotropy,
+    Compose,
+    RandomBiasField,
+    RandomGamma,
+    RandomNoise,
+)
+
+import torchio as tio
 
 
 class FetalSynthGen:
@@ -37,10 +40,10 @@ class FetalSynthGen:
         noise: RandNoise,
         gamma: RandGamma,
         # optional SR artifacts
-        blur_cortex: BlurCortex | None = None,
-        struct_noise: StructNoise | None = None,
-        simulate_motion: SimulateMotion | None = None,
-        boundaries: SimulatedBoundaries | None = None,
+        # blur_cortex: BlurCortex | None = None,
+        # struct_noise: StructNoise | None = None,
+        # simulate_motion: SimulateMotion | None = None,
+        # boundaries: SimulatedBoundaries | None = None,
     ):
         """
         Initialize the model with the given parameters.
@@ -74,12 +77,12 @@ class FetalSynthGen:
         self.gamma = gamma
         self.noise = noise
 
-        self.artifacts = {
-            "blur_cortex": blur_cortex,
-            "struct_noise": struct_noise,
-            "simulate_motion": simulate_motion,
-            "boundaries": boundaries,
-        }
+        # self.artifacts = {
+        #     "blur_cortex": blur_cortex,
+        #     "struct_noise": struct_noise,
+        #     "simulate_motion": simulate_motion,
+        #     "boundaries": boundaries,
+        # }
         self.device = device
 
     def _validated_genparams(self, d: dict) -> dict:
@@ -138,71 +141,141 @@ class FetalSynthGen:
             # normalize the image from 0 to 255 to
             # match the intensity generator
             output = (image - image.min()) / (image.max() - image.min()) * 255
-            selected_seeds = {}
-            seed_intensities = {}
 
-        # ensure that tensors are on the same device
-        output = output.to(self.device)
-        segmentation = segmentation.to(self.device)
-        image = image.to(self.device) if image is not None else None
+        # NOTE: Not needed anymore as generation is on CPU
 
-        # 2. Spatially deform the data
-        image, segmentation, output, deform_params = self.spatial_deform.deform(
-            image=image,
-            segmentation=segmentation,
-            output=output,
-            genparams=genparams.get("deform_params", {}),
+        # # ensure that tensors are on the same device
+        # output = output.to(self.device)
+        # segmentation = segmentation.to(self.device)
+        # image = image.to(self.device) if image is not None else None
+
+        print(type(output))
+
+        # NOTE: DEFINE A TORCHIO COMPOSE OF TRANSFORMATIONS
+
+        # # 2. Spatially deform the data
+        # image, segmentation, output, deform_params = self.spatial_deform.deform(
+        #     image=image,
+        #     segmentation=segmentation,
+        #     output=output,
+        #     genparams=genparams.get("deform_params", {}),
+        # )
+
+        print("Type of output after intensity generation:", type(output))
+        print("Type of segmentation:", type(segmentation))
+        print("Type of image:", type(image))
+
+        spatial_deform = RandomAffineElasticDeformation(
+            affine_kwargs={
+                "scales": 0.1,
+                "degrees": 20,
+                "translation": 10,
+                "isotropic": False,
+            },
+            elastic_kwargs={
+                "num_control_points": 6,
+                "max_displacement": 10,
+            },
         )
 
-        # 3. Gamma contrast transformation
-        output, gamma_params = self.gamma(
-            output, self.device, genparams=genparams.get("gamma_params", {})
+        # # 3. Gamma contrast transformation
+        # output, gamma_params = self.gamma(
+        #     output, self.device, genparams=genparams.get("gamma_params", {})
+        # )
+
+        # # 4. Bias field corruption
+        # output, bf_params = self.biasfield(
+        #     output, self.device, genparams=genparams.get("bf_params", {})
+        # )
+
+        # # 5. Downsample to simulate lower reconstruction resolution
+        # output, factors, resample_params = self.resampled(
+        #     output,
+        #     np.array(self.resolution),
+        #     self.device,
+        #     genparams=genparams.get("resample_params", {}),
+        # )
+
+        # # 6. Noise corruption
+        # output, noise_params = self.noise(
+        #     output, self.device, genparams=genparams.get("noise_params", {})
+        # )
+
+        # # 7. Up-sample back to the original resolution/shape
+        # output = self.resampled.resize_back(output, factors)
+
+        # # 8. Induce SR-artifacts
+        # artifacts = {}
+        # for name, artifact in self.artifacts.items():
+        #     if artifact is not None:
+        #         output, metadata = artifact(
+        #             output,
+        #             segmentation,
+        #             self.device,
+        #             genparams.get("artifact_params", {}),
+        #             resolution=self.resolution,
+        #         )
+        #         artifacts[name] = metadata
+
+        # # 9. Aggregete the synth params
+        # synth_params = {
+        #     "selected_seeds": selected_seeds,
+        #     "seed_intensities": seed_intensities,
+        #     "deform_params": deform_params,
+        #     "gamma_params": gamma_params,
+        #     "bf_params": bf_params,
+        #     "resample_params": resample_params,
+        #     "noise_params": noise_params,
+        #     "artifacts": artifacts,
+        # }
+
+        return output, segmentation, image, {}  # , synth_params
+
+
+if __name__ == "__main__":
+    from fetalsyngen.data.datasets import FetalSynthDataset
+    import time
+    import nibabel as nib
+
+    generator = FetalSynthGen(
+        shape=(256, 256, 256),
+        resolution=(0.5, 0.5, 0.5),
+        device="cpu",
+        intensity_generator=ImageFromSeeds(
+            1,
+            3,
+            seed_labels=list(range(100)),
+            generation_classes=list(range(100)),
+            meta_labels=4,
+        ),
+        spatial_deform=None,
+        resampler=None,
+        bias_field=None,
+        noise=None,
+        gamma=None,
+    )
+    dataset = FetalSynthDataset(
+        bids_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/resampled05",
+        generator=generator,
+        seed_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/seeds_vanilla",
+        sub_list=["sub-050"],
+    )
+
+    print(f"Dataset length: {len(dataset)}")
+    for i in range(1):
+        starttime = time.time()
+        sample = dataset[i]
+        print(f"Generated sample {i} in {time.time() - starttime:.2f} seconds")
+        img = sample["image"]
+        seg = sample["label"]
+
+        nibimage = nib.Nifti1Image(
+            img.numpy().astype(np.float32)[0, ...],
+            affine=img.affine.numpy(),
         )
-
-        # 4. Bias field corruption
-        output, bf_params = self.biasfield(
-            output, self.device, genparams=genparams.get("bf_params", {})
+        nib.save(nibimage, f"sample_{i}_image.nii.gz")
+        nibseg = nib.Nifti1Image(
+            seg.numpy().astype(np.int16)[0],
+            affine=seg.affine.numpy(),
         )
-
-        # 5. Downsample to simulate lower reconstruction resolution
-        output, factors, resample_params = self.resampled(
-            output,
-            np.array(self.resolution),
-            self.device,
-            genparams=genparams.get("resample_params", {}),
-        )
-
-        # 6. Noise corruption
-        output, noise_params = self.noise(
-            output, self.device, genparams=genparams.get("noise_params", {})
-        )
-
-        # 7. Up-sample back to the original resolution/shape
-        output = self.resampled.resize_back(output, factors)
-
-        # 8. Induce SR-artifacts
-        artifacts = {}
-        for name, artifact in self.artifacts.items():
-            if artifact is not None:
-                output, metadata = artifact(
-                    output,
-                    segmentation,
-                    self.device,
-                    genparams.get("artifact_params", {}),
-                    resolution=self.resolution,
-                )
-                artifacts[name] = metadata
-
-        # 9. Aggregete the synth params
-        synth_params = {
-            "selected_seeds": selected_seeds,
-            "seed_intensities": seed_intensities,
-            "deform_params": deform_params,
-            "gamma_params": gamma_params,
-            "bf_params": bf_params,
-            "resample_params": resample_params,
-            "noise_params": noise_params,
-            "artifacts": artifacts,
-        }
-
-        return output, segmentation, image, synth_params
+        nib.save(nibseg, f"sample_{i}_label.nii.gz")

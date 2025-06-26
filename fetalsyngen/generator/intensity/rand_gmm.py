@@ -1,9 +1,9 @@
 import torch
 from pathlib import Path
 import numpy as np
-from fetalsyngen.utils.image_reading import SimpleITKReader
+from fetalsyngen.utils.image_reading import TorchIOReader
 from typing import Iterable
-from monai.transforms import Orientation
+from torchio.transforms import ToCanonical
 
 
 class ImageFromSeeds:
@@ -45,8 +45,8 @@ class ImageFromSeeds:
         self.seed_labels = seed_labels
         self.generation_classes = generation_classes
         self.meta_labels = meta_labels
-        self.loader = SimpleITKReader()
-        self.orientation = Orientation(axcodes="RAS")
+        self.loader = TorchIOReader()
+        self.orientation = ToCanonical()
 
     def load_seeds(
         self,
@@ -89,16 +89,18 @@ class ImageFromSeeds:
             mlabel2subclusters = genparams["mlabel2subclusters"]
 
         # load the first seed as the one corresponding to mlabel 1
-        seed = self.loader(seeds[mlabel2subclusters[1]][1])
-        seed = self.orientation(seed.unsqueeze(0))
+        seed = self.loader(seeds[mlabel2subclusters[1]][1], type="label")
+        seed = self.orientation(seed)
         # re-orient seeds to RAS
 
         for mlabel in range(2, self.meta_labels + 1):
-            new_seed = self.loader(seeds[mlabel2subclusters[mlabel]][mlabel])
-            new_seed = self.orientation(new_seed.unsqueeze(0))
-            seed += new_seed
+            new_seed = self.loader(
+                seeds[mlabel2subclusters[mlabel]][mlabel], type="label"
+            )
+            new_seed = self.orientation(new_seed)
+            seed.data += new_seed.data
 
-        return seed.long().squeeze(0), {"mlabel2subclusters": mlabel2subclusters}
+        return seed, {"mlabel2subclusters": mlabel2subclusters}
 
     def sample_intensities(
         self, seeds: torch.Tensor, device: str, genparams: dict = {}
@@ -145,9 +147,12 @@ class ImageFromSeeds:
                 0,
                 225,
             )
-        intensity_image = mus[seeds] + sigmas[seeds] * torch.randn(
+        seeds_long = seeds.data.long()
+        intensity_image = mus[seeds_long] + sigmas[seeds_long] * torch.randn(
             seeds.shape, dtype=torch.float, device=device
         )
+        # make a torchio image
+
         intensity_image[intensity_image < 0] = 0
 
         return intensity_image, {

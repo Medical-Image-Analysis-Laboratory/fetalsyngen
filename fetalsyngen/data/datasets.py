@@ -1,17 +1,14 @@
 from collections import defaultdict
 from pathlib import Path
-from monai.transforms import (
-    ScaleIntensity,
-    Orientation,
+from torchio.transforms import (
+    RescaleIntensity,
+    ToCanonical,
 )
-from monai.transforms import Compose
+from torchio.transforms import Compose
 from fetalsyngen.generator.model import FetalSynthGen
 from hydra.utils import instantiate
-from fetalsyngen.utils.image_reading import SimpleITKReader
+from fetalsyngen.utils.image_reading import TorchIOReader
 import time
-import torch
-import numpy as np
-from monai.data import MetaTensor
 
 
 class FetalDataset:
@@ -44,10 +41,10 @@ class FetalDataset:
             (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
 
-        self.loader = SimpleITKReader()
-        self.scaler = ScaleIntensity(minv=0, maxv=1)
+        self.loader = TorchIOReader()
+        self.scaler = RescaleIntensity()
 
-        self.orientation = Orientation(axcodes="RAS")
+        self.orientation = ToCanonical()
 
         self.img_paths, img_subject_sessions = self._load_bids_path(
             self.bids_path, self.img_suffix
