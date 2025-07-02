@@ -1,30 +1,13 @@
-import torch
-from fetalsyngen.generator.intensity.rand_gmm import ImageFromSeeds
-from fetalsyngen.generator.deformation.affine_nonrigid import (
-    SpatialDeformation,
-)
-from fetalsyngen.generator.augmentation.synthseg import (
-    RandResample,
-    RandBiasField,
-    RandGamma,
-    RandNoise,
-)
 from typing import Iterable
+
 import numpy as np
 
+from torch import Tensor
+from torchio.transforms import Compose, RescaleIntensity
+from torchio import ScalarImage, LabelMap, Subject
 
-from fetalsyngen.generator.artifacts.utils import mog_3d_tensor
-
-from torchio.transforms import (
-    RandomAffineElasticDeformation,
-    RandomAnisotropy,
-    Compose,
-    RandomBiasField,
-    RandomGamma,
-    RandomNoise,
-)
-
-import torchio as tio
+from fetalsyngen.generator.intensity.rand_gmm import ImageFromSeeds
+from fetalsyngen.generator.augmentation.skullstripping import SimulatedBoundaries
 
 
 class FetalSynthGen:
@@ -34,16 +17,8 @@ class FetalSynthGen:
         resolution: Iterable[float],
         device: str,
         intensity_generator: ImageFromSeeds,
-        spatial_deform: SpatialDeformation,
-        resampler: RandResample,
-        bias_field: RandBiasField,
-        noise: RandNoise,
-        gamma: RandGamma,
-        # optional SR artifacts
-        # blur_cortex: BlurCortex | None = None,
-        # struct_noise: StructNoise | None = None,
-        # simulate_motion: SimulateMotion | None = None,
-        # boundaries: SimulatedBoundaries | None = None,
+        image_transforms: Compose,
+        boundaries_transform: SimulatedBoundaries | None = None,
     ):
         """
         Initialize the model with the given parameters.
@@ -57,32 +32,14 @@ class FetalSynthGen:
             resolution: Resolution of the output image.
             device: Device to use for computation.
             intensity_generator: Intensity generator.
-            spatial_deform: Spatial deformation generator.
-            resampler: Resampler.
-            bias_field: Bias field generator.
-            noise: Noise generator.
-            gamma: Gamma correction generator.
-            blur_cortex: Cortex blurring generator.
-            struct_noise: Structural noise generator.
-            simulate_motion: Motion simulation generator.
-            boundaries: Boundaries generator
+            image_transforms: Image transforms to apply.
 
         """
         self.shape = shape
         self.resolution = resolution
         self.intensity_generator = intensity_generator
-        self.spatial_deform = spatial_deform
-        self.resampled = resampler
-        self.biasfield = bias_field
-        self.gamma = gamma
-        self.noise = noise
-
-        # self.artifacts = {
-        #     "blur_cortex": blur_cortex,
-        #     "struct_noise": struct_noise,
-        #     "simulate_motion": simulate_motion,
-        #     "boundaries": boundaries,
-        # }
+        self.image_transforms = image_transforms
+        self.boundaries_transform = boundaries_transform
         self.device = device
 
     def _validated_genparams(self, d: dict) -> dict:
@@ -98,11 +55,11 @@ class FetalSynthGen:
 
     def sample(
         self,
-        image: torch.Tensor | None,
-        segmentation: torch.Tensor,
-        seeds: torch.Tensor | None,
+        image: Tensor | None,
+        segmentation: LabelMap,
+        seeds: dict | None,
         genparams: dict = {},
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+    ) -> tuple[Subject, dict]:
         """
         Generate a synthetic image from the input data.
         Supports both random generation and from a fixed genparams dictionary.
@@ -117,21 +74,35 @@ class FetalSynthGen:
                 the returned generation parameters.
 
         Returns:
-            The synthetic image, the segmentation, the original image, and the generation parameters.
-
+                subject: TorchIO Subject containing the generated image and segmentation.
+                synth_params: Dictionary with the generation parameters used for this sample.
         """
         if genparams:
             genparams = self._validated_genparams(genparams)
 
-        # 1. Generate intensity output.
+        # 1. Generate intensity output
         if seeds is not None:
             seeds, selected_seeds = self.intensity_generator.load_seeds(
                 seeds=seeds, genparams=genparams.get("selected_seeds", {})
             )
+            # 1000 ms
+            # 1.5 Simulate skull stripping boundaries
+            if self.boundaries_transform is not None:
+                # apply the boundaries transform to the seeds
+                seeds, skullstrip_params = self.boundaries_transform(
+                    seeds=seeds.data,
+                )
+
             output, seed_intensities = self.intensity_generator.sample_intensities(
                 seeds=seeds,
                 device=self.device,
                 genparams=genparams.get("seed_intensities", {}),
+            )
+
+            # turn output to torchio.ScalarImage
+            output = ScalarImage(
+                tensor=output,  # Add batch and channel dimensions
+                affine=segmentation.affine,
             )
         else:
             if image is None:
@@ -140,124 +111,175 @@ class FetalSynthGen:
                 )
             # normalize the image from 0 to 255 to
             # match the intensity generator
-            output = (image - image.min()) / (image.max() - image.min()) * 255
+            output = RescaleIntensity(out_min_max=(0, 255))(image)
+            # selected_seeds = {}
+            # seed_intensities = {}
+            # skullstrip_params = {}
 
-        # NOTE: Not needed anymore as generation is on CPU
-
-        # # ensure that tensors are on the same device
-        # output = output.to(self.device)
-        # segmentation = segmentation.to(self.device)
-        # image = image.to(self.device) if image is not None else None
-
-        print(type(output))
-
-        # NOTE: DEFINE A TORCHIO COMPOSE OF TRANSFORMATIONS
-
-        # # 2. Spatially deform the data
-        # image, segmentation, output, deform_params = self.spatial_deform.deform(
-        #     image=image,
-        #     segmentation=segmentation,
-        #     output=output,
-        #     genparams=genparams.get("deform_params", {}),
+        # make output a torchio.ScalarImage
+        # output = ScalarImage(
+        #     tensor=output,  # Add batch and channel dimensions
+        #     affine=segmentation.affine,
         # )
 
-        print("Type of output after intensity generation:", type(output))
-        print("Type of segmentation:", type(segmentation))
-        print("Type of image:", type(image))
+        # print(f"Type of output: {type(output)} segmentation: {type(segmentation)}")
+        # combine the output and segmentation into a TorchIO subject to
+        # ensure applied transformations are consistent
+        subject = Subject(image=output, label=segmentation)
 
-        spatial_deform = RandomAffineElasticDeformation(
-            affine_kwargs={
-                "scales": 0.1,
-                "degrees": 20,
-                "translation": 10,
-                "isotropic": False,
-            },
-            elastic_kwargs={
-                "num_control_points": 6,
-                "max_displacement": 10,
-            },
-        )
+        # 2. Apply main torchio transforms
+        subject = self.image_transforms(subject)
 
-        # # 3. Gamma contrast transformation
-        # output, gamma_params = self.gamma(
-        #     output, self.device, genparams=genparams.get("gamma_params", {})
+        output = subject["image"]
+        segmentation = subject["label"]
+
+        # torcio_params = {tr: trparm for tr, trparm in subject.applied_transforms}
+        # aggregate all the parameters
+        # synth_params = (
+        #     torcio_params | selected_seeds | skullstrip_params | seed_intensities
         # )
-
-        # # 4. Bias field corruption
-        # output, bf_params = self.biasfield(
-        #     output, self.device, genparams=genparams.get("bf_params", {})
-        # )
-
-        # # 5. Downsample to simulate lower reconstruction resolution
-        # output, factors, resample_params = self.resampled(
-        #     output,
-        #     np.array(self.resolution),
-        #     self.device,
-        #     genparams=genparams.get("resample_params", {}),
-        # )
-
-        # # 6. Noise corruption
-        # output, noise_params = self.noise(
-        #     output, self.device, genparams=genparams.get("noise_params", {})
-        # )
-
-        # # 7. Up-sample back to the original resolution/shape
-        # output = self.resampled.resize_back(output, factors)
-
-        # # 8. Induce SR-artifacts
-        # artifacts = {}
-        # for name, artifact in self.artifacts.items():
-        #     if artifact is not None:
-        #         output, metadata = artifact(
-        #             output,
-        #             segmentation,
-        #             self.device,
-        #             genparams.get("artifact_params", {}),
-        #             resolution=self.resolution,
-        #         )
-        #         artifacts[name] = metadata
-
-        # # 9. Aggregete the synth params
-        # synth_params = {
-        #     "selected_seeds": selected_seeds,
-        #     "seed_intensities": seed_intensities,
-        #     "deform_params": deform_params,
-        #     "gamma_params": gamma_params,
-        #     "bf_params": bf_params,
-        #     "resample_params": resample_params,
-        #     "noise_params": noise_params,
-        #     "artifacts": artifacts,
-        # }
-
-        return output, segmentation, image, {}  # , synth_params
+        synth_params = {}
+        return subject, synth_params
 
 
 if __name__ == "__main__":
+
     from fetalsyngen.data.datasets import FetalSynthDataset
     import time
     import nibabel as nib
+    from torchio.transforms import (
+        RandomAffineElasticDeformation,
+        RandomAnisotropy,
+        Compose,
+        RandomBiasField,
+        RandomGamma,
+        RandomNoise,
+        RandomMotion,
+        RandomGhosting,
+        RandomSpike,
+        RandomBlur,
+        RandomFlip,
+    )
+
+    # intensity transforms: ~500ms
+
+    # blur: 500ms
+    blurtransf = RandomBlur(
+        std=(0, 1),
+        p=1,
+    )
+
+    # randaffineelastic: 23000ms
+    spatial_deform = RandomAffineElasticDeformation(
+        p=0.9,
+        affine_first=False,
+        affine_kwargs={
+            "scales": 0.1,
+            "degrees": 20,
+            "translation": 5,
+            "isotropic": False,
+        },
+        elastic_kwargs={
+            "num_control_points": 7,
+            "max_displacement": 8,
+        },
+    )
+
+    # randflip: 50ms
+    randflip = RandomFlip(
+        axes=("L", "R"),
+        flip_probability=0.5,
+    )
+
+    # 100ms
+    resampletransf = RandomAnisotropy(
+        axes=(0, 1, 2),
+        downsampling=(1.5, 5),
+        scalars_only=True,
+        p=1.0,
+    )
+
+    # randgamma: 50ms
+    gammatransf = RandomGamma(
+        log_gamma=(-0.5, 0.5),
+        p=0.8,
+    )
+
+    # biasfield: 50ms
+    biasfield = RandomBiasField(coefficients=0.5, order=1, p=0.2)
+
+    # MR artifacts: ~200ms
+    randmotion = RandomMotion(
+        degrees=10,
+        translation=5,
+        num_transforms=1,
+        p=0.2,
+    )
+
+    # 300ms
+    randghosting = RandomGhosting(
+        num_ghosts=(1, 10),
+        intensity=(0.1, 0.5),
+        p=0.2,
+    )
+
+    # 500ms
+    randspike = RandomSpike(
+        num_spikes=(1, 3),
+        intensity=0.3,
+        p=0.2,
+    )
+
+    # 100ms
+    noistransf = RandomNoise(
+        mean=1.0,
+        std=(0, 0.25),
+        p=0.2,
+    )
 
     generator = FetalSynthGen(
         shape=(256, 256, 256),
         resolution=(0.5, 0.5, 0.5),
         device="cpu",
         intensity_generator=ImageFromSeeds(
-            1,
-            3,
+            min_subclusters=1,
+            max_subclusters=3,
             seed_labels=list(range(100)),
             generation_classes=list(range(100)),
             meta_labels=4,
+            empty_background=0.5,  # 50% chance to have empty background
         ),
-        spatial_deform=None,
-        resampler=None,
-        bias_field=None,
-        noise=None,
-        gamma=None,
+        image_transforms=Compose(
+            [
+                # smooth synth data
+                blurtransf,
+                # spatial
+                spatial_deform,
+                randflip,
+                resampletransf,
+                # intensity
+                gammatransf,
+                biasfield,
+                # # MR artifacts | AFTER MOTION AND SPATIAL DEFORMATIONS
+                randmotion,
+                randghosting,
+                randspike,
+                # last one so it's not cancelled by other transforms
+                noistransf,
+            ]
+        ),
+        boundaries_transform=SimulatedBoundaries(
+            p=0.5,
+            skullmetalabel=4,
+            min_skull_erosion=0.02,
+            max_kernel_size=8,  # size of the kernel to use for erosion/dilation
+        ),
     )
+
     dataset = FetalSynthDataset(
         bids_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/resampled05",
         generator=generator,
-        seed_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/seeds_vanilla",
+        seed_path="/media/vzalevskyi/data/FETA_challenge/merged_feta_spinabifida/derivatives/seeds",
         sub_list=["sub-050"],
     )
 
@@ -270,12 +292,12 @@ if __name__ == "__main__":
         seg = sample["label"]
 
         nibimage = nib.Nifti1Image(
-            img.numpy().astype(np.float32)[0, ...],
-            affine=img.affine.numpy(),
+            img.numpy().astype(np.float32)[0],
+            affine=seg.affine,
         )
         nib.save(nibimage, f"sample_{i}_image.nii.gz")
         nibseg = nib.Nifti1Image(
             seg.numpy().astype(np.int16)[0],
-            affine=seg.affine.numpy(),
+            affine=seg.affine,
         )
         nib.save(nibseg, f"sample_{i}_label.nii.gz")

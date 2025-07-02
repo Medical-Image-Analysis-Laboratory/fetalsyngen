@@ -15,6 +15,7 @@ class ImageFromSeeds:
         seed_labels: Iterable[int],
         generation_classes: Iterable[int],
         meta_labels: int = 4,
+        empty_background: float = 0.5,
     ):
         """
 
@@ -29,9 +30,14 @@ class ImageFromSeeds:
                 Seeds with the same generation calss will be generated with
                 the same GMM. Should be the same length as seed_labels.
             meta_labels (int, optional): Number of meta-labels used. Defaults to 4.
+            empty_background (float, optional): Probability of the background
+                being empty. Defaults to 0.5. This means that the background
+                will have a 50% chance of being empty, and a 50% chance of
+                being filled with a random intensity value.
         """
         self.min_subclusters = min_subclusters
         self.max_subclusters = max_subclusters
+        self.empty_background = empty_background
         try:
             assert len(set(seed_labels)) == len(seed_labels)
         except AssertionError:
@@ -90,8 +96,8 @@ class ImageFromSeeds:
 
         # load the first seed as the one corresponding to mlabel 1
         seed = self.loader(seeds[mlabel2subclusters[1]][1], type="label")
-        seed = self.orientation(seed)
         # re-orient seeds to RAS
+        seed = self.orientation(seed)
 
         for mlabel in range(2, self.meta_labels + 1):
             new_seed = self.loader(
@@ -151,9 +157,12 @@ class ImageFromSeeds:
         intensity_image = mus[seeds_long] + sigmas[seeds_long] * torch.randn(
             seeds.shape, dtype=torch.float, device=device
         )
-        # make a torchio image
 
         intensity_image[intensity_image < 0] = 0
+
+        # set background if needed to be empty
+        if np.random.rand() < self.empty_background:
+            intensity_image.data[seeds.data == 0] = 0
 
         return intensity_image, {
             "mus": mus,

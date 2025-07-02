@@ -9,6 +9,7 @@ from fetalsyngen.generator.model import FetalSynthGen
 from hydra.utils import instantiate
 from fetalsyngen.utils.image_reading import TorchIOReader
 import time
+from torchio import Subject
 
 
 class FetalDataset:
@@ -193,8 +194,12 @@ class FetalTestDataset(FetalDataset):
 
     def _load_data(self, idx):
         # load the image and segmentation
-        image = self.loader(self.img_paths[idx])
-        segm = self.loader(self.segm_paths[idx]) if self.load_segmentations else None
+        image = self.loader(self.img_paths[idx], "intensity")
+        segm = (
+            self.loader(self.segm_paths[idx], "label")
+            if self.load_segmentations
+            else None
+        )
         if len(image.shape) == 3:
             # add channel dimension
             image = image.unsqueeze(0)
@@ -206,11 +211,14 @@ class FetalTestDataset(FetalDataset):
         name = self.sub_ses[idx]
         name = self._sub_ses_string(name[0], ses=name[1])
 
-        data = {"image": image, "name": name}
+        subject = Subject(
+            image=image,
+            name=name,
+        )
         if segm is not None:
-            data["label"] = segm.long()
+            subject.label = segm
 
-        return data
+        return subject
 
     def __getitem__(self, idx) -> dict:
         """
@@ -224,31 +232,37 @@ class FetalTestDataset(FetalDataset):
 
 
         """
-        data = self._load_data(idx)
+        subject = self._load_data(idx)
 
         if self.transforms:
-            data = self.transforms(data)
-        if "label" in data:
-            # ensure label is long tensor
-            # to avoid issues with collate_fn
-            # and loss functions expecting long tensors
-            data["label"] = data["label"].long()
-        return data
+            # to apply monai transforms now need to transform
+            # to a dict
+            subject = {
+                "image": subject.image.data,
+                "label": subject.label.data,
+                "name": subject.name,
+            }
+            subject = self.transforms(subject)
 
-    def reverse_transform(self, data: dict) -> dict:
+        subject["label"].data = subject[
+            "label"
+        ].data.long()  # ensure label is long tensor
+        return subject
+
+    def reverse_transform(self, subject: Subject) -> Subject:
         """Reverse the transformations applied to the data.
 
         Args:
-            data: Dictionary with the `image` and `label` keys,
+            subject: Subject instance with the `image` and `label` attributes,
                 like the one returned by the `__getitem__` method.
 
         Returns:
-            Dictionary with the `image` and `label` keys where
+            Subject instance with the `image` and `label` attributes where
                 the transformations are reversed.
         """
         if self.transforms:
-            data = self.transforms.inverse(data)
-        return data
+            subject = self.transforms.inverse(subject)
+        return subject
 
 
 class FetalSynthDataset(FetalDataset):
@@ -348,14 +362,16 @@ class FetalSynthDataset(FetalDataset):
         # use generation_params to track the parameters used for the generation
         generation_params = {}
 
-        image = self.loader(self.img_paths[idx]) if self.load_image else None
-        segm = self.loader(self.segm_paths[idx])
+        image = (
+            self.loader(self.img_paths[idx], type="intensity")
+            if self.load_image
+            else None
+        )
+        segm = self.loader(self.segm_paths[idx], type="label")
 
         # orient to RAS for consistency
-        image = (
-            self.orientation(image.unsqueeze(0)).squeeze(0) if self.load_image else None
-        )
-        segm = self.orientation(segm.unsqueeze(0)).squeeze(0)
+        image = self.orientation(image) if self.load_image else None
+        segm = self.orientation(segm)
 
         # transform name into a single string otherwise collate fails
         name = self.sub_ses[idx]
@@ -377,28 +393,24 @@ class FetalSynthDataset(FetalDataset):
         generation_time_start = time.time()
 
         # generate the synthetic data
-        gen_output, segmentation, image, synth_params = self.generator.sample(
+        # gen_output, segmentation, image, synth_params = self.generator.sample(
+        #     image=image, segmentation=segm, seeds=seeds, genparams=genparams
+        # )
+        subject, synth_params = self.generator.sample(
             image=image, segmentation=segm, seeds=seeds, genparams=genparams
         )
-
-        # scale the images to [0, 1]
-        gen_output = self.scaler(gen_output)
-        image = self.scaler(image) if image is not None else None
-
-        # ensure image and segmentation are on the cpu
-        gen_output = gen_output.cpu()
-        segmentation = segmentation.cpu()
-        image = image.cpu() if image is not None else None
+        subject["name"] = name
 
         generation_params = {**generation_params, **synth_params}
         generation_params["generation_time"] = time.time() - generation_time_start
-        data_out = {
-            "image": gen_output.unsqueeze(0),
-            "label": segmentation.unsqueeze(0).long(),
-            "name": name,
-        }
 
-        return data_out, generation_params
+        # data_out = {
+        #     "image": gen_output,
+        #     "label": segmentation,
+        #     "name": name,
+        # }
+        subject.label.data = subject.label.data.long()  # ensure label is long tensor
+        return subject, generation_params
 
     def __getitem__(self, idx) -> dict:
         """
