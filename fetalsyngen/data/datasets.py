@@ -12,6 +12,7 @@ import time
 import torch
 import numpy as np
 from monai.data import MetaTensor
+import torchio as tio
 
 
 class FetalDataset:
@@ -24,6 +25,7 @@ class FetalDataset:
         img_suffix: str = "T2w",
         seg_suffix: str = "dseg",
         load_segmentations: bool = True,
+        apply_mri_augm: bool = False,
     ) -> dict:
         """
         Args:
@@ -48,7 +50,7 @@ class FetalDataset:
         self.scaler = ScaleIntensity(minv=0, maxv=1)
 
         self.orientation = Orientation(axcodes="RAS")
-
+        self.apply_mri_augm = apply_mri_augm
         self.img_paths, img_subject_sessions = self._load_bids_path(
             self.bids_path, self.img_suffix
         )
@@ -267,6 +269,7 @@ class FetalSynthDataset(FetalDataset):
         image_as_intensity: bool = False,
         img_suffix: str = "T2w",
         seg_suffix: str = "dseg",
+        apply_mri_augm: bool = False,
     ):
         """
 
@@ -286,7 +289,9 @@ class FetalSynthDataset(FetalDataset):
             image_as_intensity: If **True**, the image is used as the intensity prior,
                 instead of sampling the intensities from the seeds. Default is **False**.
         """
-        super().__init__(bids_path, sub_list, img_suffix, seg_suffix)
+        super().__init__(
+            bids_path, sub_list, img_suffix, seg_suffix, apply_mri_augm=apply_mri_augm
+        )
         self.seed_path = Path(seed_path) if isinstance(seed_path, str) else None
         self.load_image = load_image
         self.generator = generator
@@ -299,6 +304,43 @@ class FetalSynthDataset(FetalDataset):
                 )
             else:
                 self._load_seed_path()
+
+        self.transforms = tio.Compose(
+            [
+                # SPATIAL
+                tio.RandomMotion(degrees=10, translation=5, num_transforms=2, p=0.2),
+                tio.RandomGhosting(num_ghosts=(1, 10), intensity=(0.1, 0.5), p=0.2),
+                tio.RandomSpike(num_spikes=1, intensity=0.3, p=0.2),
+                # INTENSITY
+                tio.RandomNoise(mean=0.0, std=(0.0, 0.25), p=0.2),
+                tio.RescaleIntensity(out_min_max=(0.0, 1.0)),
+            ]
+        )
+
+    def apply_torchio_augmentations(self, data: dict) -> dict:
+        """
+        data: {
+            "image": torch.Tensor of shape [C, …],
+            "label": torch.Tensor of shape [C, …],
+            "name":  any (e.g. str)
+        }
+        returns the same dict with image/label replaced by the augmented ones.
+        """
+        # wrap into a Subject
+        subject = tio.Subject(
+            image=tio.ScalarImage(tensor=data["image"]),
+            label=tio.LabelMap(tensor=data["label"]),
+        )
+
+        # apply all transforms
+        transformed = self.transforms(subject)
+
+        # extract back to torch.Tensor
+        return {
+            "image": transformed["image"].data,
+            "label": transformed["label"].data.long(),
+            "name": data["name"],
+        }
 
     def _load_seed_path(self):
         """Load the seeds for the subjects."""
@@ -400,6 +442,10 @@ class FetalSynthDataset(FetalDataset):
             "label": segmentation.unsqueeze(0).long(),
             "name": name,
         }
+
+        if self.transforms is not None and self.apply_mri_augm:
+            # apply torchio augmentations
+            data_out = self.apply_torchio_augmentations(data_out)
 
         return data_out, generation_params
 
