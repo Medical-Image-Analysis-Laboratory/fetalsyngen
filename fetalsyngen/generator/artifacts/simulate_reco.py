@@ -15,18 +15,7 @@ boundary modifications.
 import numpy as np
 import torch
 import torch.nn.functional as F
-from fetalsyngen.generator.artifacts.svort import (
-    RigidTransform,
-    mat_update_resolution,
-    random_init_stack_transforms,
-    reset_transform,
-    slice_acquisition,
-    slice_acquisition_adjoint,
-    sample_motion,
-    interleave_index,
-    get_PSF,
-    random_angle,
-)
+
 from functools import partial
 from fetalsyngen.generator.artifacts.utils import (
     mog_3d_tensor,
@@ -39,8 +28,8 @@ def PSFreconstruction(transforms, slices, slices_mask, vol_mask, params):
     """
     Reconstruct the volume from the acquired slices using the PSF and the given transforms
     by calling the `slice_acquisition_adjoint` cuda method.
-
     """
+    from fetalsyngen.generator.artifacts.svort import slice_acquisition_adjoint
     return slice_acquisition_adjoint(
         transforms,
         params["psf"],
@@ -308,6 +297,17 @@ class Scanner:
         Returns:
             dict: The updated data dictionary with simulated acquired slices.
         """
+        from fetalsyngen.generator.artifacts.svort import (
+            RigidTransform,
+            mat_update_resolution,
+            random_init_stack_transforms,
+            reset_transform,
+            slice_acquisition,
+            sample_motion,
+            interleave_index,
+            get_PSF,
+            random_angle,
+        )
         data = self.get_resolution(data, genparams={})
         res = data["resolution"]
         res_r = data["resolution_recon"]
@@ -605,6 +605,10 @@ class PSFReconstructor:
         Returns:
             RigidTransform: The misregistered transformation.
         """
+        from fetalsyngen.generator.artifacts.svort import (
+            RigidTransform,
+            random_angle,
+        )
         nslices = len(positions)
         rand_angle = torch.zeros((nslices, 6)).to(self.device)
         for pos in torch.unique(positions[:, 1]):
@@ -635,6 +639,9 @@ class PSFReconstructor:
             trf: The misregistered transformation.
             trf_gt: The ground truth transformation.
         """
+        from fetalsyngen.generator.artifacts.svort import (
+            RigidTransform
+        )
         trf1 = trf.axisangle()
         trf2 = trf_gt.axisangle()
         if self._misreg_slice_on:
