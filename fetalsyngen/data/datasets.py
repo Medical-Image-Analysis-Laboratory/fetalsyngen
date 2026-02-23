@@ -45,7 +45,7 @@ class FetalDataset:
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
-        return list(set(subj_found) & set(sub_list)) if sub_list is not None else None
+        return sorted(list(set(subj_found) & set(sub_list))) if sub_list is not None else None
 
     def _sub_ses_string(self, sub, ses):
         return f"{sub}_{ses}" if ses is not None else sub

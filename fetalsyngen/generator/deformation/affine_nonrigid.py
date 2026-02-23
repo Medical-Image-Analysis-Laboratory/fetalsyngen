@@ -20,7 +20,6 @@ class SpatialDeformation:
         max_rotation: float,
         max_shear: float,
         max_scaling: float,
-        size: Iterable[int],
         prob: float,
         nonlinear_transform: bool,
         nonlin_scale_min: float,
@@ -35,7 +34,6 @@ class SpatialDeformation:
             max_rotation (float): Maximum rotation in degrees.
             max_shear (float): Maximum shear.
             max_scaling (float): Maximum scaling.
-            size (Iterable[int]): Size of the output image.
             prob (float): Probability of applying the deformation.
             nonlinear_transform (bool): Whether to apply nonlinear transformation.
             nonlin_scale_min (float): Minimum scale for the nonlinear transformation.
@@ -44,7 +42,6 @@ class SpatialDeformation:
             flip_prb (float): Probability of flipping the image.
             device (str): Device to use for computation. Either "cuda" or "cpu".
         """
-        self.size = size  # 256, 256, 256
         self.prob = prob
         self.flip_prb = flip_prb
 
@@ -61,9 +58,7 @@ class SpatialDeformation:
 
         self.device = device
 
-    def _prepare_grid(self, size=None):
-        if size is None:
-            size = self.size
+    def _prepare_grid(self, size):
         xx, yy, zz = np.meshgrid(
             range(size[0]),
             range(size[1]),
@@ -75,7 +70,7 @@ class SpatialDeformation:
         self.yy = torch.tensor(yy, dtype=torch.float, device=self.device)
         self.zz = torch.tensor(zz, dtype=torch.float, device=self.device)
         self.c = torch.tensor(
-            (np.array(self.size) - 1) / 2,
+            (np.array(size) - 1) / 2,
             dtype=torch.float,
             device=self.device,
         )
@@ -271,7 +266,7 @@ class SpatialDeformation:
         if random_shift:
             max_shift = (
                 torch.tensor(
-                    np.array(shp[0:3]) - self.size,
+                    np.array(shp[0:3]) - shp,
                     dtype=torch.float,
                     device=self.device,
                 )

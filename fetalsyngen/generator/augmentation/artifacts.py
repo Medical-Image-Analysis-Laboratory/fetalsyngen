@@ -106,8 +106,7 @@ class BlurCortex(RandTransform):
             cortex = seg == self.cortex_label
             cortex_prob = self.blur_proba(output.shape, cortex, device)
             # Reshape cortex prob onto to the cortex
-
-            idx = torch.multinomial(cortex_prob, nblur)
+            idx = torch.multinomial(cortex_prob, min(nblur, cortex_prob.shape[0]), replacement=False)
 
             idx_cortex = torch.where(cortex > 0)
             centers = [[idx_cortex[i][id.item()].item() for i in range(3)] for id in idx]
