@@ -394,7 +394,7 @@ class FetalSynthDataset(FetalDataset):
         generation_params = {}
 
         image = self.loader(self.img_paths[idx]) if self.load_image else None
-        segm = self.loader(self.segm_paths[idx])
+        segm = self.loader(self.segm_paths[idx]).astype(torch.long)
 
         # orient to RAS for consistency
         image = (
