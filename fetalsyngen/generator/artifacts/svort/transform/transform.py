@@ -213,9 +213,7 @@ def mat2euler(mat):
     RX = torch.atan2(mat[:, 1, 2], mat[:, 2, 2])
     RY = tmp
     RZ = torch.atan2(mat[:, 0, 1], mat[:, 0, 0])
-    RX[mask] = torch.atan2(
-        -mat[:, 0, 2] * mat[:, 1, 0], -mat[:, 0, 2] * mat[:, 2, 0]
-    )[mask]
+    RX[mask] = torch.atan2(-mat[:, 0, 2] * mat[:, 1, 0], -mat[:, 0, 2] * mat[:, 2, 0])[mask]
     RZ[mask] = 0
 
     RX *= 180 / np.pi
@@ -324,13 +322,9 @@ def average_rotation(R: torch.Tensor) -> torch.Tensor:
         sum_inv_norm_vmatrix = 0
         for j in range(R.shape[0]):
             vmatrix = scipy.linalg.logm(np.matmul(R[j], np.linalg.inv(S)))
-            vmatrix_normed = vmatrix / np.linalg.norm(
-                vmatrix, ord=2, axis=(0, 1)
-            )
+            vmatrix_normed = vmatrix / np.linalg.norm(vmatrix, ord=2, axis=(0, 1))
             sum_vmatrix_normed += vmatrix_normed
-            sum_inv_norm_vmatrix += 1 / np.linalg.norm(
-                vmatrix, ord=2, axis=(0, 1)
-            )
+            sum_inv_norm_vmatrix += 1 / np.linalg.norm(vmatrix, ord=2, axis=(0, 1))
 
         delta = sum_vmatrix_normed / sum_inv_norm_vmatrix
         if np.all(np.isfinite(delta)):
@@ -365,10 +359,7 @@ def get_transform_diff_mean(
 def random_init_stack_transforms(n_slice, gap, restricted, txy, device):
     """Initialize a stack of transforms. From the code of SVoRT."""
     angle = random_angle(1, restricted, device).expand(n_slice, -1)
-    tz = (
-        torch.arange(0, n_slice, device=device, dtype=torch.float32)
-        - (n_slice - 1) / 2.0
-    ) * gap
+    tz = (torch.arange(0, n_slice, device=device, dtype=torch.float32) - (n_slice - 1) / 2.0) * gap
     if txy:
         tx = torch.ones_like(tz) * np.random.uniform(-txy, txy)
         ty = torch.ones_like(tz) * np.random.uniform(-txy, txy)
@@ -378,23 +369,18 @@ def random_init_stack_transforms(n_slice, gap, restricted, txy, device):
     return RigidTransform(torch.cat((angle, t), -1), trans_first=True)
 
 
-def init_stack_transform(
-    n_slice: int, gap: float, device: DeviceType
-) -> RigidTransform:
+def init_stack_transform(n_slice: int, gap: float, device: DeviceType) -> RigidTransform:
     """Initialize a stack of transforms. From the code of NeSVoR."""
     ax = torch.zeros((n_slice, 6), dtype=torch.float32, device=device)
     ax[:, -1] = (
-        torch.arange(n_slice, dtype=torch.float32, device=device)
-        - (n_slice - 1) / 2.0
+        torch.arange(n_slice, dtype=torch.float32, device=device) - (n_slice - 1) / 2.0
     ) * gap
     return RigidTransform(ax, trans_first=True)
 
 
 def init_zero_transform(n: int, device: DeviceType) -> RigidTransform:
     """Initialize a stack of transforms. From the code of NeSVoR."""
-    return RigidTransform(
-        torch.zeros((n, 6), dtype=torch.float32, device=device)
-    )
+    return RigidTransform(torch.zeros((n, 6), dtype=torch.float32, device=device))
 
 
 def reset_transform(transform):
@@ -404,9 +390,7 @@ def reset_transform(transform):
     return RigidTransform(transform)
 
 
-def mat_transform_points(
-    mat: torch.Tensor, x: torch.Tensor, trans_first: bool
-) -> torch.Tensor:
+def mat_transform_points(mat: torch.Tensor, x: torch.Tensor, trans_first: bool) -> torch.Tensor:
     """Coordinate-wise matrix transformation, from the code of NeSVoR."""
     # mat (*, 3, 4)
     # x (*, 3)
@@ -420,9 +404,7 @@ def mat_transform_points(
     return x[..., 0]
 
 
-def transform_points(
-    transform: RigidTransform, x: torch.Tensor
-) -> torch.Tensor:
+def transform_points(transform: RigidTransform, x: torch.Tensor) -> torch.Tensor:
     """Coordinate-wise transformation, from the code of NeSVoR."""
     # transform (N) and x (N, 3)
     # or transform (1) and x (*, 3)
@@ -465,15 +447,10 @@ def affine2transformation(
     T = affine[:3, -1:]  # T = R @ (-T0 + T_r)
     R = R @ np.linalg.inv(np.diag(resolutions))
 
-    T0 = np.array(
-        [(w - 1) / 2 * resolutions[0], (h - 1) / 2 * resolutions[1], 0]
-    )
+    T0 = np.array([(w - 1) / 2 * resolutions[0], (h - 1) / 2 * resolutions[1], 0])
     T = np.linalg.inv(R) @ T + T0.reshape(3, 1)
 
-    tz = (
-        torch.arange(0, d, device=device, dtype=torch.float32) * resolutions[2]
-        + T[2].item()
-    )
+    tz = torch.arange(0, d, device=device, dtype=torch.float32) * resolutions[2] + T[2].item()
     tx = torch.ones_like(tz) * T[0].item()
     ty = torch.ones_like(tz) * T[1].item()
     t = torch.stack((tx, ty, tz), -1).view(-1, 3, 1)
@@ -485,9 +462,7 @@ def affine2transformation(
         t[:, 0, -1] *= -1
         R[:, :, 0] *= -1
 
-    transformation = RigidTransform(
-        torch.cat((R, t), -1).to(torch.float32), trans_first=True
-    )
+    transformation = RigidTransform(torch.cat((R, t), -1).to(torch.float32), trans_first=True)
 
     return volume, mask, transformation
 

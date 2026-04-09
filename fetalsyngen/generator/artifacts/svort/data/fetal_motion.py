@@ -43,8 +43,6 @@ def sample_motion(ts, device, rand=True):
     R = torch.matmul(R, R[0].transpose(-2, -1))
     trans = trans - trans[0]
 
-    transforms_motion = RigidTransform(
-        torch.cat((R, trans.unsqueeze(-1)), -1), trans_first=False
-    )
+    transforms_motion = RigidTransform(torch.cat((R, trans.unsqueeze(-1)), -1), trans_first=False)
 
     return transforms_motion

@@ -967,7 +967,7 @@ std::vector<torch::Tensor> slice_acquisition_forward_cuda(
     const int32_t threads = 512;
     const int32_t blocks = (slices.numel() + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(vol.type(), "slice_acquisition_forward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(vol.scalar_type(), "slice_acquisition_forward_cuda", [&] {
         slice_acquisition_forward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             transforms.data_ptr<scalar_t>(),
             vol.data_ptr<scalar_t>(),
@@ -1007,7 +1007,7 @@ std::vector<torch::Tensor> slice_acquisition_backward_cuda(
     const int32_t threads = 256;
     const int32_t blocks = (grad_slices.numel() + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(vol.type(), "slice_acquisition_backward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(vol.scalar_type(), "slice_acquisition_backward_cuda", [&] {
         slice_acquisition_backward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             transforms.data_ptr<scalar_t>(),
             vol.data_ptr<scalar_t>(),
@@ -1043,7 +1043,7 @@ std::vector<torch::Tensor> slice_acquisition_adjoint_forward_cuda(
     int32_t threads = 256;
     int32_t blocks = (slices.numel() + threads - 1) / threads;
     
-    AT_DISPATCH_FLOATING_TYPES(vol.type(), "slice_acquisition_adjoint_forward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(vol.scalar_type(), "slice_acquisition_adjoint_forward_cuda", [&] {
         slice_acquisition_adjoint_forward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             transforms.data_ptr<scalar_t>(),
             vol.data_ptr<scalar_t>(),
@@ -1063,7 +1063,7 @@ std::vector<torch::Tensor> slice_acquisition_adjoint_forward_cuda(
         threads = 1024;
         blocks = (vol.numel() + threads - 1) / threads;
 
-        AT_DISPATCH_FLOATING_TYPES(vol.type(), "equalize_cuda", [&] {
+        AT_DISPATCH_FLOATING_TYPES(vol.scalar_type(), "equalize_cuda", [&] {
             equalize_cuda_kernel<scalar_t><<<blocks, threads>>>(
                 vol.data_ptr<scalar_t>(),
                 vol_weight.data_ptr<scalar_t>(),
@@ -1096,7 +1096,7 @@ std::vector<torch::Tensor> slice_acquisition_adjoint_backward_cuda(
         const int32_t threads = 1024;
         const int32_t blocks = (grad_vol.numel() + threads - 1) / threads;
 
-        AT_DISPATCH_FLOATING_TYPES(grad_vol.type(), "equalize_cuda", [&] {
+        AT_DISPATCH_FLOATING_TYPES(grad_vol.scalar_type(), "equalize_cuda", [&] {
             equalize_cuda_kernel<scalar_t><<<blocks, threads>>>(
                 grad_vol.data_ptr<scalar_t>(),
                 vol_weight.data_ptr<scalar_t>(),
@@ -1111,7 +1111,7 @@ std::vector<torch::Tensor> slice_acquisition_adjoint_backward_cuda(
     const int32_t threads = 256;
     const int32_t blocks = (slices.numel() + threads - 1) / threads;
 
-    AT_DISPATCH_FLOATING_TYPES(grad_vol.type(), "slice_acquisition_adjoint_backward_cuda", [&] {
+    AT_DISPATCH_FLOATING_TYPES(grad_vol.scalar_type(), "slice_acquisition_adjoint_backward_cuda", [&] {
         slice_acquisition_adjoint_backward_cuda_kernel<scalar_t><<<blocks, threads>>>(
             transforms.data_ptr<scalar_t>(),
             grad_vol.data_ptr<scalar_t>(),

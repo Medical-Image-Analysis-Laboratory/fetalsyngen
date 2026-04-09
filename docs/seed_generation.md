@@ -1,7 +1,7 @@
 # Seed Generation
 
 ## Introduction
-Seed generation is the first step in creating synthetic fetal brain MRI images with FetalSynthGen.
+Seed generation is the first step in creating synthetic fetal brain MRI images with FetalSynthGen. We perform is separately from the generation step, as data pre-processing as this process is time consuming and can be done once for all images.
 
 * It addresses the **limited number of segmentation classes** in fetal brain MRI.
 * It allows the simulation of **finer variations** in tissue data.
@@ -58,3 +58,12 @@ The output folder structure is as follows:
        ├── sub-sta30_rec-irtk_T2w_dseg.nii.gz
        └── sub-sta30_rec-irtk_T2w.nii.gz
 ```
+
+If you wish to run the seed generation for your own annotation labels, please **update the script** yourself to include a custom annotation scheme and meta-labels support.
+
+
+!!! Warning
+    > **📝 Resampling**: For the correct work of the generator, all input data needs to be resampled to the same spatial size and resolution. Please perform this step before seed generation, as seeds need to match the images/segmentations.
+
+    
+Contact us if you need help with this.

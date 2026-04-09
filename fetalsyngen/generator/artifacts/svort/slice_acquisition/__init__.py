@@ -1,7 +1,7 @@
 from .slice_acq import (
-    SliceAcqAdjointFunction, 
+    SliceAcqAdjointFunction,
     SliceAcqFunction,
     slice_acq_cuda,
     slice_acquisition,
-    slice_acquisition_adjoint
-    )
+    slice_acquisition_adjoint,
+)

@@ -45,10 +45,8 @@ class FetalDataset:
         self.sub_ses = [
             (x, y) for x in self.subjects for y in self._get_ses(self.bids_path, x)
         ]
-
         self.loader = SimpleITKReader()
         self.scaler = ScaleIntensity(minv=0, maxv=1)
-
         self.orientation = Orientation(axcodes="RAS")
         self.apply_mri_augm = apply_mri_augm
         self.img_paths, img_subject_sessions = self._load_bids_path(
@@ -91,7 +89,11 @@ class FetalDataset:
 
     def find_subjects(self, sub_list):
         subj_found = [x.name for x in Path(self.bids_path).glob("sub-*")]
-        return list(set(subj_found) & set(sub_list)) if sub_list is not None else None
+        return (
+            sorted(list(set(subj_found) & set(sub_list)))
+            if sub_list is not None
+            else None
+        )
 
     def _sub_ses_string(self, sub, ses):
         return f"{sub}_{ses}" if ses is not None else sub
