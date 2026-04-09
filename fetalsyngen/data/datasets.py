@@ -80,9 +80,10 @@ class FetalDataset:
                     sess: path
                     for sess, path in zip(segm_subject_sessions, self.segm_paths)
                 }
-                self.img_paths = [img_map[key] for key in overlapping_subjects]
-                self.segm_paths = [seg_map[key] for key in overlapping_subjects]
-                self.sub_ses = list(overlapping_subjects)
+                sorted_keys = sorted(overlapping_subjects)
+                self.img_paths = [img_map[key] for key in sorted_keys]
+                self.segm_paths = [seg_map[key] for key in sorted_keys]
+                self.sub_ses = sorted_keys
                 self.subjects = list(set([x[0] for x in self.sub_ses]))
         else:
             self.segm_paths = None
